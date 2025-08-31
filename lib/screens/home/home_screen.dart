@@ -152,7 +152,17 @@ class _HomeScreenState extends State<HomeScreen> with SingleTickerProviderStateM
       color: const Color(0xFF253250), // Cor azul escuro do Metrô
       child: Column(
         children: [
-          const SizedBox(height: 20),
+          // Aumentando o espaçamento no topo
+          const SizedBox(height: 60),
+          // Logo do Metrô no topo da sidebar
+          Padding(
+            padding: const EdgeInsets.only(bottom: 30),
+            child: Icon(
+              Icons.subway,
+              color: Colors.white,
+              size: 32,
+            ),
+          ),
           _sidebarItem(Icons.person, 'Usuário', 0, expanded),
           _sidebarItem(Icons.assignment, 'Estoque', 1, expanded),
           _sidebarItem(Icons.build, 'Ferramentas', 2, expanded),
