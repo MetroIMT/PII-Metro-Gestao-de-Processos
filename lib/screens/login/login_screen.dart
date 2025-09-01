@@ -1,152 +1,327 @@
 import 'package:flutter/material.dart';
 import '../home/home_screen.dart';
 
-class LoginScreen extends StatefulWidget {
-  const LoginScreen({super.key});
-
-  @override
-  State<LoginScreen> createState() => _LoginScreenState();
+void main() {
+  runApp(MyApp());
 }
 
-class _LoginScreenState extends State<LoginScreen> {
-  final _usernameController = TextEditingController();
-  final _passwordController = TextEditingController();
-
+class MyApp extends StatelessWidget {
   @override
-  void dispose() {
-    _usernameController.dispose();
-    _passwordController.dispose();
-    super.dispose();
+  Widget build(BuildContext context) {
+    return MaterialApp(
+      title: 'Login Metro',
+      theme: ThemeData(
+        primarySwatch: Colors.blue,
+      ),
+      home: LoginPage(),
+      debugShowCheckedModeBanner: false,
+    );
   }
+}
 
-  void _tryLogin() {
-    final user = _usernameController.text.trim();
-    final pass = _passwordController.text.trim();
-    if (user == '' && pass == '') {
-      // Transição suave com animação de fade e slide
-      Navigator.of(context).pushReplacement(
-        PageRouteBuilder(
-          transitionDuration: const Duration(milliseconds: 800),
-          pageBuilder: (context, animation, secondaryAnimation) => const HomeScreen(),
-          transitionsBuilder: (context, animation, secondaryAnimation, child) {
-            const begin = Offset(0.0, 0.1);
-            const end = Offset.zero;
-            const curve = Curves.easeOutCubic;
-            
-            var tween = Tween(begin: begin, end: end).chain(CurveTween(curve: curve));
-            var offsetAnimation = animation.drive(tween);
-            
-            return FadeTransition(
-              opacity: animation,
-              child: SlideTransition(
-                position: offsetAnimation,
-                child: child,
-              ),
-            );
-          },
-        ),
-      );
-    } else {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Usuário ou senha incorretos')),
-      );
-    }
-  }
+class LoginPage extends StatefulWidget {
+  @override
+  _LoginPageState createState() => _LoginPageState();
+}
+
+class _LoginPageState extends State<LoginPage> {
+  final TextEditingController emailController = TextEditingController();
+  final TextEditingController passwordController = TextEditingController();
+  bool rememberMe = false;
 
   @override
   Widget build(BuildContext context) {
+    final isDesktop = MediaQuery.of(context).size.width > 600;
+
+    final metroBlue = Color(0xFF001489);
+
     return Scaffold(
+      backgroundColor: Colors.white,
       body: Center(
-        child: Padding(
-          padding: const EdgeInsets.all(30.0),
-          child: Column(
-            mainAxisAlignment: MainAxisAlignment.center,
-            crossAxisAlignment: CrossAxisAlignment.center,
-            children: [
-              Hero(
-                tag: 'logo',
-                child: SizedBox(
-                  height: 140,
-                  child: Center(
-                    child: Image.asset(
-                      'assets/LogoMetro.png',
-                      fit: BoxFit.contain,
+        child: isDesktop
+            ? Container(
+                width: 1400,
+                height: 800,
+                decoration: BoxDecoration(
+                  color: Colors.white,
+                  boxShadow: [
+                    BoxShadow(
+                      color: Colors.black26,
+                      blurRadius: 10,
+                      offset: Offset(0, 5),
                     ),
+                  ],
+                ),
+                child: Row(
+                  children: [
+                    // Lado esquerdo azul metrô
+                    Expanded(
+                      flex: 1,
+                      child: Container(
+                        color: metroBlue,
+                        padding: EdgeInsets.all(32),
+                        child: Column(
+                          mainAxisAlignment: MainAxisAlignment.center,
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            // Logo
+                            Container(
+                              padding: EdgeInsets.symmetric(vertical: 8),
+                              child: Image.asset(
+                                'assets/LogoMetro.png',
+                                width: 120,
+                                height: 120,
+                                fit: BoxFit.contain,
+                              ),
+                            ),
+                            SizedBox(height: 32),
+                            Text(
+                              'Bem-vindo',
+                              style: TextStyle(
+                                fontSize: 28,
+                                color: Colors.white,
+                              ),
+                            ),
+                            Text(
+                              'de volta!',
+                              style: TextStyle(
+                                fontSize: 28,
+                                fontWeight: FontWeight.bold,
+                                color: Colors.white,
+                              ),
+                            ),
+                            SizedBox(height: 16),
+                            Text(
+                              'Lorem Ipsum is simply dummy text of the printing and typesetting. Lorem Ipsum has been the industry\'s standard.',
+                              style: TextStyle(
+                                fontSize: 12,
+                                color: Colors.white70,
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                    ),
+                    // Lado direito branco
+                    Expanded(
+                      flex: 1,
+                      child: Container(
+                        padding:
+                            EdgeInsets.symmetric(horizontal: 32, vertical: 48),
+                        color: Colors.white,
+                        child: Column(
+                          mainAxisAlignment: MainAxisAlignment.center,
+                          children: [
+                            TextField(
+                              controller: emailController,
+                              decoration: InputDecoration(
+                                border: OutlineInputBorder(),
+                                labelText: 'Email',
+                              ),
+                            ),
+                            SizedBox(height: 16),
+                            TextField(
+                              controller: passwordController,
+                              decoration: InputDecoration(
+                                border: OutlineInputBorder(),
+                                labelText: 'Senha',
+                              ),
+                              obscureText: true,
+                            ),
+                            SizedBox(height: 8),
+                            Row(
+                              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                              children: [
+                                Row(
+                                  children: [
+                                    Checkbox(
+                                      value: rememberMe,
+                                      activeColor: metroBlue,
+                                      onChanged: (val) {
+                                        setState(() {
+                                          rememberMe = val ?? false;
+                                        });
+                                      },
+                                    ),
+                                    Text(
+                                      'Lembre-se de mim',
+                                      style: TextStyle(
+                                        color: Colors.black87,
+                                      ),
+                                    ),
+                                  ],
+                                ),
+                                TextButton(
+                                  onPressed: () {
+                                    // Esqueceu a senha ação
+                                  },
+                                  child: Text(
+                                    'Esqueceu a senha?',
+                                    style: TextStyle(
+                                      color: metroBlue,
+                                    ),
+                                  ),
+                                ),
+                              ],
+                            ),
+                            SizedBox(height: 16),
+                            Row(
+                              children: [
+                                Expanded(
+                                  child: ElevatedButton(
+                                    onPressed: () {
+                                      // Navegar para home_screen.dart
+                                      Navigator.pushReplacement(
+                                        context,
+                                        MaterialPageRoute(
+                                            builder: (context) =>
+                                                HomeScreen()),
+                                      );
+                                    },
+                                    child: Text('Entrar'),
+                                    style: ElevatedButton.styleFrom(
+                                      backgroundColor: metroBlue,
+                                      foregroundColor: Colors.white,
+                                    ),
+                                  ),
+                                ),
+                                SizedBox(width: 16),
+                                OutlinedButton(
+                                  onPressed: () {
+                                    // Ação cadastrar
+                                  },
+                                  child: Text('Cadastrar'),
+                                  style: OutlinedButton.styleFrom(
+                                    foregroundColor: metroBlue,
+                                  ),
+                                )
+                              ],
+                            ),
+                          ],
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+              )
+            : SingleChildScrollView(
+                child: Container(
+                  width: double.infinity,
+                  padding:
+                      EdgeInsets.symmetric(horizontal: 32.0, vertical: 80.0),
+                  color: Colors.white,
+                  child: Column(
+                    children: [
+                      // Logo
+                      Container(
+                        padding: EdgeInsets.symmetric(vertical: 8),
+                        child: Image.asset(
+                          'assets/LogoMetro.png',
+                          width: 120,
+                          height: 120,
+                          fit: BoxFit.contain,
+                        ),
+                      ),
+                      SizedBox(height: 32),
+                      Text(
+                        'Bem vindo',
+                        style: TextStyle(
+                          fontSize: 28,
+                          color: metroBlue,
+                        ),
+                      ),
+                      Text(
+                        'de volta!',
+                        style: TextStyle(
+                            fontSize: 28,
+                            fontWeight: FontWeight.bold,
+                            color: metroBlue),
+                      ),
+                      SizedBox(height: 24),
+                      TextField(
+                        controller: emailController,
+                        decoration: InputDecoration(
+                          border: OutlineInputBorder(),
+                          labelText: 'Email',
+                        ),
+                      ),
+                      SizedBox(height: 16),
+                      TextField(
+                        controller: passwordController,
+                        decoration: InputDecoration(
+                          border: OutlineInputBorder(),
+                          labelText: 'Senha',
+                        ),
+                        obscureText: true,
+                      ),
+                      SizedBox(height: 8),
+                      Row(
+                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                        children: [
+                          Row(
+                            children: [
+                              Checkbox(
+                                value: rememberMe,
+                                activeColor: metroBlue,
+                                onChanged: (val) {
+                                  setState(() {
+                                    rememberMe = val ?? false;
+                                  });
+                                },
+                              ),
+                              Text(
+                                'Lembre-se de mim',
+                                style: TextStyle(
+                                  color: Colors.black87,
+                                ),
+                              ),
+                            ],
+                          ),
+                          TextButton(
+                            onPressed: () {
+                              // Esqueceu a senha ação
+                            },
+                            child: Text(
+                              'Esqueceu a senha?',
+                              style: TextStyle(
+                                color: metroBlue,
+                              ),
+                            ),
+                          ),
+                        ],
+                      ),
+                      SizedBox(height: 16),
+                      ElevatedButton(
+                        onPressed: () {
+                          // Navegar para home_screen.dart
+                          Navigator.pushReplacement(
+                            context,
+                            MaterialPageRoute(
+                                builder: (context) => HomeScreen()),
+                          );
+                        },
+                        child: Text('Entrar'),
+                        style: ElevatedButton.styleFrom(
+                          backgroundColor: metroBlue,
+                          minimumSize: Size(double.infinity, 40),
+                          foregroundColor: Colors.white,
+                        ),
+                      ),
+                      SizedBox(height: 8),
+                      OutlinedButton(
+                        onPressed: () {
+                          // Ação Cadastrar
+                        },
+                        child: Text('Cadastrar'),
+                        style: OutlinedButton.styleFrom(
+                          minimumSize: Size(double.infinity, 40),
+                          foregroundColor: metroBlue,
+                        ),
+                      ),
+                    ],
                   ),
                 ),
               ),
-              SizedBox(height: 8),
-              Text(
-                'Bem Vindo',
-                style: TextStyle(
-                  fontFamily: 'Poppins',
-                  fontWeight: FontWeight.bold,
-                  fontSize: 26,
-                  color: Color(0xFF1C1C1C),
-                ),
-              ),
-              SizedBox(height: 6),
-              Text(
-                'Faça login para continuar',
-                style: TextStyle(
-                  fontFamily: 'Poppins',
-                  fontWeight: FontWeight.normal,
-                  fontSize: 18,
-                  color: Color(0xFF1C1C1C),
-                ),
-              ),
-              SizedBox(height: 26),
-              TextField(
-                controller: _usernameController,
-                decoration: InputDecoration(
-                  labelText: 'Nome do Usuário',
-                  border: OutlineInputBorder(),
-                ),
-              ),
-              SizedBox(height: 16),
-              TextField(
-                controller: _passwordController,
-                decoration: InputDecoration(
-                  labelText: 'Senha',
-                  border: OutlineInputBorder(),
-                ),
-                obscureText: true,
-              ),
-              SizedBox(height: 26),
-              SizedBox(
-                width: double.infinity,
-                height: 49,
-                child: ElevatedButton(
-                  onPressed: _tryLogin,
-                  style: ElevatedButton.styleFrom(
-                    backgroundColor: Color(0xFF3B62FF),
-                    shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(10),
-                    ),
-                  ),
-                  child: Text(
-                    'Login',
-                    style: TextStyle(
-                      color: Colors.white,
-                      fontSize: 16,
-                      fontWeight: FontWeight.bold,
-                    ),
-                  ),
-                ),
-              ),
-              SizedBox(height: 26),
-              Center(
-                child: Text(
-                  'Esqueceu a Senha?',
-                  textAlign: TextAlign.center,
-                  style: TextStyle(fontSize: 14, color: Color(0xFF87879D)),
-                ),
-              ),
-              SizedBox(height: 10),
-              Center(),
-            ],
-          ),
-        ),
       ),
     );
   }

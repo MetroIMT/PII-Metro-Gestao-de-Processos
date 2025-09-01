@@ -13,7 +13,7 @@ class MyApp extends StatelessWidget {
     return MaterialApp(
       title: 'PI Metro 2025-02',
       theme: ThemeData(primarySwatch: Colors.blue),
-      home: const LoginScreen(),
+      home: LoginPage(),
       debugShowCheckedModeBanner: false,
     );
   }
