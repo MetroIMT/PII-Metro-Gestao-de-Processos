@@ -346,6 +346,8 @@ class _DashboardPageState extends State<DashboardPage> {
 
   @override
   Widget build(BuildContext context) {
+    final metroBlue = const Color(0xFF001489); // Cor principal do Metrô
+    
     return Scaffold(
       appBar: AppBar(
         title: const Text(
@@ -397,6 +399,71 @@ class _DashboardPageState extends State<DashboardPage> {
                     onPressed: () {
                       // Implementar filtragem avançada
                     },
+                  ),
+                ],
+              ),
+            ),
+            
+            // Informações de contagem e estatísticas
+            Padding(
+              padding: const EdgeInsets.only(bottom: 16.0),
+              child: Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                children: [
+                  Text(
+                    'Itens no estoque: ${_filteredMateriais.length}',
+                    style: TextStyle(
+                      fontSize: 16,
+                      fontWeight: FontWeight.w500,
+                      color: Colors.grey.shade700,
+                    ),
+                  ),
+                  Row(
+                    children: [
+                      Container(
+                        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+                        decoration: BoxDecoration(
+                          color: Colors.green.withOpacity(0.1),
+                          borderRadius: BorderRadius.circular(20),
+                          border: Border.all(color: Colors.green, width: 1),
+                        ),
+                        child: Row(
+                          children: [
+                            Icon(Icons.check_circle, color: Colors.green, size: 16),
+                            SizedBox(width: 4),
+                            Text(
+                              'Disponíveis: ${_materiais.where((m) => m.quantidade > 0).length}',
+                              style: TextStyle(
+                                color: Colors.green.shade700,
+                                fontWeight: FontWeight.w500,
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                      SizedBox(width: 12),
+                      Container(
+                        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+                        decoration: BoxDecoration(
+                          color: Colors.red.withOpacity(0.1),
+                          borderRadius: BorderRadius.circular(20),
+                          border: Border.all(color: Colors.red, width: 1),
+                        ),
+                        child: Row(
+                          children: [
+                            Icon(Icons.warning, color: Colors.red, size: 16),
+                            SizedBox(width: 4),
+                            Text(
+                              'Em falta: ${_materiais.where((m) => m.quantidade <= 0).length}',
+                              style: TextStyle(
+                                color: Colors.red.shade700,
+                                fontWeight: FontWeight.w500,
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                    ],
                   ),
                 ],
               ),
@@ -533,89 +600,176 @@ class _DashboardPageState extends State<DashboardPage> {
                       },
                     );
                   } else {
-                    // Layout de tabela para desktop
+                    // Layout de tabela para desktop - Responsivo
                     return Container(
                       decoration: BoxDecoration(
-                        color: Colors.grey.shade200,
+                        color: Colors.white,
                         borderRadius: BorderRadius.circular(12),
+                        boxShadow: [
+                          BoxShadow(
+                            color: Colors.grey.withOpacity(0.1),
+                            blurRadius: 4,
+                            offset: const Offset(0, 2),
+                          ),
+                        ],
                       ),
-                      child: SingleChildScrollView(
-                        scrollDirection: Axis.vertical,
+                      width: double.infinity,
+                      child: Theme(
+                        data: Theme.of(context).copyWith(
+                          dividerColor: Colors.grey.shade200,
+                        ),
                         child: SingleChildScrollView(
                           scrollDirection: Axis.horizontal,
-                          child: DataTable(
-                            headingRowColor: MaterialStateProperty.resolveWith<Color>(
-                              (Set<MaterialState> states) => Colors.grey.shade300,
+                          child: ConstrainedBox(
+                            constraints: BoxConstraints(
+                              minWidth: constraints.maxWidth,
                             ),
-                            columnSpacing: 24,
-                            horizontalMargin: 16,
-                            dataRowHeight: 60,
-                            headingRowHeight: 56,
-                            columns: const [
-                              DataColumn(label: Text('Código', style: TextStyle(fontWeight: FontWeight.bold))),
-                              DataColumn(label: Text('Nome', style: TextStyle(fontWeight: FontWeight.bold))),
-                              DataColumn(label: Text('Quantidade', style: TextStyle(fontWeight: FontWeight.bold))),
-                              DataColumn(label: Text('Local', style: TextStyle(fontWeight: FontWeight.bold))),
-                              DataColumn(label: Text('Status', style: TextStyle(fontWeight: FontWeight.bold))),
-                              DataColumn(label: Text('Ações', style: TextStyle(fontWeight: FontWeight.bold))),
-                            ],
-                            rows: _filteredMateriais.map((material) {
-                              return DataRow(
-                                cells: [
-                                  DataCell(Text(
-                                    material.codigo,
-                                    style: const TextStyle(fontWeight: FontWeight.w500),
-                                  )),
-                                  DataCell(Text(material.nome)),
-                                  DataCell(Text(
-                                    material.quantidade.toString(),
-                                    style: TextStyle(
-                                      fontWeight: FontWeight.bold,
-                                      color: material.quantidade > 0 ? Colors.black : Colors.red,
+                            child: DataTable(
+                              headingRowColor: MaterialStateProperty.resolveWith<Color>(
+                                (Set<MaterialState> states) => const Color(0xFFF5F7FA),
+                              ),
+                              dataRowColor: MaterialStateProperty.resolveWith<Color>(
+                                (Set<MaterialState> states) {
+                                  if (states.contains(MaterialState.selected)) {
+                                    return Colors.blue.withOpacity(0.1);
+                                  }
+                                  return Colors.white;
+                                },
+                              ),
+                              columnSpacing: 24,
+                              horizontalMargin: 24,
+                              dataRowHeight: 64,
+                              headingRowHeight: 60,
+                              showCheckboxColumn: false,
+                              dividerThickness: 1,
+                              columns: [
+                                const DataColumn(
+                                  label: Expanded(
+                                    child: Text(
+                                      'Código', 
+                                      style: TextStyle(fontWeight: FontWeight.bold),
                                     ),
-                                  )),
-                                  DataCell(Text(material.local)),
-                                  DataCell(
-                                    Container(
-                                      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-                                      decoration: BoxDecoration(
-                                        color: material.quantidade > 0 ? Colors.green : Colors.red,
-                                        borderRadius: BorderRadius.circular(12),
+                                  ),
+                                ),
+                                DataColumn(
+                                  label: Expanded(
+                                    flex: 3,
+                                    child: Text(
+                                      'Nome', 
+                                      style: TextStyle(fontWeight: FontWeight.bold),
+                                    ),
+                                  ),
+                                ),
+                                const DataColumn(
+                                  label: Expanded(
+                                    child: Text(
+                                      'Quantidade', 
+                                      style: TextStyle(fontWeight: FontWeight.bold),
+                                    ),
+                                  ),
+                                  numeric: true,
+                                ),
+                                const DataColumn(
+                                  label: Expanded(
+                                    child: Text(
+                                      'Local', 
+                                      style: TextStyle(fontWeight: FontWeight.bold),
+                                    ),
+                                  ),
+                                ),
+                                const DataColumn(
+                                  label: Expanded(
+                                    child: Text(
+                                      'Status', 
+                                      style: TextStyle(fontWeight: FontWeight.bold),
+                                    ),
+                                  ),
+                                ),
+                                const DataColumn(
+                                  label: Expanded(
+                                    child: Text(
+                                      'Ações', 
+                                      style: TextStyle(fontWeight: FontWeight.bold),
+                                    ),
+                                  ),
+                                ),
+                              ],
+                              rows: _filteredMateriais.map((material) {
+                                return DataRow(
+                                  cells: [
+                                    DataCell(
+                                      Text(
+                                        material.codigo,
+                                        style: const TextStyle(fontWeight: FontWeight.w500),
                                       ),
-                                      child: Text(
-                                        material.status,
-                                        style: const TextStyle(
-                                          color: Colors.white,
-                                          fontSize: 12,
+                                    ),
+                                    DataCell(
+                                      Text(
+                                        material.nome, 
+                                        style: TextStyle(
+                                          color: Colors.grey.shade800,
+                                        ),
+                                      ),
+                                    ),
+                                    DataCell(
+                                      Text(
+                                        material.quantidade.toString(),
+                                        style: TextStyle(
                                           fontWeight: FontWeight.bold,
+                                          color: material.quantidade > 0 ? Colors.black : Colors.red,
                                         ),
                                       ),
                                     ),
-                                  ),
-                                  DataCell(
-                                    Row(
-                                      mainAxisSize: MainAxisSize.min,
-                                      children: [
-                                        IconButton(
-                                          icon: const Icon(Icons.edit, size: 20),
-                                          color: Colors.blue,
-                                          onPressed: () {
-                                            // Implementar edição
-                                          },
+                                    DataCell(Text(material.local)),
+                                    DataCell(
+                                      Container(
+                                        padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                                        decoration: BoxDecoration(
+                                          color: material.quantidade > 0 ? Colors.green : Colors.red,
+                                          borderRadius: BorderRadius.circular(12),
                                         ),
-                                        IconButton(
-                                          icon: const Icon(Icons.swap_vert, size: 20),
-                                          color: const Color(0xFF253250),
-                                          onPressed: () {
-                                            // Implementar movimentação
-                                          },
+                                        child: Text(
+                                          material.status,
+                                          style: const TextStyle(
+                                            color: Colors.white,
+                                            fontSize: 12,
+                                            fontWeight: FontWeight.bold,
+                                          ),
                                         ),
-                                      ],
+                                      ),
                                     ),
-                                  ),
-                                ],
-                              );
-                            }).toList(),
+                                    DataCell(
+                                      Row(
+                                        mainAxisSize: MainAxisSize.min,
+                                        children: [
+                                          IconButton(
+                                            icon: const Icon(Icons.edit, size: 20),
+                                            color: Colors.blue,
+                                            tooltip: "Editar",
+                                            onPressed: () {
+                                              // Implementar edição
+                                            },
+                                          ),
+                                          IconButton(
+                                            icon: const Icon(Icons.swap_vert, size: 20),
+                                            color: const Color(0xFF253250),
+                                            tooltip: "Movimentar",
+                                            onPressed: () {
+                                              // Implementar movimentação
+                                            },
+                                          ),
+                                        ],
+                                      ),
+                                    ),
+                                  ],
+                                  onSelectChanged: (selected) {
+                                    if (selected == true) {
+                                      // Implementar ação ao selecionar linha
+                                    }
+                                  },
+                                );
+                              }).toList(),
+                            ),
                           ),
                         ),
                       ),
@@ -634,8 +788,12 @@ class _DashboardPageState extends State<DashboardPage> {
                   icon: const Icon(Icons.add),
                   label: const Text('Adicionar material'),
                   style: ElevatedButton.styleFrom(
-                    backgroundColor: Colors.grey.shade600,
+                    backgroundColor: metroBlue,
                     foregroundColor: Colors.white,
+                    padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(12),
+                    ),
                   ),
                   onPressed: () {
                     _showAddMaterialDialog(context);
