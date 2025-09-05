@@ -146,7 +146,7 @@ class _HomeScreenState extends State<HomeScreen> with SingleTickerProviderStateM
       key: _scaffoldKey,
       backgroundColor: Colors.white,
       // AppBar apenas no mobile (para o menu hamburguer)
-      appBar: AppBar(
+      appBar: isMobile ? AppBar(
         elevation: 0,
         backgroundColor: Colors.white,
         // No mobile: botão abre drawer, no desktop: botão expande/contrai a sidebar
@@ -154,19 +154,17 @@ class _HomeScreenState extends State<HomeScreen> with SingleTickerProviderStateM
           icon: AnimatedIcon(
             icon: AnimatedIcons.menu_close,
             progress: _animationController,
-            color: const Color(0xFF2D3748),
+            color: const Color(0xFF001489),
           ),
-          onPressed: isMobile
-              ? () {
-                  // Usar o _scaffoldKey para abrir o drawer
-                  _scaffoldKey.currentState?.openDrawer();
-                }
-              : _toggleRail,
+          onPressed: () {
+            // Usar o _scaffoldKey para abrir o drawer
+            _scaffoldKey.currentState?.openDrawer();
+          },
         ),
         title: const Text(
           'Dashboard',
           style: TextStyle(
-            color: Color(0xFF2D3748),
+            color: Color(0xFF001489),
             fontWeight: FontWeight.bold,
           ),
         ),
@@ -176,7 +174,7 @@ class _HomeScreenState extends State<HomeScreen> with SingleTickerProviderStateM
             child: Image.asset('assets/LogoMetro.png', height: 32),
           ),
         ],
-      ),
+      ) : null,
       drawer: isMobile 
           ? Drawer(child: _buildSidebar(expanded: true)) 
           : null,
@@ -210,13 +208,34 @@ class _HomeScreenState extends State<HomeScreen> with SingleTickerProviderStateM
                     child: Row(
                       mainAxisAlignment: MainAxisAlignment.spaceBetween,
                       children: [
-                        const Text(
-                          'Dashboard',
-                          style: TextStyle(
-                            fontSize: 24,
-                            fontWeight: FontWeight.bold,
-                            color: Color(0xFF2D3748),
-                          ),
+                        Row(
+                          children: [
+                            IconButton(
+                              icon: Icon(
+                                _isRailExtended ? Icons.menu_open : Icons.menu,
+                                color: const Color(0xFF001489),
+                              ),
+                              onPressed: () {
+                                setState(() {
+                                  _isRailExtended = !_isRailExtended;
+                                  if (_isRailExtended) {
+                                    _animationController.forward();
+                                  } else {
+                                    _animationController.reverse();
+                                  }
+                                });
+                              },
+                            ),
+                            SizedBox(width: 12),
+                            const Text(
+                              'Dashboard',
+                              style: TextStyle(
+                                fontSize: 24,
+                                fontWeight: FontWeight.bold,
+                                color: Color(0xFF001489),
+                              ),
+                            ),
+                          ],
                         ),
                         Hero(
                           tag: 'logo',
@@ -243,27 +262,55 @@ class _HomeScreenState extends State<HomeScreen> with SingleTickerProviderStateM
   
   // Barra lateral com menu de navegação
   Widget _buildSidebar({bool expanded = false}) {
+    final metroBlue = const Color(0xFF001489);
+    final metroLightBlue = const Color(0xFF001489);
+    
     return Container(
       width: expanded ? 180 : 70,
-      color: const Color(0xFF253250), // Cor azul escuro do Metrô
+      decoration: BoxDecoration(
+        gradient: LinearGradient(
+          begin: Alignment.topCenter,
+          end: Alignment.bottomCenter,
+          colors: [metroBlue, metroLightBlue.withOpacity(0.9)],
+        ),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withOpacity(0.2),
+            blurRadius: 8,
+            offset: const Offset(2, 0),
+          ),
+        ],
+      ),
       child: Column(
         children: [
           // Aumentando o espaçamento no topo
           const SizedBox(height: 60),
           // Logo do Metrô no topo da sidebar
-          Padding(
-            padding: const EdgeInsets.only(bottom: 30),
+          Container(
+            padding: const EdgeInsets.symmetric(vertical: 16),
+            decoration: BoxDecoration(
+              border: Border(
+                bottom: BorderSide(
+                  color: Colors.white.withOpacity(0.2),
+                  width: 1,
+                ),
+              ),
+            ),
             child: Icon(
               Icons.subway,
               color: Colors.white,
               size: 32,
             ),
           ),
+          const SizedBox(height: 20),
           _sidebarItem(Icons.person, 'Usuário', 0, expanded),
           _sidebarItem(Icons.assignment, 'Estoque', 1, expanded),
           _sidebarItem(Icons.build, 'Ferramentas', 2, expanded),
           _sidebarItem(Icons.article, 'Relatórios', 3, expanded),
           const Spacer(),
+          // Item de logout
+          _sidebarItem(Icons.logout, 'Sair', 4, expanded),
+          const SizedBox(height: 16),
         ],
       ),
     );
@@ -291,13 +338,22 @@ class _HomeScreenState extends State<HomeScreen> with SingleTickerProviderStateM
             case 3:
               // Navegar para relatórios
               break;
+            case 4:
+              // Lógica de logout
+              Navigator.pop(context);
+              break;
           }
         });
       },
       child: Container(
         width: double.infinity,
         padding: EdgeInsets.symmetric(vertical: 16, horizontal: expanded ? 16 : 0),
-        color: isSelected ? Colors.black26 : Colors.transparent,
+        decoration: BoxDecoration(
+          color: isSelected ? Colors.white.withOpacity(0.2) : Colors.transparent,
+          border: isSelected 
+              ? Border(left: BorderSide(color: Colors.white, width: 3)) 
+              : null,
+        ),
         child: expanded 
           // Layout expandido: ícone e texto lado a lado
           ? Row(
@@ -310,6 +366,7 @@ class _HomeScreenState extends State<HomeScreen> with SingleTickerProviderStateM
                     style: const TextStyle(
                       color: Colors.white,
                       fontSize: 14,
+                      fontWeight: FontWeight.w500,
                     ),
                   ),
                 ),
@@ -330,6 +387,7 @@ class _HomeScreenState extends State<HomeScreen> with SingleTickerProviderStateM
                   style: const TextStyle(
                     color: Colors.white,
                     fontSize: 10,
+                    fontWeight: FontWeight.w500,
                   ),
                 ),
               ],
@@ -340,6 +398,8 @@ class _HomeScreenState extends State<HomeScreen> with SingleTickerProviderStateM
   
   // Conteúdo do Dashboard baseado na imagem de referência
   Widget _buildDashboardContent() {
+    final metroBlue = const Color(0xFF001489);
+    
     return LayoutBuilder(
       builder: (context, constraints) {
         // Decidir se é 1 ou 2 colunas com base na largura disponível
@@ -364,6 +424,7 @@ class _HomeScreenState extends State<HomeScreen> with SingleTickerProviderStateM
               Icons.timer,
               Colors.orange,
               () {}, 
+              color2: Colors.orange.shade200,
             ),
             
             // Card de Movimentações Recentes
@@ -372,6 +433,7 @@ class _HomeScreenState extends State<HomeScreen> with SingleTickerProviderStateM
               Icons.swap_horiz,
               Colors.green,
               () {},
+              color2: Colors.green.shade200,
             ),
             
             // Card de Alertas (estoque baixo / vencimento)
@@ -381,6 +443,7 @@ class _HomeScreenState extends State<HomeScreen> with SingleTickerProviderStateM
               Colors.red,
               () {},
               hasAlert: true,
+              color2: Colors.red.shade200,
             ),
           ],
         );
@@ -396,117 +459,180 @@ class _HomeScreenState extends State<HomeScreen> with SingleTickerProviderStateM
     final int materiaisEmFalta = totalMateriais - materiaisDisponiveis;
     final double porcentagemDisponivel = (materiaisDisponiveis / totalMateriais) * 100;
     
+    final metroBlue = const Color(0xFF001489);
+    final metroLightBlue = const Color.fromARGB(255, 5, 59, 158);
+    
     return Material(
-      color: Colors.grey.shade200,
+      elevation: 4,
       borderRadius: BorderRadius.circular(12),
-      elevation: 1,
       child: InkWell(
         onTap: onTap,
         borderRadius: BorderRadius.circular(12),
-        child: Padding(
-          padding: const EdgeInsets.all(16.0),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              // Título e ícone
-              Row(
-                children: [
-                  Icon(Icons.inventory_2, color: Colors.blue.shade800),
-                  const SizedBox(width: 8),
-                  Expanded(
-                    child: Text(
-                      'Estoque atual',
-                      style: TextStyle(
-                        fontWeight: FontWeight.bold,
-                        color: Colors.grey.shade800,
-                        fontSize: 16,
-                      ),
-                    ),
-                  ),
-                  // Indicador de porcentagem de disponibilidade
-                  Container(
-                    padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-                    decoration: BoxDecoration(
-                      color: porcentagemDisponivel > 85 
-                          ? Colors.green 
-                          : porcentagemDisponivel > 70
-                              ? Colors.orange
-                              : Colors.red,
-                      borderRadius: BorderRadius.circular(12),
-                    ),
-                    child: Text(
-                      '${porcentagemDisponivel.toStringAsFixed(1)}%',
-                      style: const TextStyle(
-                        color: Colors.white,
-                        fontWeight: FontWeight.bold,
-                        fontSize: 12,
-                      ),
-                    ),
-                  ),
-                ],
+        child: Container(
+          decoration: BoxDecoration(
+            gradient: LinearGradient(
+              begin: Alignment.topLeft,
+              end: Alignment.bottomRight,
+              colors: [Colors.white, Colors.grey.shade50],
+            ),
+            borderRadius: BorderRadius.circular(12),
+            boxShadow: [
+              BoxShadow(
+                color: metroBlue.withOpacity(0.1),
+                blurRadius: 8,
+                offset: const Offset(0, 3),
               ),
-              
-              const SizedBox(height: 16),
-              
-              // Conteúdo do card
-              Expanded(
-                child: Row(
+            ],
+          ),
+          child: Padding(
+            padding: const EdgeInsets.all(16.0),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                // Título e ícone
+                Row(
                   children: [
-                    // Estatísticas à esquerda
-                    Expanded(
-                      flex: 3,
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        mainAxisAlignment: MainAxisAlignment.center,
-                        children: [
-                          // Total de materiais
-                          _buildEstoqueStat(
-                            'Total de materiais', 
-                            '$totalMateriais',
-                            Icons.category,
-                            Colors.blue.shade800,
-                          ),
-                          const SizedBox(height: 12),
-                          
-                          // Materiais disponíveis
-                          _buildEstoqueStat(
-                            'Disponíveis', 
-                            '$materiaisDisponiveis',
-                            Icons.check_circle_outline,
-                            Colors.green,
-                          ),
-                          const SizedBox(height: 12),
-                          
-                          // Materiais em falta
-                          _buildEstoqueStat(
-                            'Em falta', 
-                            '$materiaisEmFalta',
-                            Icons.error_outline,
-                            Colors.red,
+                    Container(
+                      padding: const EdgeInsets.all(10),
+                      decoration: BoxDecoration(
+                        gradient: LinearGradient(
+                          colors: [metroBlue, metroLightBlue],
+                          begin: Alignment.topLeft,
+                          end: Alignment.bottomRight,
+                        ),
+                        borderRadius: BorderRadius.circular(10),
+                        boxShadow: [
+                          BoxShadow(
+                            color: metroBlue.withOpacity(0.3),
+                            blurRadius: 4,
+                            offset: const Offset(0, 2),
                           ),
                         ],
                       ),
+                      child: const Icon(Icons.inventory_2, color: Colors.white, size: 20),
                     ),
-                    
-                    // Gráfico de pizza à direita
+                    const SizedBox(width: 12),
                     Expanded(
-                      flex: 2,
-                      child: Container(
-                        height: double.infinity,
-                        padding: const EdgeInsets.all(8.0),
-                        child: CustomPaint(
-                          painter: PieChartPainter(
-                            disponivel: materiaisDisponiveis / totalMateriais,
-                            emFalta: materiaisEmFalta / totalMateriais,
-                          ),
-                          size: const Size(100, 100),
+                      child: Text(
+                        'Estoque atual',
+                        style: TextStyle(
+                          fontWeight: FontWeight.bold,
+                          color: Colors.grey.shade800,
+                          fontSize: 16,
+                        ),
+                      ),
+                    ),
+                    // Indicador de porcentagem de disponibilidade
+                    Container(
+                      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                      decoration: BoxDecoration(
+                        color: porcentagemDisponivel > 85 
+                            ? Colors.green 
+                            : porcentagemDisponivel > 70
+                                ? Colors.orange
+                                : Colors.red,
+                        borderRadius: BorderRadius.circular(12),
+                      ),
+                      child: Text(
+                        '${porcentagemDisponivel.toStringAsFixed(1)}%',
+                        style: const TextStyle(
+                          color: Colors.white,
+                          fontWeight: FontWeight.bold,
+                          fontSize: 12,
                         ),
                       ),
                     ),
                   ],
                 ),
-              ),
-            ],
+                
+                const SizedBox(height: 16),
+                
+                // Conteúdo do card
+                Expanded(
+                  child: Row(
+                    children: [
+                      // Estatísticas à esquerda
+                      Expanded(
+                        flex: 3,
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          mainAxisAlignment: MainAxisAlignment.center,
+                          children: [
+                            // Total de materiais
+                            _buildEstoqueStat(
+                              'Total de materiais', 
+                              '$totalMateriais',
+                              Icons.category,
+                              metroBlue,
+                            ),
+                            const SizedBox(height: 12),
+                            
+                            // Materiais disponíveis
+                            _buildEstoqueStat(
+                              'Disponíveis', 
+                              '$materiaisDisponiveis',
+                              Icons.check_circle_outline,
+                              Colors.green,
+                            ),
+                            const SizedBox(height: 12),
+                            
+                            // Materiais em falta
+                            _buildEstoqueStat(
+                              'Em falta', 
+                              '$materiaisEmFalta',
+                              Icons.error_outline,
+                              Colors.red,
+                            ),
+                          ],
+                        ),
+                      ),
+                      
+                      // Gráfico de pizza à direita
+                      Expanded(
+                        flex: 2,
+                        child: Container(
+                          height: double.infinity,
+                          padding: const EdgeInsets.all(8.0),
+                          child: CustomPaint(
+                            painter: PieChartPainter(
+                              disponivel: materiaisDisponiveis / totalMateriais,
+                              emFalta: materiaisEmFalta / totalMateriais,
+                              corDisponivel: Colors.green, // Usando verde para o gráfico
+                            ),
+                            size: const Size(100, 100),
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+                
+                // Botão de ação
+                Align(
+                  alignment: Alignment.bottomRight,
+                  child: ElevatedButton(
+                    onPressed: onTap,
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: metroBlue,
+                      foregroundColor: Colors.white,
+                      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(8),
+                      ),
+                      elevation: 2,
+                    ),
+                    child: Row(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        Text('Ver estoque'),
+                        SizedBox(width: 4),
+                        Icon(Icons.arrow_forward, size: 16),
+                      ],
+                    ),
+                  ),
+                ),
+              ],
+            ),
           ),
         ),
       ),
@@ -552,58 +678,128 @@ class _HomeScreenState extends State<HomeScreen> with SingleTickerProviderStateM
   }
 
   // Card individual do Dashboard
-  Widget _buildDashboardCard(String title, IconData icon, Color color, VoidCallback onTap, {bool hasAlert = false}) {
+  Widget _buildDashboardCard(String title, IconData icon, Color color, VoidCallback onTap, {bool hasAlert = false, Color? color2}) {
+    final gradientColor = color2 ?? color.withOpacity(0.6);
+    
     return Material(
-      color: Colors.grey.shade200,
-      borderRadius: BorderRadius.circular(8),
+      elevation: 4,
+      borderRadius: BorderRadius.circular(12),
       child: InkWell(
         onTap: onTap,
-        borderRadius: BorderRadius.circular(8),
-        child: Padding(
-          padding: const EdgeInsets.all(16.0),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Row(
-                children: [
-                  Icon(icon, color: color),
-                  const SizedBox(width: 8),
-                  Expanded(
-                    child: Text(
-                      title,
-                      style: TextStyle(
-                        fontWeight: FontWeight.bold,
-                        color: Colors.grey.shade800,
-                      ),
-                    ),
-                  ),
-                  if (hasAlert)
+        borderRadius: BorderRadius.circular(12),
+        child: Container(
+          decoration: BoxDecoration(
+            gradient: LinearGradient(
+              colors: [Colors.white, Colors.grey.shade50],
+              begin: Alignment.topCenter,
+              end: Alignment.bottomCenter,
+            ),
+            borderRadius: BorderRadius.circular(12),
+            boxShadow: [
+              BoxShadow(
+                color: color.withOpacity(0.1),
+                blurRadius: 8,
+                offset: const Offset(0, 3),
+              ),
+            ],
+          ),
+          child: Padding(
+            padding: const EdgeInsets.all(16.0),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Row(
+                  children: [
                     Container(
-                      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                      padding: const EdgeInsets.all(10),
                       decoration: BoxDecoration(
-                        color: Colors.red,
-                        borderRadius: BorderRadius.circular(12),
+                        gradient: LinearGradient(
+                          colors: [color, gradientColor],
+                          begin: Alignment.topLeft,
+                          end: Alignment.bottomRight,
+                        ),
+                        borderRadius: BorderRadius.circular(10),
+                        boxShadow: [
+                          BoxShadow(
+                            color: color.withOpacity(0.3),
+                            blurRadius: 4,
+                            offset: const Offset(0, 2),
+                          ),
+                        ],
                       ),
-                      child: const Text(
-                        '3',
+                      child: Icon(icon, color: Colors.white, size: 20),
+                    ),
+                    const SizedBox(width: 12),
+                    Expanded(
+                      child: Text(
+                        title,
                         style: TextStyle(
-                          color: Colors.white,
                           fontWeight: FontWeight.bold,
-                          fontSize: 12,
+                          color: Colors.grey.shade800,
+                          fontSize: 15,
                         ),
                       ),
                     ),
-                ],
-              ),
-              const Expanded(
-                child: Center(
-                  child: Text(
-                    'Dados do card vão aqui',
-                    style: TextStyle(color: Colors.black54),
+                    if (hasAlert)
+                      Container(
+                        padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
+                        decoration: BoxDecoration(
+                          color: Colors.red,
+                          borderRadius: BorderRadius.circular(20),
+                          boxShadow: [
+                            BoxShadow(
+                              color: Colors.red.withOpacity(0.3),
+                              blurRadius: 4,
+                              offset: const Offset(0, 2),
+                            ),
+                          ],
+                        ),
+                        child: const Text(
+                          '3',
+                          style: TextStyle(
+                            color: Colors.white,
+                            fontWeight: FontWeight.bold,
+                            fontSize: 12,
+                          ),
+                        ),
+                      ),
+                  ],
+                ),
+                const SizedBox(height: 16),
+                Expanded(
+                  child: Center(
+                    child: Text(
+                      'Dados do card vão aqui',
+                      style: TextStyle(color: Colors.black54),
+                    ),
                   ),
                 ),
-              ),
-            ],
+                // Botão de ação
+                Align(
+                  alignment: Alignment.bottomRight,
+                  child: ElevatedButton(
+                    onPressed: onTap,
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: color,
+                      foregroundColor: Colors.white,
+                      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(8),
+                      ),
+                      elevation: 2,
+                    ),
+                    child: Row(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        Text('Ver detalhes'),
+                        SizedBox(width: 4),
+                        Icon(Icons.arrow_forward, size: 16),
+                      ],
+                    ),
+                  ),
+                ),
+              ],
+            ),
           ),
         ),
       ),

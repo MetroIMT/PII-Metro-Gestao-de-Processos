@@ -200,7 +200,7 @@ class _LoginPageState extends State<LoginPage> with SingleTickerProviderStateMix
                     
                     // Rodapé
                     Text(
-                      '© 2023 Metrô | Todos os direitos reservados',
+                      '© 2025 Metrô | Todos os direitos reservados',
                       style: TextStyle(
                         fontSize: 12,
                         color: Colors.white70,
