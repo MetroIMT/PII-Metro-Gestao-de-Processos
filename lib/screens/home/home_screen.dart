@@ -453,10 +453,23 @@ class _HomeScreenState extends State<HomeScreen> with SingleTickerProviderStateM
   
   // Card de Estoque com gráfico e estatísticas
   Widget _buildEstoqueCard(VoidCallback onTap) {
-    // Dados do estoque (no futuro, buscar da API)
-    final int totalMateriais = 150;
-    final int materiaisDisponiveis = 120;
-    final int materiaisEmFalta = totalMateriais - materiaisDisponiveis;
+    // Dados do estoque obtidos da mesma fonte de estoque_page
+    // Estes valores deveriam idealmente vir de um serviço ou provider compartilhado
+    final List<EstoqueMaterial> materiais = [
+      EstoqueMaterial(codigo: 'M001', nome: 'Cabo Elétrico 2.5mm', quantidade: 150, local: 'Base A'),
+      EstoqueMaterial(codigo: 'M002', nome: 'Disjuntor 20A', quantidade: 45, local: 'Base B'),
+      EstoqueMaterial(codigo: 'M003', nome: 'Conduíte Flexível 20mm', quantidade: 0, local: 'Base A'),
+      EstoqueMaterial(codigo: 'M004', nome: 'Terminal Elétrico', quantidade: 230, local: 'Base C'),
+      EstoqueMaterial(codigo: 'M005', nome: 'Fusível 10A', quantidade: 0, local: 'Base B'),
+      EstoqueMaterial(codigo: 'M006', nome: 'Luva de Emenda 25mm', quantidade: 75, local: 'Base D'),
+      EstoqueMaterial(codigo: 'M007', nome: 'Relé de Proteção', quantidade: 18, local: 'Base A'),
+      EstoqueMaterial(codigo: 'M008', nome: 'Chave Seccionadora', quantidade: 5, local: 'Base C'),
+    ];
+
+    // Cálculos dos valores baseados nos dados acima
+    final int totalMateriais = materiais.length;
+    final int materiaisDisponiveis = materiais.where((m) => m.quantidade > 0).length;
+    final int materiaisEmFalta = materiais.where((m) => m.quantidade <= 0).length;
     final double porcentagemDisponivel = (materiaisDisponiveis / totalMateriais) * 100;
     
     final metroBlue = const Color(0xFF001489);
