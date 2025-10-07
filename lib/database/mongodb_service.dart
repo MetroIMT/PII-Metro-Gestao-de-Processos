@@ -12,9 +12,9 @@ class MongoService {
     try {
       _db = await Db.create(_connectionString);
       await _db!.open();
-      print('✅ Conectado ao MongoDB!');
+      print('Conectado ao MongoDB!');
     } catch (e) {
-      print('❌ Erro ao conectar ao MongoDB: $e');
+      print('Erro ao conectar ao MongoDB: $e');
     }
   }
 
