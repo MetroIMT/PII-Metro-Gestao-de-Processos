@@ -1,5 +1,7 @@
+import 'dart:ui';
 import 'package:flutter/material.dart';
 import '../home/home_screen.dart';
+import 'login_controller.dart';
 import 'dart:ui';
 import 'cadastro_popup.dart';
 import 'esqueceuasenha_popup.dart';
@@ -7,36 +9,52 @@ import 'esqueceuasenha_popup.dart';
 
 
 void main() {
-  runApp(MyApp());
+  runApp(const MyApp());
 }
 
 class MyApp extends StatelessWidget {
+  const MyApp({super.key});
+
   @override
   Widget build(BuildContext context) {
     return MaterialApp(
       title: 'Login Metro',
-      theme: ThemeData(
-        primarySwatch: Colors.blue,
-        fontFamily: 'Poppins',
-      ),
-      home: LoginPage(),
+      theme: ThemeData(primarySwatch: Colors.blue, fontFamily: 'Poppins'),
+      home: const LoginPage(),
       debugShowCheckedModeBanner: false,
     );
   }
 }
 
 class LoginPage extends StatefulWidget {
+  const LoginPage({super.key});
+
   @override
-  _LoginPageState createState() => _LoginPageState();
+  State<LoginPage> createState() => _LoginPageState();
 }
 
-class _LoginPageState extends State<LoginPage> with SingleTickerProviderStateMixin {
+class _LoginPageState extends State<LoginPage>
+    with SingleTickerProviderStateMixin {
+  bool _isLoading = false;
+  final _loginController = LoginController();
   final TextEditingController emailController = TextEditingController();
   final TextEditingController passwordController = TextEditingController();
   bool rememberMe = false;
   bool _obscurePassword = true;
   late AnimationController _animationController;
   late Animation<double> _fadeAnimation;
+
+  void _showSnack(String message, {required bool isError}) {
+    final messenger = ScaffoldMessenger.of(context);
+    messenger.hideCurrentSnackBar();
+    messenger.showSnackBar(
+      SnackBar(
+        content: Text(message),
+        backgroundColor: isError ? Colors.red : Colors.green,
+        duration: const Duration(seconds: 2),
+      ),
+    );
+  }
 
   @override
   void initState() {
@@ -48,7 +66,7 @@ class _LoginPageState extends State<LoginPage> with SingleTickerProviderStateMix
     _fadeAnimation = Tween<double>(begin: 0.0, end: 1.0).animate(
       CurvedAnimation(
         parent: _animationController,
-        curve: Interval(0.2, 1.0, curve: Curves.easeOut),
+        curve: const Interval(0.2, 1.0, curve: Curves.easeOut),
       ),
     );
     _animationController.forward();
@@ -62,27 +80,50 @@ class _LoginPageState extends State<LoginPage> with SingleTickerProviderStateMix
     super.dispose();
   }
 
-  void _login() {
-    // Implementar lógica de login
-    Navigator.pushReplacement(
-      context,
-      PageRouteBuilder(
-        transitionDuration: const Duration(milliseconds: 700),
-        pageBuilder: (context, animation, secondaryAnimation) => const HomeScreen(),
-        transitionsBuilder: (context, animation, secondaryAnimation, child) {
-          const begin = 0.0;
-          const end = 1.0;
-          const curve = Curves.easeInOut;
-          var tween = Tween(begin: begin, end: end).chain(CurveTween(curve: curve));
-          var opacityAnimation = animation.drive(tween);
-          
-          return FadeTransition(
-            opacity: opacityAnimation,
-            child: child,
-          );
-        },
-      ),
-    );
+  Future<void> _login() async {
+    FocusScope.of(context).unfocus();
+
+    final email = emailController.text.trim();
+    final senha = passwordController.text;
+
+    if (email.isEmpty || senha.isEmpty) {
+      _showSnack('Preencha email e senha.', isError: true);
+      return;
+    }
+
+    setState(() => _isLoading = true);
+
+    try {
+      final ok = await _loginController.login(email: email, password: senha);
+      if (ok) {
+        _showSnack('Login realizado com sucesso!', isError: false);
+
+        Navigator.pushReplacement(
+          context,
+          PageRouteBuilder(
+            transitionDuration: const Duration(milliseconds: 700),
+            pageBuilder: (_, animation, __) => const HomeScreen(),
+            transitionsBuilder: (_, animation, __, child) {
+              const begin = 0.0;
+              const end = 1.0;
+              const curve = Curves.easeInOut;
+              final tween = Tween(begin: begin, end: end)
+                  .chain(CurveTween(curve: curve));
+              return FadeTransition(
+                opacity: animation.drive(tween),
+                child: child,
+              );
+            },
+          ),
+        );
+      } else {
+        _showSnack('Credenciais inválidas.', isError: true);
+      }
+    } catch (e) {
+      _showSnack('Erro ao tentar logar. Tente novamente.', isError: true);
+    } finally {
+      if (mounted) setState(() => _isLoading = false);
+    }
   }
 
   @override
@@ -91,25 +132,30 @@ class _LoginPageState extends State<LoginPage> with SingleTickerProviderStateMix
     final isDesktop = size.width > 900;
     final isTablet = size.width > 600 && size.width <= 900;
     final keyboardVisible = MediaQuery.of(context).viewInsets.bottom > 0;
-    
-    // Cores principais
+
     final metroBlue = const Color(0xFF001489);
     final metroLightBlue = const Color(0xFF3B62FF);
-    
+
     return Scaffold(
       backgroundColor: isDesktop ? Colors.white : null,
       resizeToAvoidBottomInset: true,
-      body: SizedBox.expand( // Garante que o conteúdo ocupe a tela inteira
+      body: SizedBox.expand(
         child: GestureDetector(
           onTap: () => FocusScope.of(context).unfocus(),
           child: isDesktop
               ? _buildDesktopLayout(metroBlue, metroLightBlue, size)
-              : _buildMobileTabletLayout(metroBlue, metroLightBlue, isTablet, keyboardVisible, size),
+              : _buildMobileTabletLayout(
+                  metroBlue,
+                  metroLightBlue,
+                  isTablet,
+                  keyboardVisible,
+                  size,
+                ),
         ),
       ),
     );
   }
-  
+
   Widget _buildDesktopLayout(Color metroBlue, Color metroLightBlue, Size size) {
     return FadeTransition(
       opacity: _fadeAnimation,
@@ -117,9 +163,9 @@ class _LoginPageState extends State<LoginPage> with SingleTickerProviderStateMix
         width: double.infinity,
         height: double.infinity,
         decoration: BoxDecoration(
-          color: const Color.fromARGB(255, 255, 255, 255),
+          color: Colors.white,
           image: DecorationImage(
-            image: AssetImage('assets/LogoMetro.png'),
+            image: const AssetImage('assets/LogoMetro.png'),
             fit: BoxFit.cover,
             colorFilter: ColorFilter.mode(
               Colors.black.withOpacity(0.05),
@@ -129,7 +175,6 @@ class _LoginPageState extends State<LoginPage> with SingleTickerProviderStateMix
         ),
         child: Row(
           children: [
-            // Lado esquerdo azul metrô - ocupa 50% da tela
             Expanded(
               flex: 5,
               child: Container(
@@ -140,14 +185,13 @@ class _LoginPageState extends State<LoginPage> with SingleTickerProviderStateMix
                     colors: [metroBlue, metroLightBlue],
                   ),
                 ),
-                padding: EdgeInsets.all(40),
+                padding: const EdgeInsets.all(40),
                 child: Column(
                   mainAxisAlignment: MainAxisAlignment.center,
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    // Logo
                     Container(
-                      padding: EdgeInsets.only(bottom: 24),
+                      padding: const EdgeInsets.only(bottom: 24),
                       child: Image.asset(
                         'assets/LogoMetro.png',
                         width: 140,
@@ -156,10 +200,8 @@ class _LoginPageState extends State<LoginPage> with SingleTickerProviderStateMix
                         color: Colors.white,
                       ),
                     ),
-                    SizedBox(height: 20),
-                    
-                    // Conteúdo de texto
-                    Text(
+                    const SizedBox(height: 20),
+                    const Text(
                       'Bem-vindo',
                       style: TextStyle(
                         fontSize: 36,
@@ -167,7 +209,7 @@ class _LoginPageState extends State<LoginPage> with SingleTickerProviderStateMix
                         fontWeight: FontWeight.w300,
                       ),
                     ),
-                    Text(
+                    const Text(
                       'de volta!',
                       style: TextStyle(
                         fontSize: 36,
@@ -175,7 +217,7 @@ class _LoginPageState extends State<LoginPage> with SingleTickerProviderStateMix
                         color: Colors.white,
                       ),
                     ),
-                    SizedBox(height: 20),
+                    const SizedBox(height: 20),
                     Container(
                       width: 80,
                       height: 4,
@@ -184,7 +226,7 @@ class _LoginPageState extends State<LoginPage> with SingleTickerProviderStateMix
                         borderRadius: BorderRadius.circular(2),
                       ),
                     ),
-                    SizedBox(height: 24),
+                    const SizedBox(height: 24),
                     Text(
                       'Acesse o sistema de gerenciamento do Metrô e administre os recursos, monitore a manutenção e tenha acesso a todos os relatórios.',
                       style: TextStyle(
@@ -193,39 +235,30 @@ class _LoginPageState extends State<LoginPage> with SingleTickerProviderStateMix
                         color: Colors.white.withOpacity(0.85),
                       ),
                     ),
-                    
-                    // Carrossel de cards informativos
                     Expanded(
                       child: Align(
                         alignment: Alignment.center,
                         child: _buildInfoCarousel(metroBlue, metroLightBlue),
                       ),
                     ),
-                    
-                    // Rodapé
-                    Text(
+                    const Text(
                       '© 2025 Metrô | Todos os direitos reservados',
-                      style: TextStyle(
-                        fontSize: 12,
-                        color: Colors.white70,
-                      ),
+                      style: TextStyle(fontSize: 12, color: Colors.white70),
                     ),
                   ],
                 ),
               ),
             ),
-            
-            // Lado direito branco - ocupa 50% da tela
             Expanded(
               flex: 4,
               child: Container(
-                padding: EdgeInsets.symmetric(horizontal: 48, vertical: 48),
+                padding:
+                    const EdgeInsets.symmetric(horizontal: 48, vertical: 48),
                 color: Colors.white,
                 child: Column(
                   mainAxisAlignment: MainAxisAlignment.center,
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    // Cabeçalho
                     Text(
                       'Login',
                       style: TextStyle(
@@ -234,17 +267,12 @@ class _LoginPageState extends State<LoginPage> with SingleTickerProviderStateMix
                         color: metroBlue,
                       ),
                     ),
-                    SizedBox(height: 12),
+                    const SizedBox(height: 12),
                     Text(
                       'Entre com suas credenciais para acessar o sistema',
-                      style: TextStyle(
-                        fontSize: 14,
-                        color: Colors.grey[600],
-                      ),
+                      style: TextStyle(fontSize: 14, color: Colors.grey[600]),
                     ),
-                    SizedBox(height: 40),
-                    
-                    // Campo Email
+                    const SizedBox(height: 40),
                     _buildAnimatedTextField(
                       controller: emailController,
                       label: 'Email',
@@ -252,9 +280,7 @@ class _LoginPageState extends State<LoginPage> with SingleTickerProviderStateMix
                       keyboardType: TextInputType.emailAddress,
                       isTablet: true,
                     ),
-                    SizedBox(height: 24),
-                    
-                    // Campo Senha
+                    const SizedBox(height: 24),
                     _buildAnimatedTextField(
                       controller: passwordController,
                       label: 'Senha',
@@ -263,7 +289,9 @@ class _LoginPageState extends State<LoginPage> with SingleTickerProviderStateMix
                       isTablet: true,
                       suffixIcon: IconButton(
                         icon: Icon(
-                          _obscurePassword ? Icons.visibility : Icons.visibility_off,
+                          _obscurePassword
+                              ? Icons.visibility
+                              : Icons.visibility_off,
                           color: Colors.grey,
                         ),
                         onPressed: () {
@@ -273,10 +301,7 @@ class _LoginPageState extends State<LoginPage> with SingleTickerProviderStateMix
                         },
                       ),
                     ),
-                    
-                    SizedBox(height: 12),
-                    
-                    // Lembrar e Esqueceu a senha
+                    const SizedBox(height: 12),
                     Row(
                       mainAxisAlignment: MainAxisAlignment.spaceBetween,
                       children: [
@@ -298,7 +323,7 @@ class _LoginPageState extends State<LoginPage> with SingleTickerProviderStateMix
                                 },
                               ),
                             ),
-                            SizedBox(width: 8),
+                            const SizedBox(width: 8),
                             Text(
                               'Lembrar credenciais',
                               style: TextStyle(
@@ -310,12 +335,13 @@ class _LoginPageState extends State<LoginPage> with SingleTickerProviderStateMix
                         ),
                         TextButton(
                           onPressed: () {
+                            // Ação "Esqueceu a senha"
                             // Esqueceu a senha ação
                             showEsqueciSenhaPopup(context);
                           },
                           style: TextButton.styleFrom(
                             padding: EdgeInsets.zero,
-                            minimumSize: Size(0, 0),
+                            minimumSize: Size.zero,
                             tapTargetSize: MaterialTapTargetSize.shrinkWrap,
                           ),
                           child: Text(
@@ -328,16 +354,13 @@ class _LoginPageState extends State<LoginPage> with SingleTickerProviderStateMix
                         ),
                       ],
                     ),
-                    
-                    SizedBox(height: 32),
-                    
-                    // Botões
+                    const SizedBox(height: 32),
                     Row(
                       children: [
                         Expanded(
                           flex: 3,
                           child: ElevatedButton(
-                            onPressed: _login,
+                            onPressed: _isLoading ? null : _login,
                             style: ElevatedButton.styleFrom(
                               padding: EdgeInsets.zero,
                               shape: RoundedRectangleBorder(
@@ -354,50 +377,59 @@ class _LoginPageState extends State<LoginPage> with SingleTickerProviderStateMix
                                 borderRadius: BorderRadius.circular(12),
                               ),
                               child: Container(
-                                padding: EdgeInsets.symmetric(vertical: 16),
+                                padding:
+                                    const EdgeInsets.symmetric(vertical: 16),
                                 alignment: Alignment.center,
-                                child: Text(
-                                  'Entrar',
-                                  style: TextStyle(
-                                    fontSize: 16,
-                                    fontWeight: FontWeight.bold,
-                                    color: Colors.white,
-                                  ),
-                                ),
+                                child: _isLoading
+                                    ? const SizedBox(
+                                        width: 22,
+                                        height: 22,
+                                        child: CircularProgressIndicator(
+                                          valueColor:
+                                              AlwaysStoppedAnimation<Color>(
+                                                  Colors.white),
+                                          strokeWidth: 2.2,
+                                        ),
+                                      )
+                                    : const Text(
+                                        'Entrar',
+                                        style: TextStyle(
+                                          fontSize: 16,
+                                          fontWeight: FontWeight.bold,
+                                          color: Colors.white,
+                                        ),
+                                      ),
                               ),
                             ),
                           ),
                         ),
-                        SizedBox(width: 16),
+                        const SizedBox(width: 16),
                         Expanded(
                           flex: 2,
                           child: OutlinedButton(
                             onPressed: () {
+                              // Ação "Cadastrar"
                               // Ação cadastrar
                               showCadastroPopup(context);
                             },
                             style: OutlinedButton.styleFrom(
                               foregroundColor: metroBlue,
                               side: BorderSide(color: metroBlue),
-                              padding: EdgeInsets.symmetric(vertical: 16),
+                              padding:
+                                  const EdgeInsets.symmetric(vertical: 16),
                               shape: RoundedRectangleBorder(
                                 borderRadius: BorderRadius.circular(12),
                               ),
                             ),
-                            child: Text(
+                            child: const Text(
                               'Cadastrar',
-                              style: TextStyle(
-                                fontWeight: FontWeight.bold,
-                              ),
+                              style: TextStyle(fontWeight: FontWeight.bold),
                             ),
                           ),
-                        )
+                        ),
                       ],
                     ),
-                    
-                    SizedBox(height: 40),
-                    
-                    // Área de suporte
+                    const SizedBox(height: 40),
                     Center(
                       child: Column(
                         children: [
@@ -408,7 +440,7 @@ class _LoginPageState extends State<LoginPage> with SingleTickerProviderStateMix
                               fontSize: 14,
                             ),
                           ),
-                          SizedBox(height: 8),
+                          const SizedBox(height: 8),
                           TextButton(
                             onPressed: () {},
                             child: Text(
@@ -431,8 +463,14 @@ class _LoginPageState extends State<LoginPage> with SingleTickerProviderStateMix
       ),
     );
   }
-  
-  Widget _buildMobileTabletLayout(Color metroBlue, Color metroLightBlue, bool isTablet, bool keyboardVisible, Size size) {
+
+  Widget _buildMobileTabletLayout(
+    Color metroBlue,
+    Color metroLightBlue,
+    bool isTablet,
+    bool keyboardVisible,
+    Size size,
+  ) {
     return SingleChildScrollView(
       physics: const ClampingScrollPhysics(),
       reverse: keyboardVisible,
@@ -440,22 +478,15 @@ class _LoginPageState extends State<LoginPage> with SingleTickerProviderStateMix
         opacity: _fadeAnimation,
         child: Container(
           width: double.infinity,
-          // Garantir que ocupa toda a altura disponível 
-          constraints: BoxConstraints(
-            minHeight: size.height,
-          ),
+          constraints: BoxConstraints(minHeight: size.height),
           decoration: BoxDecoration(
-            gradient: LinearGradient(
+            gradient: const LinearGradient(
               begin: Alignment.topLeft,
               end: Alignment.bottomRight,
-              colors: [
-                Colors.white,
-                Color(0xFFF5F7FF),
-                Color(0xFFEDF1FF),
-              ],
+              colors: [Colors.white, Color(0xFFF5F7FF), Color(0xFFEDF1FF)],
               stops: [0.0, 0.5, 1.0],
             ),
-            image: DecorationImage(
+            image: const DecorationImage(
               image: AssetImage('assets/LogoMetro.png'),
               fit: BoxFit.cover,
               opacity: 0.03,
@@ -463,25 +494,24 @@ class _LoginPageState extends State<LoginPage> with SingleTickerProviderStateMix
             ),
           ),
           child: SafeArea(
-            bottom: true, // Garante espaço no fundo para o teclado
+            bottom: true,
             child: Padding(
               padding: EdgeInsets.only(
                 left: isTablet ? 64.0 : 32.0,
                 right: isTablet ? 64.0 : 32.0,
                 top: keyboardVisible ? 10.0 : (isTablet ? 40.0 : 32.0),
-                bottom: keyboardVisible 
-                      ? MediaQuery.of(context).viewInsets.bottom + 16.0
-                      : 40.0,
+                bottom: keyboardVisible
+                    ? MediaQuery.of(context).viewInsets.bottom + 16.0
+                    : 40.0,
               ),
               child: Column(
                 mainAxisAlignment: MainAxisAlignment.center,
                 crossAxisAlignment: CrossAxisAlignment.center,
                 children: [
-                  // Logo e cabeçalho - esconde quando teclado aparece em telas pequenas
                   if (!keyboardVisible || isTablet) ...[
                     AnimatedContainer(
-                      duration: Duration(milliseconds: 300),
-                      padding: EdgeInsets.symmetric(vertical: 8),
+                      duration: const Duration(milliseconds: 300),
+                      padding: const EdgeInsets.symmetric(vertical: 8),
                       height: isTablet ? 140 : (keyboardVisible ? 80 : 100),
                       child: Image.asset(
                         'assets/LogoMetro.png',
@@ -490,30 +520,26 @@ class _LoginPageState extends State<LoginPage> with SingleTickerProviderStateMix
                     ),
                     SizedBox(height: isTablet ? 32 : 20),
                   ],
-                  
-                  // Texto de boas-vindas - diminui quando teclado aparece
                   AnimatedDefaultTextStyle(
-                    duration: Duration(milliseconds: 300),
+                    duration: const Duration(milliseconds: 300),
                     style: TextStyle(
                       fontSize: isTablet ? 32 : (keyboardVisible ? 24 : 28),
                       color: metroBlue,
                       fontWeight: FontWeight.w300,
                     ),
-                    child: Text('Bem vindo'),
+                    child: const Text('Bem vindo'),
                   ),
-                  
                   AnimatedDefaultTextStyle(
-                    duration: Duration(milliseconds: 300),
+                    duration: const Duration(milliseconds: 300),
                     style: TextStyle(
                       fontSize: isTablet ? 32 : (keyboardVisible ? 24 : 28),
                       fontWeight: FontWeight.bold,
                       color: metroBlue,
                     ),
-                    child: Text('de volta!'),
+                    child: const Text('de volta!'),
                   ),
-                  
                   if (!keyboardVisible || isTablet) ...[
-                    SizedBox(height: 12),
+                    const SizedBox(height: 12),
                     Container(
                       width: 60,
                       height: 3,
@@ -522,7 +548,7 @@ class _LoginPageState extends State<LoginPage> with SingleTickerProviderStateMix
                         borderRadius: BorderRadius.circular(1.5),
                       ),
                     ),
-                    SizedBox(height: 12),
+                    const SizedBox(height: 12),
                     Text(
                       'Faça login para continuar',
                       textAlign: TextAlign.center,
@@ -532,14 +558,12 @@ class _LoginPageState extends State<LoginPage> with SingleTickerProviderStateMix
                       ),
                     ),
                   ],
-                  
                   SizedBox(height: isTablet ? 40 : (keyboardVisible ? 20 : 32)),
-                  
-                  // Card do formulário com efeito de sombra e glassmorphism
                   AnimatedContainer(
-                    duration: Duration(milliseconds: 300),
+                    duration: const Duration(milliseconds: 300),
                     width: double.infinity,
-                    margin: EdgeInsets.symmetric(horizontal: isTablet ? 16 : 0),
+                    margin:
+                        EdgeInsets.symmetric(horizontal: isTablet ? 16 : 0),
                     decoration: BoxDecoration(
                       color: Colors.white.withOpacity(0.95),
                       borderRadius: BorderRadius.circular(20),
@@ -547,7 +571,7 @@ class _LoginPageState extends State<LoginPage> with SingleTickerProviderStateMix
                         BoxShadow(
                           color: Colors.black.withOpacity(0.08),
                           blurRadius: 20,
-                          offset: Offset(0, 10),
+                          offset: const Offset(0, 10),
                         ),
                       ],
                       border: Border.all(
@@ -558,7 +582,6 @@ class _LoginPageState extends State<LoginPage> with SingleTickerProviderStateMix
                     padding: EdgeInsets.all(keyboardVisible ? 20 : 24),
                     child: Column(
                       children: [
-                        // Campo de email com animação
                         _buildAnimatedTextField(
                           controller: emailController,
                           label: 'Email',
@@ -566,9 +589,7 @@ class _LoginPageState extends State<LoginPage> with SingleTickerProviderStateMix
                           keyboardType: TextInputType.emailAddress,
                           isTablet: isTablet,
                         ),
-                        SizedBox(height: 20),
-                        
-                        // Campo de senha com animação
+                        const SizedBox(height: 20),
                         _buildAnimatedTextField(
                           controller: passwordController,
                           label: 'Senha',
@@ -577,7 +598,9 @@ class _LoginPageState extends State<LoginPage> with SingleTickerProviderStateMix
                           isTablet: isTablet,
                           suffixIcon: IconButton(
                             icon: Icon(
-                              _obscurePassword ? Icons.visibility : Icons.visibility_off,
+                              _obscurePassword
+                                  ? Icons.visibility
+                                  : Icons.visibility_off,
                               color: Colors.grey,
                               size: 20,
                             ),
@@ -588,9 +611,7 @@ class _LoginPageState extends State<LoginPage> with SingleTickerProviderStateMix
                             },
                           ),
                         ),
-                        SizedBox(height: 16),
-                        
-                        // Opções de "Lembrar de mim" e "Esqueceu a senha"
+                        const SizedBox(height: 16),
                         if (isTablet || !keyboardVisible)
                           Row(
                             mainAxisAlignment: MainAxisAlignment.spaceBetween,
@@ -613,7 +634,7 @@ class _LoginPageState extends State<LoginPage> with SingleTickerProviderStateMix
                                       },
                                     ),
                                   ),
-                                  SizedBox(width: 8),
+                                  const SizedBox(width: 8),
                                   Text(
                                     'Lembrar credenciais',
                                     style: TextStyle(
@@ -625,12 +646,13 @@ class _LoginPageState extends State<LoginPage> with SingleTickerProviderStateMix
                               ),
                               TextButton(
                                 onPressed: () {
-                                  // Esqueceu a senha ação
+                                  // Ação "Esqueceu a senha"
                                 },
                                 style: TextButton.styleFrom(
                                   padding: EdgeInsets.zero,
-                                  minimumSize: Size(0, 0),
-                                  tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                                  minimumSize: Size.zero,
+                                  tapTargetSize:
+                                      MaterialTapTargetSize.shrinkWrap,
                                 ),
                                 child: Text(
                                   'Esqueceu a senha?',
@@ -642,15 +664,12 @@ class _LoginPageState extends State<LoginPage> with SingleTickerProviderStateMix
                               ),
                             ],
                           ),
-                        
-                        SizedBox(height: 24),
-                        
-                        // Botão Entrar com efeito de gradiente
+                        const SizedBox(height: 24),
                         SizedBox(
                           width: double.infinity,
                           height: isTablet ? 52 : 48,
                           child: ElevatedButton(
-                            onPressed: _login,
+                            onPressed: _isLoading ? null : _login,
                             style: ElevatedButton.styleFrom(
                               padding: EdgeInsets.zero,
                               shape: RoundedRectangleBorder(
@@ -668,28 +687,36 @@ class _LoginPageState extends State<LoginPage> with SingleTickerProviderStateMix
                               ),
                               child: Container(
                                 alignment: Alignment.center,
-                                child: Text(
-                                  'Entrar',
-                                  style: TextStyle(
-                                    fontSize: 16,
-                                    fontWeight: FontWeight.bold,
-                                    color: Colors.white,
-                                  ),
-                                ),
+                                child: _isLoading
+                                    ? const SizedBox(
+                                        width: 20,
+                                        height: 20,
+                                        child: CircularProgressIndicator(
+                                          valueColor:
+                                              AlwaysStoppedAnimation<Color>(
+                                                  Colors.white),
+                                          strokeWidth: 2,
+                                        ),
+                                      )
+                                    : const Text(
+                                        'Entrar',
+                                        style: TextStyle(
+                                          fontSize: 16,
+                                          fontWeight: FontWeight.bold,
+                                          color: Colors.white,
+                                        ),
+                                      ),
                               ),
                             ),
                           ),
                         ),
-                        
-                        SizedBox(height: 16),
-                        
-                        // Botão Cadastrar com efeito hover
+                        const SizedBox(height: 16),
                         SizedBox(
                           width: double.infinity,
                           height: isTablet ? 52 : 48,
                           child: OutlinedButton(
                             onPressed: () {
-                              // Ação Cadastrar
+                              // Ação "Cadastrar"
                             },
                             style: OutlinedButton.styleFrom(
                               side: BorderSide(color: metroBlue),
@@ -698,20 +725,17 @@ class _LoginPageState extends State<LoginPage> with SingleTickerProviderStateMix
                                 borderRadius: BorderRadius.circular(12),
                               ),
                             ),
-                            child: Text(
+                            child: const Text(
                               'Cadastrar',
-                              style: TextStyle(
-                                fontWeight: FontWeight.bold,
-                              ),
+                              style: TextStyle(fontWeight: FontWeight.bold),
                             ),
                           ),
                         ),
                       ],
                     ),
                   ),
-                  
                   if (isTablet || !keyboardVisible) ...[
-                    SizedBox(height: 24),
+                    const SizedBox(height: 24),
                     Row(
                       mainAxisAlignment: MainAxisAlignment.center,
                       children: [
@@ -722,12 +746,12 @@ class _LoginPageState extends State<LoginPage> with SingleTickerProviderStateMix
                             fontSize: 14,
                           ),
                         ),
-                        SizedBox(width: 4),
+                        const SizedBox(width: 4),
                         TextButton(
                           onPressed: () {},
                           style: TextButton.styleFrom(
-                            padding: EdgeInsets.symmetric(horizontal: 8),
-                            minimumSize: Size(0, 0),
+                            padding: const EdgeInsets.symmetric(horizontal: 8),
+                            minimumSize: Size.zero,
                             tapTargetSize: MaterialTapTargetSize.shrinkWrap,
                           ),
                           child: Text(
@@ -740,10 +764,8 @@ class _LoginPageState extends State<LoginPage> with SingleTickerProviderStateMix
                         ),
                       ],
                     ),
-                    
-                    // Footer com copyright
                     Padding(
-                      padding: EdgeInsets.only(top: 16),
+                      padding: const EdgeInsets.only(top: 16),
                       child: Text(
                         '© 2023 Metrô | Todos os direitos reservados',
                         style: TextStyle(
@@ -761,8 +783,7 @@ class _LoginPageState extends State<LoginPage> with SingleTickerProviderStateMix
       ),
     );
   }
-  
-  // Widget de TextField com animação para melhor responsividade
+
   Widget _buildAnimatedTextField({
     required TextEditingController controller,
     required String label,
@@ -773,7 +794,7 @@ class _LoginPageState extends State<LoginPage> with SingleTickerProviderStateMix
     Widget? suffixIcon,
   }) {
     return AnimatedContainer(
-      duration: Duration(milliseconds: 300),
+      duration: const Duration(milliseconds: 300),
       height: isTablet ? 60 : 56,
       child: TextField(
         controller: controller,
@@ -799,64 +820,59 @@ class _LoginPageState extends State<LoginPage> with SingleTickerProviderStateMix
           ),
           focusedBorder: OutlineInputBorder(
             borderRadius: BorderRadius.circular(12),
-            borderSide: BorderSide(color: Color(0xFF3B62FF), width: 2),
+            borderSide:
+                const BorderSide(color: Color(0xFF3B62FF), width: 2),
           ),
           filled: true,
           fillColor: Colors.grey[50],
           contentPadding: EdgeInsets.symmetric(
-            vertical: isTablet ? 16 : 14, 
+            vertical: isTablet ? 16 : 14,
             horizontal: isTablet ? 16 : 14,
           ),
         ),
         style: TextStyle(fontSize: isTablet ? 16 : 14),
         keyboardType: keyboardType,
         obscureText: obscureText,
-        textInputAction: obscureText ? TextInputAction.done : TextInputAction.next,
+        textInputAction:
+            obscureText ? TextInputAction.done : TextInputAction.next,
         onSubmitted: obscureText ? (_) => _login() : null,
       ),
     );
   }
-  
-  // Método para criar o carrossel de cards informativos
+
   Widget _buildInfoCarousel(Color metroBlue, Color metroLightBlue) {
-    return _InfoCarouselWidget(metroBlue: metroBlue, metroLightBlue: metroLightBlue);
+    return _InfoCarouselWidget(
+      metroBlue: metroBlue,
+      metroLightBlue: metroLightBlue,
+    );
   }
 }
 
-// Widget separado para o carrossel para garantir estado isolado
 class _InfoCarouselWidget extends StatefulWidget {
-  final Color metroBlue;
-  final Color metroLightBlue;
-
   const _InfoCarouselWidget({
     required this.metroBlue,
     required this.metroLightBlue,
-    Key? key,
-  }) : super(key: key);
+  });
+
+  final Color metroBlue;
+  final Color metroLightBlue;
 
   @override
   State<_InfoCarouselWidget> createState() => _InfoCarouselWidgetState();
 }
 
 class _InfoCarouselWidgetState extends State<_InfoCarouselWidget> {
-  late PageController _pageController;
+  late final PageController _pageController;
   int _currentPage = 0;
 
   @override
   void initState() {
     super.initState();
-    _pageController = PageController(
-      initialPage: 0,
-      viewportFraction: 0.85,
-    );
-
-    // Adicione um listener para atualizar o estado quando a página mudar
+    _pageController = PageController(initialPage: 0, viewportFraction: 0.85);
     _pageController.addListener(() {
-      int next = _pageController.page!.round();
+      final next = _pageController.page?.round() ?? 0;
       if (_currentPage != next) {
-        setState(() {
-          _currentPage = next;
-        });
+        setState(() => _currentPage = next);
       }
     });
   }
@@ -869,32 +885,34 @@ class _InfoCarouselWidgetState extends State<_InfoCarouselWidget> {
 
   @override
   Widget build(BuildContext context) {
-    // Lista de dados para os cards
-    final List<Map<String, dynamic>> cardsData = [
+    final cardsData = [
       {
         'icon': Icons.security_rounded,
         'title': 'Segurança Avançada',
-        'description': 'Sistema com alta segurança e encriptação de dados para proteger todas as informações sensíveis da operação.',
-        'color': Color(0xFF2979FF),
+        'description':
+            'Sistema com alta segurança e encriptação de dados para proteger todas as informações sensíveis da operação.',
+        'color': const Color(0xFF2979FF),
         'stats': '99.9% de proteção',
       },
       {
         'icon': Icons.analytics_rounded,
         'title': 'Análise em Tempo Real',
-        'description': 'Monitore a operação com dados atualizados instantaneamente e tome decisões baseadas em informações precisas.',
-        'color': Color(0xFF26A69A),
+        'description':
+            'Monitore a operação com dados atualizados instantaneamente e tome decisões baseadas em informações precisas.',
+        'color': const Color(0xFF26A69A),
         'stats': '+30% de eficiência',
       },
       {
         'icon': Icons.compare_arrows_rounded,
         'title': 'Integração Total',
-        'description': 'Conecte-se com todos os sistemas do Metrô, desde manutenção até gerenciamento de passageiros e recursos humanos.',
-        'color': Color(0xFFFF6D00),
+        'description':
+            'Conecte-se com todos os sistemas do Metrô, desde manutenção até gerenciamento de passageiros e recursos humanos.',
+        'color': const Color(0xFFFF6D00),
         'stats': '12 sistemas integrados',
       },
     ];
 
-    return Container(
+    return SizedBox(
       height: 250,
       child: Column(
         children: [
@@ -902,24 +920,23 @@ class _InfoCarouselWidgetState extends State<_InfoCarouselWidget> {
             child: PageView.builder(
               controller: _pageController,
               itemCount: cardsData.length,
-              onPageChanged: (index) {
-                setState(() {
-                  _currentPage = index;
-                });
-              },
+              onPageChanged: (index) => setState(() => _currentPage = index),
               itemBuilder: (context, index) {
+                final card = cardsData[index];
+                final color = card['color'] as Color;
                 return AnimatedOpacity(
-                  duration: Duration(milliseconds: 350),
-                  opacity: 1.0,
+                  duration: const Duration(milliseconds: 350),
+                  opacity: 1,
                   child: Container(
-                    margin: EdgeInsets.symmetric(horizontal: 10, vertical: 20),
+                    margin:
+                        const EdgeInsets.symmetric(horizontal: 10, vertical: 20),
                     decoration: BoxDecoration(
                       gradient: LinearGradient(
                         begin: Alignment.topLeft,
                         end: Alignment.bottomRight,
                         colors: [
                           Colors.white.withOpacity(0.15),
-                          cardsData[index]['color'].withOpacity(0.15),
+                          color.withOpacity(0.15),
                         ],
                       ),
                       borderRadius: BorderRadius.circular(20),
@@ -927,7 +944,7 @@ class _InfoCarouselWidgetState extends State<_InfoCarouselWidget> {
                         BoxShadow(
                           color: Colors.black.withOpacity(0.1),
                           blurRadius: 10,
-                          offset: Offset(0, 5),
+                          offset: const Offset(0, 5),
                         ),
                       ],
                       border: Border.all(
@@ -939,47 +956,45 @@ class _InfoCarouselWidgetState extends State<_InfoCarouselWidget> {
                       borderRadius: BorderRadius.circular(20),
                       child: BackdropFilter(
                         filter: ImageFilter.blur(sigmaX: 10, sigmaY: 10),
-                        child: Stack(
-                          children: [
-                            // Círculo decorativo de fundo
-                            Positioned(
-                              right: -40,
-                              top: -40,
-                              child: Container(
-                                width: 120,
-                                height: 120,
-                                decoration: BoxDecoration(
-                                  shape: BoxShape.circle,
-                                  color: cardsData[index]['color'].withOpacity(0.1),
+                        child: Padding(
+                          padding: const EdgeInsets.all(20),
+                          child: Stack(
+                            children: [
+                              Positioned(
+                                right: -40,
+                                top: -40,
+                                child: Container(
+                                  width: 120,
+                                  height: 120,
+                                  decoration: BoxDecoration(
+                                    shape: BoxShape.circle,
+                                    color: color.withOpacity(0.1),
+                                  ),
                                 ),
                               ),
-                            ),
-                            
-                            // Conteúdo principal
-                            Padding(
-                              padding: EdgeInsets.all(20),
-                              child: Column(
+                              Column(
                                 crossAxisAlignment: CrossAxisAlignment.start,
                                 children: [
                                   Row(
                                     children: [
                                       Container(
-                                        padding: EdgeInsets.all(8),
+                                        padding: const EdgeInsets.all(8),
                                         decoration: BoxDecoration(
-                                          color: cardsData[index]['color'].withOpacity(0.3),
-                                          borderRadius: BorderRadius.circular(12),
+                                          color: color.withOpacity(0.3),
+                                          borderRadius:
+                                              BorderRadius.circular(12),
                                         ),
                                         child: Icon(
-                                          cardsData[index]['icon'],
+                                          card['icon'] as IconData,
                                           color: Colors.white,
                                           size: 28,
                                         ),
                                       ),
-                                      SizedBox(width: 12),
+                                      const SizedBox(width: 12),
                                       Expanded(
                                         child: Text(
-                                          cardsData[index]['title'],
-                                          style: TextStyle(
+                                          card['title'] as String,
+                                          style: const TextStyle(
                                             color: Colors.white,
                                             fontSize: 20,
                                             fontWeight: FontWeight.bold,
@@ -988,31 +1003,32 @@ class _InfoCarouselWidgetState extends State<_InfoCarouselWidget> {
                                       ),
                                     ],
                                   ),
-                                  SizedBox(height: 16),
+                                  const SizedBox(height: 16),
                                   Text(
-                                    cardsData[index]['description'],
+                                    card['description'] as String,
                                     style: TextStyle(
                                       color: Colors.white.withOpacity(0.9),
                                       fontSize: 14,
                                       height: 1.5,
                                     ),
                                   ),
-                                  Spacer(),
-                                  
-                                  // Estatísticas
+                                  const Spacer(),
                                   Container(
-                                    padding: EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+                                    padding: const EdgeInsets.symmetric(
+                                      horizontal: 12,
+                                      vertical: 6,
+                                    ),
                                     decoration: BoxDecoration(
-                                      color: cardsData[index]['color'].withOpacity(0.2),
+                                      color: color.withOpacity(0.2),
                                       borderRadius: BorderRadius.circular(30),
                                       border: Border.all(
-                                        color: cardsData[index]['color'].withOpacity(0.3),
+                                        color: color.withOpacity(0.3),
                                         width: 1,
                                       ),
                                     ),
                                     child: Text(
-                                      cardsData[index]['stats'],
-                                      style: TextStyle(
+                                      card['stats'] as String,
+                                      style: const TextStyle(
                                         color: Colors.white,
                                         fontWeight: FontWeight.bold,
                                         fontSize: 12,
@@ -1021,8 +1037,8 @@ class _InfoCarouselWidgetState extends State<_InfoCarouselWidget> {
                                   ),
                                 ],
                               ),
-                            ),
-                          ],
+                            ],
+                          ),
                         ),
                       ),
                     ),
@@ -1031,30 +1047,27 @@ class _InfoCarouselWidgetState extends State<_InfoCarouselWidget> {
               },
             ),
           ),
-          // Indicadores de página fora do PageView para garantir visibilidade
           Container(
-            margin: EdgeInsets.only(bottom: 10),
+            margin: const EdgeInsets.only(bottom: 10),
             child: Row(
               mainAxisAlignment: MainAxisAlignment.center,
               children: List.generate(
                 cardsData.length,
                 (i) => GestureDetector(
-                  onTap: () {
-                    _pageController.animateToPage(
-                      i, 
-                      duration: Duration(milliseconds: 500), 
-                      curve: Curves.easeInOut
-                    );
-                  },
+                  onTap: () => _pageController.animateToPage(
+                    i,
+                    duration: const Duration(milliseconds: 500),
+                    curve: Curves.easeInOut,
+                  ),
                   child: AnimatedContainer(
-                    duration: Duration(milliseconds: 300),
-                    margin: EdgeInsets.symmetric(horizontal: 4),
+                    duration: const Duration(milliseconds: 300),
+                    margin: const EdgeInsets.symmetric(horizontal: 4),
                     width: i == _currentPage ? 20 : 8,
                     height: 8,
                     decoration: BoxDecoration(
                       borderRadius: BorderRadius.circular(4),
                       color: i == _currentPage
-                          ? cardsData[i]['color']
+                          ? cardsData[i]['color'] as Color
                           : Colors.white.withOpacity(0.4),
                     ),
                   ),
