@@ -1,5 +1,5 @@
 {
-  "name": "api",
+  "name": "api-node",
   "version": "1.0.0",
   "description": "Backend Node.js (Express) para gestão de instrumentos e ferramentas",
   "main": "src/index.js",
