@@ -3,7 +3,7 @@ import 'dotenv/config';
 export const config = {
   port: Number(process.env.PORT ?? 8080),
   mongoUri: process.env.MONGODB_URI,
-  dbName: process.env.MONGODB_DB ?? 'gestao-de-processos-metro',
+  dbName: process.env.MONGODB_DB ?? 'gestao-de-processos-metroimt',
   jwtSecret: process.env.JWT_SECRET,
   bcryptRounds: Number(process.env.BCRYPT_ROUNDS ?? 10),
 };

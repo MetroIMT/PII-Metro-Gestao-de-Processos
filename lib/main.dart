@@ -1,14 +1,8 @@
 import 'package:flutter/material.dart';
 import 'screens/login/login_screen.dart';
-import 'package:pi_metro_2025_2/database/mongodb_service.dart';
 
-void main() async {
+void main() {
   WidgetsFlutterBinding.ensureInitialized();
-  try {
-    await MongoService.connect();
-  } catch (e) {
-    print('Erro ao conectar ao MongoDB: $e');
-  }
   runApp(MyApp());
 }
 
