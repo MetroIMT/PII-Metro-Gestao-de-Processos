@@ -618,157 +618,162 @@ class _DashboardPageState extends State<DashboardPage> {
                         data: Theme.of(context).copyWith(
                           dividerColor: Colors.grey.shade200,
                         ),
+                        // Horizontal scroll externo (mantido) + scroll vertical interno (adicionado)
                         child: SingleChildScrollView(
                           scrollDirection: Axis.horizontal,
                           child: ConstrainedBox(
                             constraints: BoxConstraints(
                               minWidth: constraints.maxWidth,
                             ),
-                            child: DataTable(
-                              headingRowColor: MaterialStateProperty.resolveWith<Color>(
-                                (Set<MaterialState> states) => const Color(0xFFF5F7FA),
-                              ),
-                              dataRowColor: MaterialStateProperty.resolveWith<Color>(
-                                (Set<MaterialState> states) {
-                                  if (states.contains(MaterialState.selected)) {
-                                    return Colors.blue.withOpacity(0.1);
-                                  }
-                                  return Colors.white;
-                                },
-                              ),
-                              columnSpacing: 24,
-                              horizontalMargin: 24,
-                              dataRowHeight: 64,
-                              headingRowHeight: 60,
-                              showCheckboxColumn: false,
-                              dividerThickness: 1,
-                              columns: [
-                                const DataColumn(
-                                  label: Expanded(
-                                    child: Text(
-                                      'Código', 
-                                      style: TextStyle(fontWeight: FontWeight.bold),
-                                    ),
-                                  ),
+                            child: SingleChildScrollView(
+                              // Adiciona rolagem vertical para permitir "rodar para baixo"
+                              scrollDirection: Axis.vertical,
+                              child: DataTable(
+                                headingRowColor: MaterialStateProperty.resolveWith<Color>(
+                                  (Set<MaterialState> states) => const Color(0xFFF5F7FA),
                                 ),
-                                DataColumn(
-                                  label: Expanded(
-                                    flex: 3,
-                                    child: Text(
-                                      'Nome', 
-                                      style: TextStyle(fontWeight: FontWeight.bold),
-                                    ),
-                                  ),
-                                ),
-                                const DataColumn(
-                                  label: Expanded(
-                                    child: Text(
-                                      'Quantidade', 
-                                      style: TextStyle(fontWeight: FontWeight.bold),
-                                    ),
-                                  ),
-                                  numeric: true,
-                                ),
-                                const DataColumn(
-                                  label: Expanded(
-                                    child: Text(
-                                      'Local', 
-                                      style: TextStyle(fontWeight: FontWeight.bold),
-                                    ),
-                                  ),
-                                ),
-                                const DataColumn(
-                                  label: Expanded(
-                                    child: Text(
-                                      'Status', 
-                                      style: TextStyle(fontWeight: FontWeight.bold),
-                                    ),
-                                  ),
-                                ),
-                                const DataColumn(
-                                  label: Expanded(
-                                    child: Text(
-                                      'Ações', 
-                                      style: TextStyle(fontWeight: FontWeight.bold),
-                                    ),
-                                  ),
-                                ),
-                              ],
-                              rows: _filteredMateriais.map((material) {
-                                return DataRow(
-                                  cells: [
-                                    DataCell(
-                                      Text(
-                                        material.codigo,
-                                        style: const TextStyle(fontWeight: FontWeight.w500),
-                                      ),
-                                    ),
-                                    DataCell(
-                                      Text(
-                                        material.nome, 
-                                        style: TextStyle(
-                                          color: Colors.grey.shade800,
-                                        ),
-                                      ),
-                                    ),
-                                    DataCell(
-                                      Text(
-                                        material.quantidade.toString(),
-                                        style: TextStyle(
-                                          fontWeight: FontWeight.bold,
-                                          color: material.quantidade > 0 ? Colors.black : Colors.red,
-                                        ),
-                                      ),
-                                    ),
-                                    DataCell(Text(material.local)),
-                                    DataCell(
-                                      Container(
-                                        padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-                                        decoration: BoxDecoration(
-                                          color: material.quantidade > 0 ? Colors.green : Colors.red,
-                                          borderRadius: BorderRadius.circular(12),
-                                        ),
-                                        child: Text(
-                                          material.status,
-                                          style: const TextStyle(
-                                            color: Colors.white,
-                                            fontSize: 12,
-                                            fontWeight: FontWeight.bold,
-                                          ),
-                                        ),
-                                      ),
-                                    ),
-                                    DataCell(
-                                      Row(
-                                        mainAxisSize: MainAxisSize.min,
-                                        children: [
-                                          IconButton(
-                                            icon: const Icon(Icons.edit, size: 20),
-                                            color: Colors.blue,
-                                            tooltip: "Editar",
-                                            onPressed: () {
-                                              // Implementar edição
-                                            },
-                                          ),
-                                          IconButton(
-                                            icon: const Icon(Icons.swap_vert, size: 20),
-                                            color: const Color(0xFF253250),
-                                            tooltip: "Movimentar",
-                                            onPressed: () {
-                                              // Implementar movimentação
-                                            },
-                                          ),
-                                        ],
-                                      ),
-                                    ),
-                                  ],
-                                  onSelectChanged: (selected) {
-                                    if (selected == true) {
-                                      // Implementar ação ao selecionar linha
+                                dataRowColor: MaterialStateProperty.resolveWith<Color>(
+                                  (Set<MaterialState> states) {
+                                    if (states.contains(MaterialState.selected)) {
+                                      return Colors.blue.withOpacity(0.1);
                                     }
+                                    return Colors.white;
                                   },
-                                );
-                              }).toList(),
+                                ),
+                                columnSpacing: 24,
+                                horizontalMargin: 24,
+                                dataRowHeight: 64,
+                                headingRowHeight: 60,
+                                showCheckboxColumn: false,
+                                dividerThickness: 1,
+                                columns: [
+                                  const DataColumn(
+                                    label: Expanded(
+                                      child: Text(
+                                        'Código', 
+                                        style: TextStyle(fontWeight: FontWeight.bold),
+                                      ),
+                                    ),
+                                  ),
+                                  DataColumn(
+                                    label: Expanded(
+                                      flex: 3,
+                                      child: Text(
+                                        'Nome', 
+                                        style: TextStyle(fontWeight: FontWeight.bold),
+                                      ),
+                                    ),
+                                  ),
+                                  const DataColumn(
+                                    label: Expanded(
+                                      child: Text(
+                                        'Quantidade', 
+                                        style: TextStyle(fontWeight: FontWeight.bold),
+                                      ),
+                                    ),
+                                    numeric: true,
+                                  ),
+                                  const DataColumn(
+                                    label: Expanded(
+                                      child: Text(
+                                        'Local', 
+                                        style: TextStyle(fontWeight: FontWeight.bold),
+                                      ),
+                                    ),
+                                  ),
+                                  const DataColumn(
+                                    label: Expanded(
+                                      child: Text(
+                                        'Status', 
+                                        style: TextStyle(fontWeight: FontWeight.bold),
+                                      ),
+                                    ),
+                                  ),
+                                  const DataColumn(
+                                    label: Expanded(
+                                      child: Text(
+                                        'Ações', 
+                                        style: TextStyle(fontWeight: FontWeight.bold),
+                                      ),
+                                    ),
+                                  ),
+                                ],
+                                rows: _filteredMateriais.map((material) {
+                                  return DataRow(
+                                    cells: [
+                                      DataCell(
+                                        Text(
+                                          material.codigo,
+                                          style: const TextStyle(fontWeight: FontWeight.w500),
+                                        ),
+                                      ),
+                                      DataCell(
+                                        Text(
+                                          material.nome, 
+                                          style: TextStyle(
+                                            color: Colors.grey.shade800,
+                                          ),
+                                        ),
+                                      ),
+                                      DataCell(
+                                        Text(
+                                          material.quantidade.toString(),
+                                          style: TextStyle(
+                                            fontWeight: FontWeight.bold,
+                                            color: material.quantidade > 0 ? Colors.black : Colors.red,
+                                          ),
+                                        ),
+                                      ),
+                                      DataCell(Text(material.local)),
+                                      DataCell(
+                                        Container(
+                                          padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                                          decoration: BoxDecoration(
+                                            color: material.quantidade > 0 ? Colors.green : Colors.red,
+                                            borderRadius: BorderRadius.circular(12),
+                                          ),
+                                          child: Text(
+                                            material.status,
+                                            style: const TextStyle(
+                                              color: Colors.white,
+                                              fontSize: 12,
+                                              fontWeight: FontWeight.bold,
+                                            ),
+                                          ),
+                                        ),
+                                      ),
+                                      DataCell(
+                                        Row(
+                                          mainAxisSize: MainAxisSize.min,
+                                          children: [
+                                            IconButton(
+                                              icon: const Icon(Icons.edit, size: 20),
+                                              color: Colors.blue,
+                                              tooltip: "Editar",
+                                              onPressed: () {
+                                                // Implementar edição
+                                              },
+                                            ),
+                                            IconButton(
+                                              icon: const Icon(Icons.swap_vert, size: 20),
+                                              color: const Color(0xFF253250),
+                                              tooltip: "Movimentar",
+                                              onPressed: () {
+                                                // Implementar movimentação
+                                              },
+                                            ),
+                                          ],
+                                        ),
+                                      ),
+                                    ],
+                                    onSelectChanged: (selected) {
+                                      if (selected == true) {
+                                        // Implementar ação ao selecionar linha
+                                      }
+                                    },
+                                  );
+                                }).toList(),
+                              ),
                             ),
                           ),
                         ),

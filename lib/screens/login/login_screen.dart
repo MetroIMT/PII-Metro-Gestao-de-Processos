@@ -2,6 +2,11 @@ import 'dart:ui';
 import 'package:flutter/material.dart';
 import '../home/home_screen.dart';
 import 'login_controller.dart';
+import 'dart:ui';
+import 'cadastro_popup.dart';
+import 'esqueceuasenha_popup.dart';
+
+
 
 void main() {
   runApp(const MyApp());
@@ -331,6 +336,8 @@ class _LoginPageState extends State<LoginPage>
                         TextButton(
                           onPressed: () {
                             // Ação "Esqueceu a senha"
+                            // Esqueceu a senha ação
+                            showEsqueciSenhaPopup(context);
                           },
                           style: TextButton.styleFrom(
                             padding: EdgeInsets.zero,
@@ -402,6 +409,8 @@ class _LoginPageState extends State<LoginPage>
                           child: OutlinedButton(
                             onPressed: () {
                               // Ação "Cadastrar"
+                              // Ação cadastrar
+                              showCadastroPopup(context);
                             },
                             style: OutlinedButton.styleFrom(
                               foregroundColor: metroBlue,

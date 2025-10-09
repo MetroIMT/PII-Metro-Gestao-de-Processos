@@ -445,6 +445,24 @@ class _HomeScreenState extends State<HomeScreen> with SingleTickerProviderStateM
               hasAlert: true,
               color2: Colors.red.shade200,
             ),
+
+            // Card de Materiais de Consumo
+            _buildDashboardCard(
+              'Materiais de Consumo',
+              Icons.warning_amber,
+              const Color.fromARGB(255, 54, 231, 244),
+              () {},
+              color2: const Color.fromARGB(255, 154, 172, 239),
+            ),
+
+            // Card de Materiais de Giro
+            _buildDashboardCard(
+              'Materiais de Giro',
+              Icons.warning_amber,
+              const Color.fromARGB(255, 184, 244, 54),
+              () {},
+              color2: const Color.fromARGB(255, 155, 239, 154),
+            ),
           ],
         );
       }
