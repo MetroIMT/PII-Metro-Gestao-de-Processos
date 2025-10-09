@@ -52,4 +52,3 @@ app.*.map.json
 # node_modules directory
 node_modules/
 /package-lock.json
-.env
