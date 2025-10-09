@@ -1,12 +1,8 @@
-import 'dart:ui';
 import 'package:flutter/material.dart';
 import '../home/home_screen.dart';
 import 'login_controller.dart';
-import 'dart:ui';
 import 'cadastro_popup.dart';
 import 'esqueceuasenha_popup.dart';
-
-
 
 void main() {
   runApp(const MyApp());
@@ -19,7 +15,7 @@ class MyApp extends StatelessWidget {
   Widget build(BuildContext context) {
     return MaterialApp(
       title: 'Login Metro',
-      theme: ThemeData(primarySwatch: Color(0xFF001489), fontFamily: 'Poppins'),
+      theme: ThemeData(primaryColor: Color(0xFF001489), fontFamily: 'Poppins'),
       home: const LoginPage(),
       debugShowCheckedModeBanner: false,
     );
@@ -107,8 +103,10 @@ class _LoginPageState extends State<LoginPage>
               const begin = 0.0;
               const end = 1.0;
               const curve = Curves.easeInOut;
-              final tween = Tween(begin: begin, end: end)
-                  .chain(CurveTween(curve: curve));
+              final tween = Tween(
+                begin: begin,
+                end: end,
+              ).chain(CurveTween(curve: curve));
               return FadeTransition(
                 opacity: animation.drive(tween),
                 child: child,
@@ -235,11 +233,7 @@ class _LoginPageState extends State<LoginPage>
                         color: Colors.white.withOpacity(0.85),
                       ),
                     ),
-                    Expanded(
-                      child: Align(
-                        alignment: Alignment.center,
-                      ),
-                    ),
+                    Expanded(child: Align(alignment: Alignment.center)),
                     const Text(
                       '© 2025 Metrô | Todos os direitos reservados',
                       style: TextStyle(fontSize: 12, color: Colors.white70),
@@ -251,8 +245,10 @@ class _LoginPageState extends State<LoginPage>
             Expanded(
               flex: 4,
               child: Container(
-                padding:
-                    const EdgeInsets.symmetric(horizontal: 48, vertical: 48),
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 48,
+                  vertical: 48,
+                ),
                 color: Colors.white,
                 child: Column(
                   mainAxisAlignment: MainAxisAlignment.center,
@@ -376,8 +372,9 @@ class _LoginPageState extends State<LoginPage>
                                 borderRadius: BorderRadius.circular(12),
                               ),
                               child: Container(
-                                padding:
-                                    const EdgeInsets.symmetric(vertical: 16),
+                                padding: const EdgeInsets.symmetric(
+                                  vertical: 16,
+                                ),
                                 alignment: Alignment.center,
                                 child: _isLoading
                                     ? const SizedBox(
@@ -386,7 +383,8 @@ class _LoginPageState extends State<LoginPage>
                                         child: CircularProgressIndicator(
                                           valueColor:
                                               AlwaysStoppedAnimation<Color>(
-                                                  Colors.white),
+                                                Colors.white,
+                                              ),
                                           strokeWidth: 2.2,
                                         ),
                                       )
@@ -414,8 +412,7 @@ class _LoginPageState extends State<LoginPage>
                             style: OutlinedButton.styleFrom(
                               foregroundColor: metroBlue,
                               side: BorderSide(color: metroBlue),
-                              padding:
-                                  const EdgeInsets.symmetric(vertical: 16),
+                              padding: const EdgeInsets.symmetric(vertical: 16),
                               shape: RoundedRectangleBorder(
                                 borderRadius: BorderRadius.circular(12),
                               ),
@@ -561,8 +558,7 @@ class _LoginPageState extends State<LoginPage>
                   AnimatedContainer(
                     duration: const Duration(milliseconds: 300),
                     width: double.infinity,
-                    margin:
-                        EdgeInsets.symmetric(horizontal: isTablet ? 16 : 0),
+                    margin: EdgeInsets.symmetric(horizontal: isTablet ? 16 : 0),
                     decoration: BoxDecoration(
                       color: Colors.white.withOpacity(0.95),
                       borderRadius: BorderRadius.circular(20),
@@ -693,7 +689,8 @@ class _LoginPageState extends State<LoginPage>
                                         child: CircularProgressIndicator(
                                           valueColor:
                                               AlwaysStoppedAnimation<Color>(
-                                                  Colors.white),
+                                                Colors.white,
+                                              ),
                                           strokeWidth: 2,
                                         ),
                                       )
@@ -767,10 +764,7 @@ class _LoginPageState extends State<LoginPage>
                       padding: const EdgeInsets.only(top: 16),
                       child: Text(
                         '© 2023 Metrô | Todos os direitos reservados',
-                        style: TextStyle(
-                          fontSize: 12,
-                          color: Colors.grey[500],
-                        ),
+                        style: TextStyle(fontSize: 12, color: Colors.grey[500]),
                       ),
                     ),
                   ],
@@ -819,8 +813,7 @@ class _LoginPageState extends State<LoginPage>
           ),
           focusedBorder: OutlineInputBorder(
             borderRadius: BorderRadius.circular(12),
-            borderSide:
-                const BorderSide(color: Color(0xFF3B62FF), width: 2),
+            borderSide: const BorderSide(color: Color(0xFF3B62FF), width: 2),
           ),
           filled: true,
           fillColor: Colors.grey[50],
@@ -832,8 +825,9 @@ class _LoginPageState extends State<LoginPage>
         style: TextStyle(fontSize: isTablet ? 16 : 14),
         keyboardType: keyboardType,
         obscureText: obscureText,
-        textInputAction:
-            obscureText ? TextInputAction.done : TextInputAction.next,
+        textInputAction: obscureText
+            ? TextInputAction.done
+            : TextInputAction.next,
         onSubmitted: obscureText ? (_) => _login() : null,
       ),
     );
