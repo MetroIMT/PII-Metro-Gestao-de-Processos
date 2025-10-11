@@ -24,7 +24,9 @@ router.get("/", auth(false), async (req, res) => {
     const collectionName = tipo ? resolveCollection(tipo) : null;
 
     if (tipo && !collectionName) {
-      return res.status(400).json({ error: 'tipo precisa ser "instrumento" ou "ferramenta"' });
+      return res
+        .status(400)
+        .json({ error: 'tipo precisa ser "instrumento" ou "ferramenta"' });
     }
 
     if (collectionName) {
@@ -67,6 +69,74 @@ router.get("/", auth(false), async (req, res) => {
   }
 });
 
+// Alertas de calibração: instrumentos com validade vencida ou a vencer em N dias
+router.get("/alerts/calibracao", auth(), async (req, res) => {
+  try {
+    const days = Number(req.query.days ?? 30);
+    if (!Number.isFinite(days) || days <= 0) {
+      return res.status(400).json({ error: "days deve ser > 0" });
+    }
+
+    const now = new Date();
+    const limit = new Date(now.getTime() + days * 24 * 60 * 60 * 1000);
+
+    const db = getDB();
+    const cursor = db
+      .collection("instrumentos")
+      .find({ validadeCalibracao: { $lte: limit } })
+      .project({ nome: 1, codigoInterno: 1, validadeCalibracao: 1, status: 1 })
+      .sort({ validadeCalibracao: 1 });
+
+    const itens = await cursor.toArray();
+    const vencidos = itens.filter(
+      (i) => i.validadeCalibracao && i.validadeCalibracao < now
+    );
+    const aVencer = itens.filter(
+      (i) => i.validadeCalibracao && i.validadeCalibracao >= now
+    );
+
+    res.json({
+      total: itens.length,
+      vencidos,
+      aVencer,
+    });
+  } catch (error) {
+    console.error("Erro ao listar alertas de calibração:", error);
+    res.status(500).json({ error: "Falha ao listar alertas" });
+  }
+});
+
+// Busca item por código único (patrimônio/codigoInterno)
+router.get("/buscar-por-codigo", auth(false), async (req, res) => {
+  try {
+    const { codigo, tipo } = req.query;
+    if (!codigo) return res.status(400).json({ error: "codigo é obrigatório" });
+
+    const db = getDB();
+    const collections = tipo
+      ? [resolveCollection(tipo)]
+      : ["instrumentos", "ferramentas"];
+    const validCollections = collections.filter(Boolean);
+
+    for (const col of validCollections) {
+      const doc = await db
+        .collection(col)
+        .findOne({ codigoInterno: String(codigo) });
+      if (doc) {
+        return res.json({
+          ...doc,
+          tipo: col === "instrumentos" ? "instrumento" : "ferramenta",
+        });
+      }
+    }
+
+    res.status(404).json({ error: "Item não encontrado" });
+  } catch (error) {
+    console.error("Erro ao buscar por código:", error);
+    res.status(500).json({ error: "Falha na busca por código" });
+  }
+});
+
 router.post("/", auth(), requireRole("admin"), async (req, res) => {
   const { tipo, ...body } = req.body || {};
 
@@ -76,7 +146,9 @@ router.post("/", auth(), requireRole("admin"), async (req, res) => {
 
   const collectionName = resolveCollection(tipo);
   if (!collectionName) {
-    return res.status(400).json({ error: 'tipo precisa ser "instrumento" ou "ferramenta"' });
+    return res
+      .status(400)
+      .json({ error: 'tipo precisa ser "instrumento" ou "ferramenta"' });
   }
 
   if (!body?.nome) {
@@ -85,7 +157,9 @@ router.post("/", auth(), requireRole("admin"), async (req, res) => {
 
   const quantidade = Number(body.quantidade ?? 0);
   if (!Number.isFinite(quantidade) || quantidade < 0) {
-    return res.status(400).json({ error: "quantidade deve ser zero ou positivo" });
+    return res
+      .status(400)
+      .json({ error: "quantidade deve ser zero ou positivo" });
   }
 
   const payload = {
@@ -116,7 +190,9 @@ router.patch("/:id", auth(), requireRole("admin"), async (req, res) => {
 
   const collectionName = resolveCollection(tipo);
   if (!collectionName) {
-    return res.status(400).json({ error: 'tipo precisa ser "instrumento" ou "ferramenta"' });
+    return res
+      .status(400)
+      .json({ error: 'tipo precisa ser "instrumento" ou "ferramenta"' });
   }
 
   if (!ObjectId.isValid(id)) {
@@ -124,7 +200,9 @@ router.patch("/:id", auth(), requireRole("admin"), async (req, res) => {
   }
 
   if (!body || Object.keys(body).length === 0) {
-    return res.status(400).json({ error: "Informe ao menos um campo para atualizar" });
+    return res
+      .status(400)
+      .json({ error: "Informe ao menos um campo para atualizar" });
   }
 
   const updatePayload = {
@@ -135,7 +213,9 @@ router.patch("/:id", auth(), requireRole("admin"), async (req, res) => {
   if (updatePayload.quantidade !== undefined) {
     const quantidade = Number(updatePayload.quantidade);
     if (!Number.isFinite(quantidade) || quantidade < 0) {
-      return res.status(400).json({ error: "quantidade deve ser zero ou positivo" });
+      return res
+        .status(400)
+        .json({ error: "quantidade deve ser zero ou positivo" });
     }
     updatePayload.quantidade = quantidade;
   }

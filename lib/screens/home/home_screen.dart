@@ -2,6 +2,8 @@ import 'package:flutter/material.dart';
 import 'dart:math';
 import 'tool_page.dart';
 import 'estoque_page.dart';
+import '../../services/auth_service.dart';
+import '../login/login_screen.dart';
 
 // Classe para desenhar o gráfico de pizza do estoque
 class PieChartPainter extends CustomPainter {
@@ -22,29 +24,23 @@ class PieChartPainter extends CustomPainter {
     final center = Offset(size.width / 2, size.height / 2);
     final radius = min(size.width, size.height) / 2;
     final rect = Rect.fromCircle(center: center, radius: radius);
-    
+
     // Definir as cores do gráfico
     final corDisponivelClara = corDisponivel.withOpacity(0.8);
     final corEmFaltaClara = corEmFalta.withOpacity(0.8);
-    
+
     // Desenhar arco disponível
     final paintDisponivel = Paint()
       ..style = PaintingStyle.fill
       ..color = corDisponivelClara;
-    
-    canvas.drawArc(
-      rect,
-      -pi / 2,
-      2 * pi * disponivel,
-      true,
-      paintDisponivel,
-    );
-    
+
+    canvas.drawArc(rect, -pi / 2, 2 * pi * disponivel, true, paintDisponivel);
+
     // Desenhar arco em falta
     final paintEmFalta = Paint()
       ..style = PaintingStyle.fill
       ..color = corEmFaltaClara;
-    
+
     canvas.drawArc(
       rect,
       -pi / 2 + 2 * pi * disponivel,
@@ -52,22 +48,22 @@ class PieChartPainter extends CustomPainter {
       true,
       paintEmFalta,
     );
-    
+
     // Desenhar borda branca
     final paintBorda = Paint()
       ..style = PaintingStyle.stroke
       ..color = Colors.white
       ..strokeWidth = 2;
-    
+
     canvas.drawCircle(center, radius, paintBorda);
-    
+
     // Desenhar círculo central
     final paintCentro = Paint()
       ..style = PaintingStyle.fill
       ..color = Colors.white;
-    
+
     canvas.drawCircle(center, radius * 0.5, paintCentro);
-    
+
     // Desenhar texto de porcentagem no centro
     final textSpan = TextSpan(
       text: '${(disponivel * 100).toStringAsFixed(0)}%',
@@ -77,13 +73,13 @@ class PieChartPainter extends CustomPainter {
         fontWeight: FontWeight.bold,
       ),
     );
-    
+
     final textPainter = TextPainter(
       text: textSpan,
       textDirection: TextDirection.ltr,
       textAlign: TextAlign.center,
     );
-    
+
     textPainter.layout();
     textPainter.paint(
       canvas,
@@ -105,7 +101,8 @@ class HomeScreen extends StatefulWidget {
   State<HomeScreen> createState() => _HomeScreenState();
 }
 
-class _HomeScreenState extends State<HomeScreen> with SingleTickerProviderStateMixin {
+class _HomeScreenState extends State<HomeScreen>
+    with SingleTickerProviderStateMixin {
   int _selectedIndex = 0;
   bool _isRailExtended = false;
   late AnimationController _animationController;
@@ -146,42 +143,42 @@ class _HomeScreenState extends State<HomeScreen> with SingleTickerProviderStateM
       key: _scaffoldKey,
       backgroundColor: Colors.white,
       // AppBar apenas no mobile (para o menu hamburguer)
-      appBar: isMobile ? AppBar(
-        elevation: 0,
-        backgroundColor: Colors.white,
-        // No mobile: botão abre drawer, no desktop: botão expande/contrai a sidebar
-        leading: IconButton(
-          icon: AnimatedIcon(
-            icon: AnimatedIcons.menu_close,
-            progress: _animationController,
-            color: const Color(0xFF001489),
-          ),
-          onPressed: () {
-            // Usar o _scaffoldKey para abrir o drawer
-            _scaffoldKey.currentState?.openDrawer();
-          },
-        ),
-        title: const Text(
-          'Dashboard',
-          style: TextStyle(
-            color: Color(0xFF001489),
-            fontWeight: FontWeight.bold,
-          ),
-        ),
-        actions: [
-          Padding(
-            padding: const EdgeInsets.only(right: 16.0),
-            child: Image.asset('assets/LogoMetro.png', height: 32),
-          ),
-        ],
-      ) : null,
-      drawer: isMobile 
-          ? Drawer(child: _buildSidebar(expanded: true)) 
+      appBar: isMobile
+          ? AppBar(
+              elevation: 0,
+              backgroundColor: Colors.white,
+              // No mobile: botão abre drawer, no desktop: botão expande/contrai a sidebar
+              leading: IconButton(
+                icon: AnimatedIcon(
+                  icon: AnimatedIcons.menu_close,
+                  progress: _animationController,
+                  color: const Color(0xFF001489),
+                ),
+                onPressed: () {
+                  // Usar o _scaffoldKey para abrir o drawer
+                  _scaffoldKey.currentState?.openDrawer();
+                },
+              ),
+              title: const Text(
+                'Dashboard',
+                style: TextStyle(
+                  color: Color(0xFF001489),
+                  fontWeight: FontWeight.bold,
+                ),
+              ),
+              actions: [
+                Padding(
+                  padding: const EdgeInsets.only(right: 16.0),
+                  child: Image.asset('assets/LogoMetro.png', height: 32),
+                ),
+              ],
+            )
           : null,
+      drawer: isMobile ? Drawer(child: _buildSidebar(expanded: true)) : null,
       body: Stack(
         children: [
           // Barra lateral fixa em desktop (posicionada sobre o conteúdo)
-          if (!isMobile) 
+          if (!isMobile)
             AnimatedPositioned(
               duration: const Duration(milliseconds: 300),
               curve: Curves.easeInOut,
@@ -196,7 +193,7 @@ class _HomeScreenState extends State<HomeScreen> with SingleTickerProviderStateM
           AnimatedPadding(
             duration: const Duration(milliseconds: 300),
             padding: EdgeInsets.only(
-              left: !isMobile ? (_isRailExtended ? 180 : 70) : 0
+              left: !isMobile ? (_isRailExtended ? 180 : 70) : 0,
             ),
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
@@ -239,12 +236,15 @@ class _HomeScreenState extends State<HomeScreen> with SingleTickerProviderStateM
                         ),
                         Hero(
                           tag: 'logo',
-                          child: Image.asset('assets/LogoMetro.png', height: 40),
+                          child: Image.asset(
+                            'assets/LogoMetro.png',
+                            height: 40,
+                          ),
                         ),
                       ],
                     ),
                   ),
-                
+
                 // Dashboard Cards
                 Expanded(
                   child: Padding(
@@ -259,12 +259,12 @@ class _HomeScreenState extends State<HomeScreen> with SingleTickerProviderStateM
       ),
     );
   }
-  
+
   // Barra lateral com menu de navegação
   Widget _buildSidebar({bool expanded = false}) {
     final metroBlue = const Color(0xFF001489);
     final metroLightBlue = const Color(0xFF001489);
-    
+
     return Container(
       width: expanded ? 180 : 70,
       decoration: BoxDecoration(
@@ -296,11 +296,7 @@ class _HomeScreenState extends State<HomeScreen> with SingleTickerProviderStateM
                 ),
               ),
             ),
-            child: Icon(
-              Icons.subway,
-              color: Colors.white,
-              size: 32,
-            ),
+            child: Icon(Icons.subway, color: Colors.white, size: 32),
           ),
           const SizedBox(height: 20),
           _sidebarItem(Icons.person, 'Usuário', 0, expanded),
@@ -315,96 +311,111 @@ class _HomeScreenState extends State<HomeScreen> with SingleTickerProviderStateM
       ),
     );
   }
-  
+
   // Item individual da barra lateral
   Widget _sidebarItem(IconData icon, String label, int index, bool expanded) {
     final isSelected = _selectedIndex == index;
     return InkWell(
-      onTap: () {
+      onTap: () async {
         setState(() {
           _selectedIndex = index;
-          
-          // Navegação para as diferentes páginas
-          switch(index) {
-            case 0:
-              // Navegar para perfil do usuário
-              break;
-            case 1:
-              Navigator.push(context, MaterialPageRoute(builder: (_) => const DashboardPage()));
-              break;
-            case 2:
-              Navigator.push(context, MaterialPageRoute(builder: (_) => const ToolPage()));
-              break;
-            case 3:
-              // Navegar para relatórios
-              break;
-            case 4:
-              // Lógica de logout
-              Navigator.pop(context);
-              break;
-          }
         });
+
+        // Navegação para as diferentes páginas
+        switch (index) {
+          case 0:
+            // Navegar para perfil do usuário
+            break;
+          case 1:
+            Navigator.push(
+              context,
+              MaterialPageRoute(builder: (_) => const DashboardPage()),
+            );
+            break;
+          case 2:
+            Navigator.push(
+              context,
+              MaterialPageRoute(builder: (_) => const ToolPage()),
+            );
+            break;
+          case 3:
+            // Navegar para relatórios
+            break;
+          case 4:
+            // Lógica de logout: limpar sessão e voltar para login
+            try {
+              await AuthService().logout();
+            } catch (_) {}
+            if (!mounted) return;
+            Navigator.pushAndRemoveUntil(
+              context,
+              MaterialPageRoute(builder: (_) => const LoginPage()),
+              (route) => false,
+            );
+            break;
+        }
       },
       child: Container(
         width: double.infinity,
-        padding: EdgeInsets.symmetric(vertical: 16, horizontal: expanded ? 16 : 0),
+        padding: EdgeInsets.symmetric(
+          vertical: 16,
+          horizontal: expanded ? 16 : 0,
+        ),
         decoration: BoxDecoration(
-          color: isSelected ? Colors.white.withOpacity(0.2) : Colors.transparent,
-          border: isSelected 
-              ? Border(left: BorderSide(color: Colors.white, width: 3)) 
+          color: isSelected
+              ? Colors.white.withOpacity(0.2)
+              : Colors.transparent,
+          border: isSelected
+              ? Border(left: BorderSide(color: Colors.white, width: 3))
               : null,
         ),
-        child: expanded 
-          // Layout expandido: ícone e texto lado a lado
-          ? Row(
-              children: [
-                Icon(icon, color: Colors.white, size: 24),
-                const SizedBox(width: 16),
-                Expanded(
-                  child: Text(
+        child: expanded
+            // Layout expandido: ícone e texto lado a lado
+            ? Row(
+                children: [
+                  Icon(icon, color: Colors.white, size: 24),
+                  const SizedBox(width: 16),
+                  Expanded(
+                    child: Text(
+                      label,
+                      style: const TextStyle(
+                        color: Colors.white,
+                        fontSize: 14,
+                        fontWeight: FontWeight.w500,
+                      ),
+                    ),
+                  ),
+                ],
+              )
+            // Layout recolhido: ícone e texto em coluna
+            : Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Icon(icon, color: Colors.white, size: 24),
+                  const SizedBox(height: 4),
+                  Text(
                     label,
                     style: const TextStyle(
                       color: Colors.white,
-                      fontSize: 14,
+                      fontSize: 10,
                       fontWeight: FontWeight.w500,
                     ),
                   ),
-                ),
-              ],
-            )
-          // Layout recolhido: ícone e texto em coluna
-          : Column(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                Icon(
-                  icon,
-                  color: Colors.white,
-                  size: 24,
-                ),
-                const SizedBox(height: 4),
-                Text(
-                  label,
-                  style: const TextStyle(
-                    color: Colors.white,
-                    fontSize: 10,
-                    fontWeight: FontWeight.w500,
-                  ),
-                ),
-              ],
-            ),
+                ],
+              ),
       ),
     );
   }
-  
+
   // Conteúdo do Dashboard baseado na imagem de referência
   Widget _buildDashboardContent() {
     final metroBlue = const Color(0xFF001489);
-    
+
     return LayoutBuilder(
       builder: (context, constraints) {
         // Decidir se é 1 ou 2 colunas com base na largura disponível
         final crossAxisCount = constraints.maxWidth < 700 ? 1 : 2;
-        
+
         return GridView(
           gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
             crossAxisCount: crossAxisCount,
@@ -415,18 +426,21 @@ class _HomeScreenState extends State<HomeScreen> with SingleTickerProviderStateM
           children: [
             // Card de Estoque Atual
             _buildEstoqueCard(
-              () => Navigator.push(context, MaterialPageRoute(builder: (_) => const DashboardPage())),
+              () => Navigator.push(
+                context,
+                MaterialPageRoute(builder: (_) => const DashboardPage()),
+              ),
             ),
-            
+
             // Card de Instrumentos Próximos da Calibração
             _buildDashboardCard(
               'Instrumentos próximos da calibração',
               Icons.timer,
               Colors.orange,
-              () {}, 
+              () {},
               color2: Colors.orange.shade200,
             ),
-            
+
             // Card de Movimentações Recentes
             _buildDashboardCard(
               'Movimentações recentes',
@@ -435,7 +449,7 @@ class _HomeScreenState extends State<HomeScreen> with SingleTickerProviderStateM
               () {},
               color2: Colors.green.shade200,
             ),
-            
+
             // Card de Alertas (estoque baixo / vencimento)
             _buildDashboardCard(
               'Alertas (estoque baixo / vencimento)',
@@ -465,34 +479,79 @@ class _HomeScreenState extends State<HomeScreen> with SingleTickerProviderStateM
             ),
           ],
         );
-      }
+      },
     );
   }
-  
+
   // Card de Estoque com gráfico e estatísticas
   Widget _buildEstoqueCard(VoidCallback onTap) {
     // Dados do estoque obtidos da mesma fonte de estoque_page
     // Estes valores deveriam idealmente vir de um serviço ou provider compartilhado
     final List<EstoqueMaterial> materiais = [
-      EstoqueMaterial(codigo: 'M001', nome: 'Cabo Elétrico 2.5mm', quantidade: 150, local: 'Base A'),
-      EstoqueMaterial(codigo: 'M002', nome: 'Disjuntor 20A', quantidade: 45, local: 'Base B'),
-      EstoqueMaterial(codigo: 'M003', nome: 'Conduíte Flexível 20mm', quantidade: 0, local: 'Base A'),
-      EstoqueMaterial(codigo: 'M004', nome: 'Terminal Elétrico', quantidade: 230, local: 'Base C'),
-      EstoqueMaterial(codigo: 'M005', nome: 'Fusível 10A', quantidade: 0, local: 'Base B'),
-      EstoqueMaterial(codigo: 'M006', nome: 'Luva de Emenda 25mm', quantidade: 75, local: 'Base D'),
-      EstoqueMaterial(codigo: 'M007', nome: 'Relé de Proteção', quantidade: 18, local: 'Base A'),
-      EstoqueMaterial(codigo: 'M008', nome: 'Chave Seccionadora', quantidade: 5, local: 'Base C'),
+      EstoqueMaterial(
+        codigo: 'M001',
+        nome: 'Cabo Elétrico 2.5mm',
+        quantidade: 150,
+        local: 'Base A',
+      ),
+      EstoqueMaterial(
+        codigo: 'M002',
+        nome: 'Disjuntor 20A',
+        quantidade: 45,
+        local: 'Base B',
+      ),
+      EstoqueMaterial(
+        codigo: 'M003',
+        nome: 'Conduíte Flexível 20mm',
+        quantidade: 0,
+        local: 'Base A',
+      ),
+      EstoqueMaterial(
+        codigo: 'M004',
+        nome: 'Terminal Elétrico',
+        quantidade: 230,
+        local: 'Base C',
+      ),
+      EstoqueMaterial(
+        codigo: 'M005',
+        nome: 'Fusível 10A',
+        quantidade: 0,
+        local: 'Base B',
+      ),
+      EstoqueMaterial(
+        codigo: 'M006',
+        nome: 'Luva de Emenda 25mm',
+        quantidade: 75,
+        local: 'Base D',
+      ),
+      EstoqueMaterial(
+        codigo: 'M007',
+        nome: 'Relé de Proteção',
+        quantidade: 18,
+        local: 'Base A',
+      ),
+      EstoqueMaterial(
+        codigo: 'M008',
+        nome: 'Chave Seccionadora',
+        quantidade: 5,
+        local: 'Base C',
+      ),
     ];
 
     // Cálculos dos valores baseados nos dados acima
     final int totalMateriais = materiais.length;
-    final int materiaisDisponiveis = materiais.where((m) => m.quantidade > 0).length;
-    final int materiaisEmFalta = materiais.where((m) => m.quantidade <= 0).length;
-    final double porcentagemDisponivel = (materiaisDisponiveis / totalMateriais) * 100;
-    
+    final int materiaisDisponiveis = materiais
+        .where((m) => m.quantidade > 0)
+        .length;
+    final int materiaisEmFalta = materiais
+        .where((m) => m.quantidade <= 0)
+        .length;
+    final double porcentagemDisponivel =
+        (materiaisDisponiveis / totalMateriais) * 100;
+
     final metroBlue = const Color(0xFF001489);
     final metroLightBlue = const Color.fromARGB(255, 5, 59, 158);
-    
+
     return Material(
       elevation: 4,
       borderRadius: BorderRadius.circular(12),
@@ -540,7 +599,11 @@ class _HomeScreenState extends State<HomeScreen> with SingleTickerProviderStateM
                           ),
                         ],
                       ),
-                      child: const Icon(Icons.inventory_2, color: Colors.white, size: 20),
+                      child: const Icon(
+                        Icons.inventory_2,
+                        color: Colors.white,
+                        size: 20,
+                      ),
                     ),
                     const SizedBox(width: 12),
                     Expanded(
@@ -555,13 +618,16 @@ class _HomeScreenState extends State<HomeScreen> with SingleTickerProviderStateM
                     ),
                     // Indicador de porcentagem de disponibilidade
                     Container(
-                      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 8,
+                        vertical: 4,
+                      ),
                       decoration: BoxDecoration(
-                        color: porcentagemDisponivel > 85 
-                            ? Colors.green 
+                        color: porcentagemDisponivel > 85
+                            ? Colors.green
                             : porcentagemDisponivel > 70
-                                ? Colors.orange
-                                : Colors.red,
+                            ? Colors.orange
+                            : Colors.red,
                         borderRadius: BorderRadius.circular(12),
                       ),
                       child: Text(
@@ -575,9 +641,9 @@ class _HomeScreenState extends State<HomeScreen> with SingleTickerProviderStateM
                     ),
                   ],
                 ),
-                
+
                 const SizedBox(height: 16),
-                
+
                 // Conteúdo do card
                 Expanded(
                   child: Row(
@@ -591,25 +657,25 @@ class _HomeScreenState extends State<HomeScreen> with SingleTickerProviderStateM
                           children: [
                             // Total de materiais
                             _buildEstoqueStat(
-                              'Total de materiais', 
+                              'Total de materiais',
                               '$totalMateriais',
                               Icons.category,
                               metroBlue,
                             ),
                             const SizedBox(height: 12),
-                            
+
                             // Materiais disponíveis
                             _buildEstoqueStat(
-                              'Disponíveis', 
+                              'Disponíveis',
                               '$materiaisDisponiveis',
                               Icons.check_circle_outline,
                               Colors.green,
                             ),
                             const SizedBox(height: 12),
-                            
+
                             // Materiais em falta
                             _buildEstoqueStat(
-                              'Em falta', 
+                              'Em falta',
                               '$materiaisEmFalta',
                               Icons.error_outline,
                               Colors.red,
@@ -617,7 +683,7 @@ class _HomeScreenState extends State<HomeScreen> with SingleTickerProviderStateM
                           ],
                         ),
                       ),
-                      
+
                       // Gráfico de pizza à direita
                       Expanded(
                         flex: 2,
@@ -628,7 +694,8 @@ class _HomeScreenState extends State<HomeScreen> with SingleTickerProviderStateM
                             painter: PieChartPainter(
                               disponivel: materiaisDisponiveis / totalMateriais,
                               emFalta: materiaisEmFalta / totalMateriais,
-                              corDisponivel: Colors.green, // Usando verde para o gráfico
+                              corDisponivel:
+                                  Colors.green, // Usando verde para o gráfico
                             ),
                             size: const Size(100, 100),
                           ),
@@ -637,7 +704,7 @@ class _HomeScreenState extends State<HomeScreen> with SingleTickerProviderStateM
                     ],
                   ),
                 ),
-                
+
                 // Botão de ação
                 Align(
                   alignment: Alignment.bottomRight,
@@ -646,7 +713,10 @@ class _HomeScreenState extends State<HomeScreen> with SingleTickerProviderStateM
                     style: ElevatedButton.styleFrom(
                       backgroundColor: metroBlue,
                       foregroundColor: Colors.white,
-                      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 16,
+                        vertical: 8,
+                      ),
                       shape: RoundedRectangleBorder(
                         borderRadius: BorderRadius.circular(8),
                       ),
@@ -669,9 +739,14 @@ class _HomeScreenState extends State<HomeScreen> with SingleTickerProviderStateM
       ),
     );
   }
-  
+
   // Widget para mostrar uma estatística no card de estoque
-  Widget _buildEstoqueStat(String label, String value, IconData icon, Color color) {
+  Widget _buildEstoqueStat(
+    String label,
+    String value,
+    IconData icon,
+    Color color,
+  ) {
     return Row(
       children: [
         Container(
@@ -689,10 +764,7 @@ class _HomeScreenState extends State<HomeScreen> with SingleTickerProviderStateM
             children: [
               Text(
                 label,
-                style: TextStyle(
-                  color: Colors.grey.shade600,
-                  fontSize: 12,
-                ),
+                style: TextStyle(color: Colors.grey.shade600, fontSize: 12),
               ),
               Text(
                 value,
@@ -709,9 +781,16 @@ class _HomeScreenState extends State<HomeScreen> with SingleTickerProviderStateM
   }
 
   // Card individual do Dashboard
-  Widget _buildDashboardCard(String title, IconData icon, Color color, VoidCallback onTap, {bool hasAlert = false, Color? color2}) {
+  Widget _buildDashboardCard(
+    String title,
+    IconData icon,
+    Color color,
+    VoidCallback onTap, {
+    bool hasAlert = false,
+    Color? color2,
+  }) {
     final gradientColor = color2 ?? color.withOpacity(0.6);
-    
+
     return Material(
       elevation: 4,
       borderRadius: BorderRadius.circular(12),
@@ -773,7 +852,10 @@ class _HomeScreenState extends State<HomeScreen> with SingleTickerProviderStateM
                     ),
                     if (hasAlert)
                       Container(
-                        padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: 10,
+                          vertical: 5,
+                        ),
                         decoration: BoxDecoration(
                           color: Colors.red,
                           borderRadius: BorderRadius.circular(20),
@@ -813,7 +895,10 @@ class _HomeScreenState extends State<HomeScreen> with SingleTickerProviderStateM
                     style: ElevatedButton.styleFrom(
                       backgroundColor: color,
                       foregroundColor: Colors.white,
-                      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 16,
+                        vertical: 8,
+                      ),
                       shape: RoundedRectangleBorder(
                         borderRadius: BorderRadius.circular(8),
                       ),
