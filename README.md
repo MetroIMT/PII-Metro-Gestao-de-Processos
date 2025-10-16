@@ -27,6 +27,7 @@ Desenvolver soluções digitais acessíveis por desktop e mobile que:
 ## Requisitos Funcionais
 
 ### Sistema de Estoque (Materiais de Consumo e Giro)
+
 - Registro de entrada e saída de materiais, por código único
 - Controle de saldos por base, veículo, tipo de material e localização
 - Cadastro com responsável, data e destino da movimentação
@@ -35,12 +36,14 @@ Desenvolver soluções digitais acessíveis por desktop e mobile que:
 - Geração de relatórios e gráficos por base, equipe e tipo de item
 
 ### Sistema de Instrumentos Técnicos
+
 - Controle de retirada e devolução por funcionário
 - Atualização automática de status: "em uso", "em campo", "disponível"
 - Avisos de validade de calibração e pendências por instrumento
 - Histórico completo de uso por instrumento e por funcionário
 
 ### Segurança e Governança
+
 - Acesso diferenciado por perfil (Administrador e Usuário)
 - Rastreabilidade completa (quem retirou, quando retirou, quando devolveu, posição atual)
 - Geração de alertas de vencimento da calibração
@@ -57,8 +60,39 @@ Desenvolver soluções digitais acessíveis por desktop e mobile que:
 ## Sobre o Desenvolvimento
 
 Este projeto é comum aos três cursos:
+
 - Ciência da Computação (CIC)
 - Sistemas de Informação (SIN)
 - Inteligência Artificial e Ciência de Dados (ICD)
 
 O projeto será apresentado aos técnicos e engenheiros do Metrô de São Paulo, com potencial de implementação real em suas operações.
+
+## 🧪 Testes e TDD
+
+Este projeto implementa **Test Driven Development (TDD)** com cobertura de ~93% no sistema de login.
+
+### Status dos Testes
+
+```
+✅ 18 testes passando
+⏱️ Tempo de execução: ~1 segundo
+📊 Cobertura: ~93%
+```
+
+### Executar Testes
+
+```bash
+# Todos os testes
+flutter test
+
+# Testes específicos
+flutter test test/services/auth_service_test.dart
+flutter test test/controllers/login_controller_test.dart
+flutter test test/widgets/login_screen_test.dart
+```
+
+### Documentação
+
+📖 **[Guia Completo de Testes TDD](./docs/TDD_GUIDE.md)**
+
+---
