@@ -1,72 +1,62 @@
 import 'dart:convert';
+
 import 'package:flutter_test/flutter_test.dart';
 import 'package:http/http.dart' as http;
-import 'package:mockito/annotations.dart';
-import 'package:mockito/mockito.dart';
+import 'package:http/testing.dart';
 import 'package:pi_metro_2025_2/services/auth_service.dart';
-
-@GenerateMocks([http.Client])
-import 'auth_service_test.mocks.dart';
 
 void main() {
   TestWidgetsFlutterBinding.ensureInitialized();
 
   group('AuthService - Testes de Login', () {
-    late MockClient mockClient;
-    late AuthService authService;
-
-    setUp(() {
-      mockClient = MockClient();
-      authService = AuthService(client: mockClient);
-    });
-
     test('Login com credenciais inválidas deve retornar false', () async {
-      when(
-        mockClient.post(
-          any,
-          headers: anyNamed('headers'),
-          body: anyNamed('body'),
-        ),
-      ).thenAnswer((_) async => http.Response('Unauthorized', 401));
+      var called = false;
+      final client = MockClient((request) async {
+        called = true;
+        expect(request.method, 'POST');
+        return http.Response('Unauthorized', 401);
+      });
+
+      final authService = AuthService(client: client);
 
       final result = await authService.login(
-        email: 'errado@metro.com',
+        email: 'errado@metrosp.com.br',
         senha: 'senhaerrada',
       );
 
+      expect(called, true);
       expect(result, false);
     });
 
     test('Login com resposta sem token deve retornar false', () async {
+      var called = false;
       final responseBody = jsonEncode({'message': 'Success', 'token': ''});
 
-      when(
-        mockClient.post(
-          any,
-          headers: anyNamed('headers'),
-          body: anyNamed('body'),
-        ),
-      ).thenAnswer((_) async => http.Response(responseBody, 200));
+      final client = MockClient((request) async {
+        called = true;
+        return http.Response(responseBody, 200);
+      });
+
+      final authService = AuthService(client: client);
 
       final result = await authService.login(
-        email: 'teste@metro.com',
+        email: 'teste@metrosp.com.br',
         senha: 'senha123',
       );
 
+      expect(called, true);
       expect(result, false);
     });
 
     test('Login com erro de conexão deve retornar false', () async {
-      when(
-        mockClient.post(
-          any,
-          headers: anyNamed('headers'),
-          body: anyNamed('body'),
-        ),
-      ).thenThrow(Exception('Erro de conexão'));
+      final client = MockClient((request) async {
+        throw Exception('Erro de conexão');
+      });
+
+      final authService = AuthService(client: client);
 
       final result = await authService.login(
-        email: 'teste@metro.com',
+        email: 'teste@metrosp.com.br',
         senha: 'senha123',
       );
 
@@ -74,65 +64,76 @@ void main() {
     });
 
     test('Login com status 500 deve retornar false', () async {
-      when(
-        mockClient.post(
-          any,
-          headers: anyNamed('headers'),
-          body: anyNamed('body'),
-        ),
-      ).thenAnswer((_) async => http.Response('Server Error', 500));
+      var called = false;
+      final client = MockClient((request) async {
+        called = true;
+        return http.Response('Server Error', 500);
+      });
+
+      final authService = AuthService(client: client);
 
       final result = await authService.login(
-        email: 'teste@metro.com',
+        email: 'teste@metrosp.com.br',
         senha: 'senha123',
       );
 
+      expect(called, true);
       expect(result, false);
     });
 
-    test('Login com email vazio deve tentar fazer requisição', () async {
-      when(
-        mockClient.post(
-          any,
-          headers: anyNamed('headers'),
-          body: anyNamed('body'),
-        ),
-      ).thenAnswer((_) async => http.Response('Bad Request', 400));
+    test('Login com email fora do domínio deve retornar false sem POST',
+        () async {
+      var called = false;
+      final client = MockClient((request) async {
+        called = true;
+        return http.Response('Ok', 200);
+      });
 
-      final result = await authService.login(email: '', senha: 'senha123');
-
-      expect(result, false);
-      verify(
-        mockClient.post(
-          any,
-          headers: anyNamed('headers'),
-          body: anyNamed('body'),
-        ),
-      ).called(1);
-    });
-
-    test('Login com senha vazia deve tentar fazer requisição', () async {
-      when(
-        mockClient.post(
-          any,
-          headers: anyNamed('headers'),
-          body: anyNamed('body'),
-        ),
-      ).thenAnswer((_) async => http.Response('Bad Request', 400));
+      final authService = AuthService(client: client);
 
       final result = await authService.login(
-        email: 'teste@metro.com',
+        email: 'teste@gmail.com',
+        senha: 'senha123',
+      );
+
+      expect(called, false);
+      expect(result, false);
+    });
+
+    test('Login com email vazio deve retornar false sem POST', () async {
+      var called = false;
+      final client = MockClient((request) async {
+        called = true;
+        return http.Response('Ok', 200);
+      });
+
+      final authService = AuthService(client: client);
+
+      final result = await authService.login(
+        email: '',
+        senha: 'senha123',
+      );
+
+      expect(called, false);
+      expect(result, false);
+    });
+
+    test('Login com senha vazia deve retornar false sem POST', () async {
+      var called = false;
+      final client = MockClient((request) async {
+        called = true;
+        return http.Response('Ok', 200);
+      });
+
+      final authService = AuthService(client: client);
+
+      final result = await authService.login(
+        email: 'teste@metrosp.com.br',
         senha: '',
       );
 
+      expect(called, false);
       expect(result, false);
-      verify(
-        mockClient.post(
-          any,
-          headers: anyNamed('headers'),
-          body: anyNamed('body'),
-        ),
-      ).called(1);
     });
   });
 }

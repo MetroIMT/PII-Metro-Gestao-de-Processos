@@ -19,13 +19,15 @@ class MyApp extends StatelessWidget {
         fontFamily: 'Poppins',
       ),
       home: const LoginPage(),
-      debugShowCheckedModeBanner: false, 
+      debugShowCheckedModeBanner: false,
     );
   }
 }
 
 class LoginPage extends StatefulWidget {
-  const LoginPage({super.key});
+  const LoginPage({super.key, this.controller});
+
+  final LoginController? controller;
 
   @override
   State<LoginPage> createState() => _LoginPageState();
@@ -33,7 +35,9 @@ class LoginPage extends StatefulWidget {
 
 class _LoginPageState extends State<LoginPage>
     with SingleTickerProviderStateMixin {
-  final _loginController = LoginController();
+  late final LoginController _loginController =
+      widget.controller ?? LoginController();
+
   final emailController = TextEditingController();
   final passwordController = TextEditingController();
 
@@ -48,7 +52,6 @@ class _LoginPageState extends State<LoginPage>
   void initState() {
     super.initState();
 
-    // animação de fade na página
     _animationController = AnimationController(
       vsync: this,
       duration: const Duration(milliseconds: 1200),
@@ -72,7 +75,6 @@ class _LoginPageState extends State<LoginPage>
     super.dispose();
   }
 
-  // função para mostrar mensagens rápidas na tela
   void _showSnack(String message, {required bool isError}) {
     ScaffoldMessenger.of(context)
       ..hideCurrentSnackBar()
@@ -85,7 +87,6 @@ class _LoginPageState extends State<LoginPage>
       );
   }
 
-  // função de login
   Future<void> _login() async {
     FocusScope.of(context).unfocus();
 
@@ -103,6 +104,7 @@ class _LoginPageState extends State<LoginPage>
       final ok = await _loginController.login(email: email, password: senha);
       if (ok) {
         _showSnack('Login realizado com sucesso!', isError: false);
+        if (!mounted) return;
         Navigator.pushReplacement(
           context,
           PageRouteBuilder(
@@ -121,6 +123,8 @@ class _LoginPageState extends State<LoginPage>
       } else {
         _showSnack('Credenciais inválidas.', isError: true);
       }
+    } on FormatException catch (err) {
+      _showSnack(err.message, isError: true);
     } catch (_) {
       _showSnack('Erro ao tentar logar. Tente novamente.', isError: true);
     } finally {
@@ -145,13 +149,17 @@ class _LoginPageState extends State<LoginPage>
           onTap: () => FocusScope.of(context).unfocus(),
           child: isDesktop
               ? _buildDesktopLayout(metroBlue, size)
-              : _buildMobileTabletLayout(metroBlue, isTablet, keyboardVisible, size),
+              : _buildMobileTabletLayout(
+                  metroBlue,
+                  isTablet,
+                  keyboardVisible,
+                  size,
+                ),
         ),
       ),
     );
   }
 
-  // layout desktop
   Widget _buildDesktopLayout(Color metroBlue, Size size) {
     return FadeTransition(
       opacity: _fadeAnimation,
@@ -168,7 +176,6 @@ class _LoginPageState extends State<LoginPage>
                 padding: const EdgeInsets.all(40),
                 child: Stack(
                   children: [
-                    // logo no canto superior esquerdo
                     Positioned(
                       top: 8,
                       left: 8,
@@ -180,8 +187,6 @@ class _LoginPageState extends State<LoginPage>
                         color: Colors.white,
                       ),
                     ),
-
-                    // textos bem-vindo de volta centralizados verticalmente, alinhados à esquerda
                     Center(
                       child: Column(
                         mainAxisSize: MainAxisSize.min,
@@ -213,7 +218,7 @@ class _LoginPageState extends State<LoginPage>
                             ),
                           ),
                           const SizedBox(height: 24),
-                          Text(
+                          const Text(
                             'Acesse o sistema de gerenciamento do Metrô e administre os recursos, monitore a manutenção e tenha acesso a todos os relatórios.',
                             style: TextStyle(
                               fontSize: 16,
@@ -236,7 +241,8 @@ class _LoginPageState extends State<LoginPage>
             Expanded(
               flex: 4,
               child: Container(
-                padding: const EdgeInsets.symmetric(horizontal: 48, vertical: 48),
+                padding:
+                    const EdgeInsets.symmetric(horizontal: 48, vertical: 48),
                 color: Colors.white,
                 child: Column(
                   mainAxisAlignment: MainAxisAlignment.center,
@@ -253,7 +259,8 @@ class _LoginPageState extends State<LoginPage>
                     const SizedBox(height: 12),
                     Text(
                       'Entre com suas credenciais para acessar o sistema',
-                      style: TextStyle(fontSize: 14, color: Colors.grey[600]),
+                      style:
+                          TextStyle(fontSize: 14, color: Colors.grey[600]),
                     ),
                     const SizedBox(height: 40),
                     _buildAnimatedTextField(
@@ -269,7 +276,9 @@ class _LoginPageState extends State<LoginPage>
                       obscureText: _obscurePassword,
                       suffixIcon: IconButton(
                         icon: Icon(
-                          _obscurePassword ? Icons.visibility : Icons.visibility_off,
+                          _obscurePassword
+                              ? Icons.visibility
+                              : Icons.visibility_off,
                           color: Colors.grey,
                         ),
                         onPressed: () {
@@ -333,12 +342,13 @@ class _LoginPageState extends State<LoginPage>
                     const SizedBox(height: 32),
                     SizedBox(
                       width: double.infinity,
-                      height: 52, // ajustado para não cortar texto
+                      height: 52,
                       child: ElevatedButton(
                         onPressed: _isLoading ? null : _login,
                         style: ElevatedButton.styleFrom(
                           backgroundColor: metroBlue,
-                          padding: const EdgeInsets.symmetric(vertical: 16),
+                          padding:
+                              const EdgeInsets.symmetric(vertical: 16),
                           shape: RoundedRectangleBorder(
                             borderRadius: BorderRadius.circular(12),
                           ),
@@ -348,7 +358,9 @@ class _LoginPageState extends State<LoginPage>
                                 width: 20,
                                 height: 20,
                                 child: CircularProgressIndicator(
-                                  valueColor: AlwaysStoppedAnimation<Color>(Colors.white),
+                                  valueColor:
+                                      AlwaysStoppedAnimation<Color>(
+                                          Colors.white),
                                   strokeWidth: 2,
                                 ),
                               )
@@ -397,9 +409,12 @@ class _LoginPageState extends State<LoginPage>
     );
   }
 
-  // layout tablet e mobile
   Widget _buildMobileTabletLayout(
-      Color metroBlue, bool isTablet, bool keyboardVisible, Size size) {
+    Color metroBlue,
+    bool isTablet,
+    bool keyboardVisible,
+    Size size,
+  ) {
     return SingleChildScrollView(
       physics: const ClampingScrollPhysics(),
       reverse: keyboardVisible,
@@ -441,7 +456,8 @@ class _LoginPageState extends State<LoginPage>
                     AnimatedContainer(
                       duration: const Duration(milliseconds: 300),
                       padding: const EdgeInsets.symmetric(vertical: 8),
-                      height: isTablet ? 140 : (keyboardVisible ? 80 : 100),
+                      height:
+                          isTablet ? 140 : (keyboardVisible ? 80 : 100),
                       child: Image.asset(
                         'assets/LogoMetro.png',
                         fit: BoxFit.contain,
@@ -487,11 +503,14 @@ class _LoginPageState extends State<LoginPage>
                       ),
                     ),
                   ],
-                  SizedBox(height: isTablet ? 40 : (keyboardVisible ? 20 : 32)),
+                  SizedBox(
+                    height: isTablet ? 40 : (keyboardVisible ? 20 : 32),
+                  ),
                   AnimatedContainer(
                     duration: const Duration(milliseconds: 300),
                     width: double.infinity,
-                    margin: EdgeInsets.symmetric(horizontal: isTablet ? 16 : 0),
+                    margin:
+                        EdgeInsets.symmetric(horizontal: isTablet ? 16 : 0),
                     decoration: BoxDecoration(
                       color: Colors.white,
                       borderRadius: BorderRadius.circular(20),
@@ -552,7 +571,8 @@ class _LoginPageState extends State<LoginPage>
                                       value: rememberMe,
                                       activeColor: metroBlue,
                                       shape: RoundedRectangleBorder(
-                                        borderRadius: BorderRadius.circular(4),
+                                        borderRadius:
+                                            BorderRadius.circular(4),
                                       ),
                                       onChanged: (val) {
                                         setState(() {
@@ -644,9 +664,11 @@ class _LoginPageState extends State<LoginPage>
                         TextButton(
                           onPressed: () {},
                           style: TextButton.styleFrom(
-                            padding: const EdgeInsets.symmetric(horizontal: 8),
+                            padding:
+                                const EdgeInsets.symmetric(horizontal: 8),
                             minimumSize: Size.zero,
-                            tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                            tapTargetSize:
+                                MaterialTapTargetSize.shrinkWrap,
                           ),
                           child: Text(
                             'Contate o suporte',
@@ -662,8 +684,10 @@ class _LoginPageState extends State<LoginPage>
                       padding: const EdgeInsets.only(top: 16),
                       child: Text(
                         '© 2023 Metrô | Todos os direitos reservados',
-                        style:
-                            TextStyle(fontSize: 12, color: Colors.grey[500]),
+                        style: TextStyle(
+                          fontSize: 12,
+                          color: Colors.grey[500],
+                        ),
                       ),
                     ),
                   ],
@@ -676,7 +700,6 @@ class _LoginPageState extends State<LoginPage>
     );
   }
 
-  // textfields animados e estilizados
   Widget _buildAnimatedTextField({
     required TextEditingController controller,
     required String label,
@@ -713,7 +736,8 @@ class _LoginPageState extends State<LoginPage>
           ),
           focusedBorder: OutlineInputBorder(
             borderRadius: BorderRadius.circular(12),
-            borderSide: BorderSide(color: const Color(0xFF001489), width: 2),
+            borderSide:
+                const BorderSide(color: Color(0xFF001489), width: 2),
           ),
           filled: true,
           fillColor: Colors.grey[50],

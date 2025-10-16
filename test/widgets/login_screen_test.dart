@@ -1,99 +1,114 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:mockito/mockito.dart';
+import 'package:pi_metro_2025_2/screens/login/login_controller.dart';
 import 'package:pi_metro_2025_2/screens/login/login_screen.dart';
 
+class _MockLoginController extends Mock implements LoginController {}
+
 void main() {
+  TestWidgetsFlutterBinding.ensureInitialized();
+
+  Widget buildLoginPage({LoginController? controller}) {
+    return MaterialApp(home: LoginPage(controller: controller));
+  }
+
   group('LoginScreen - Testes de Widget', () {
-    testWidgets('Deve renderizar todos os elementos da tela de login', (
-      WidgetTester tester,
-    ) async {
-      await tester.pumpWidget(const MaterialApp(home: LoginPage()));
-      expect(find.byType(TextField), findsNWidgets(2)); // Email e senha
+    testWidgets('Renderiza os elementos principais', (tester) async {
+      await tester.pumpWidget(buildLoginPage());
+      await tester.pumpAndSettle();
+
+      expect(find.byType(TextField), findsNWidgets(2));
       expect(find.text('Entrar'), findsOneWidget);
-      expect(find.text('Cadastrar'), findsOneWidget);
-      expect(find.byType(Image), findsWidgets); // Logo do Metro
+      expect(find.text('Lembrar credenciais'), findsOneWidget);
+      expect(find.text('Esqueceu a senha?'), findsOneWidget);
+      expect(find.text('Contate o suporte'), findsOneWidget);
+      expect(find.byType(Image), findsWidgets);
     });
 
-    testWidgets('Deve mostrar mensagem de erro quando campos estão vazios', (
-      WidgetTester tester,
-    ) async {
-      await tester.pumpWidget(const MaterialApp(home: LoginPage()));
-      await tester.ensureVisible(find.text('Entrar'));
+    testWidgets('Não chama o controller quando os campos estão vazios',
+        (tester) async {
+      final controller = _MockLoginController();
+      await tester.pumpWidget(buildLoginPage(controller: controller));
       await tester.pumpAndSettle();
 
-      final loginButton = find.text('Entrar');
-      await tester.tap(loginButton, warnIfMissed: false);
+      // Tenta fazer login com campos vazios
+      await tester.tap(find.text('Entrar'), warnIfMissed: false);
       await tester.pumpAndSettle();
 
-      expect(find.text('Preencha email e senha.'), findsOneWidget);
+      // Verifica que o controller nunca foi chamado
+      verifyZeroInteractions(controller);
     });
 
-    testWidgets('Deve permitir digitar email e senha', (
-      WidgetTester tester,
-    ) async {
-      await tester.pumpWidget(const MaterialApp(home: LoginPage()));
+    testWidgets('Permite digitar email corporativo e senha', (tester) async {
+      await tester.pumpWidget(buildLoginPage());
+      await tester.pumpAndSettle();
+
       final emailField = find.byType(TextField).first;
       final passwordField = find.byType(TextField).last;
 
-      await tester.enterText(emailField, 'teste@metro.com');
+      await tester.enterText(emailField, 'teste@metrosp.com.br');
       await tester.enterText(passwordField, 'senha123');
       await tester.pump();
 
-      expect(find.text('teste@metro.com'), findsOneWidget);
+      expect(find.text('teste@metrosp.com.br'), findsOneWidget);
       expect(find.text('senha123'), findsOneWidget);
     });
 
-    testWidgets('Deve alternar visibilidade da senha ao clicar no ícone', (
-      WidgetTester tester,
-    ) async {
-      await tester.pumpWidget(const MaterialApp(home: LoginPage()));
-      final visibilityIcon = find.byIcon(Icons.visibility);
-      expect(visibilityIcon, findsOneWidget);
+    testWidgets('Alterna visibilidade da senha', (tester) async {
+      await tester.pumpWidget(buildLoginPage());
+      await tester.pumpAndSettle();
 
-      await tester.tap(visibilityIcon);
+      final showIcon = find.byIcon(Icons.visibility);
+      expect(showIcon, findsOneWidget);
+
+      await tester.tap(showIcon);
       await tester.pump();
 
       expect(find.byIcon(Icons.visibility_off), findsOneWidget);
     });
 
-    testWidgets('Deve marcar e desmarcar checkbox "Lembrar credenciais"', (
-      WidgetTester tester,
-    ) async {
-      await tester.pumpWidget(const MaterialApp(home: LoginPage()));
-      final checkbox = find.byType(Checkbox);
-      expect(checkbox, findsOneWidget);
+    testWidgets('Checkbox "Lembrar credenciais" pode ser marcado e desmarcado',
+        (tester) async {
+      await tester.pumpWidget(buildLoginPage());
+      await tester.pumpAndSettle();
 
-      Checkbox checkboxWidget = tester.widget(checkbox);
-      expect(checkboxWidget.value, false);
+      final checkboxFinder = find.byType(Checkbox);
+      expect(checkboxFinder, findsOneWidget);
 
-      await tester.tap(checkbox);
+      Checkbox checkbox = tester.widget(checkboxFinder);
+      expect(checkbox.value, false);
+
+      await tester.tap(checkboxFinder);
       await tester.pump();
 
-      checkboxWidget = tester.widget(checkbox);
-      expect(checkboxWidget.value, true);
+      checkbox = tester.widget(checkboxFinder);
+      expect(checkbox.value, true);
+
+      await tester.tap(checkboxFinder);
+      await tester.pump();
+
+      checkbox = tester.widget(checkboxFinder);
+      expect(checkbox.value, false);
     });
 
-    testWidgets('Deve exibir texto "Bem vindo de volta!" na tela', (
-      WidgetTester tester,
-    ) async {
-      await tester.pumpWidget(const MaterialApp(home: LoginPage()));
+    testWidgets('Exibe textos de boas-vindas', (tester) async {
+      await tester.pumpWidget(buildLoginPage());
+      await tester.pumpAndSettle();
 
-      expect(find.text('Bem vindo'), findsOneWidget);
+      expect(find.text('Bem-vindo'), findsOneWidget);
       expect(find.text('de volta!'), findsOneWidget);
     });
 
-    testWidgets('Botão de cadastrar deve estar presente e clicável', (
-      WidgetTester tester,
-    ) async {
-      await tester.pumpWidget(const MaterialApp(home: LoginPage()));
-      await tester.ensureVisible(find.text('Cadastrar'));
+    testWidgets('Botão "Contate o suporte" está presente e clicável',
+        (tester) async {
+      await tester.pumpWidget(buildLoginPage());
       await tester.pumpAndSettle();
 
-      final cadastrarButton = find.text('Cadastrar');
+      final suporteButton = find.text('Contate o suporte');
+      expect(suporteButton, findsOneWidget);
 
-      expect(cadastrarButton, findsOneWidget);
-
-      await tester.tap(cadastrarButton, warnIfMissed: false);
+      await tester.tap(suporteButton, warnIfMissed: false);
       await tester.pump();
     });
   });

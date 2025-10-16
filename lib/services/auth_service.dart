@@ -15,6 +15,9 @@ class AuthService {
   static const _iosSimulatorHost = '127.0.0.1';
   static const _desktopHost = 'http://localhost:8080';
 
+  static final RegExp _metroEmailRegex =
+      RegExp(r'^[a-z0-9._%+-]+@metrosp\.com\.br$');
+
   static String get _baseUrl {
     if (kIsWeb) return _desktopHost;
 
@@ -25,13 +28,26 @@ class AuthService {
   }
 
   Future<bool> login({required String email, required String senha}) async {
+    final normalizedEmail = email.trim().toLowerCase();
+    final trimmedPassword = senha.trim();
+
+    if (!_metroEmailRegex.hasMatch(normalizedEmail)) {
+      debugPrint('Email fora do domínio permitido: $email');
+      return false;
+    }
+
+    if (trimmedPassword.isEmpty) {
+      debugPrint('Senha não informada.');
+      return false;
+    }
+
     final uri = Uri.parse('$_baseUrl/auth/login');
 
     try {
       final response = await _client.post(
         uri,
         headers: {'Content-Type': 'application/json'},
-        body: jsonEncode({'email': email, 'senha': senha}),
+        body: jsonEncode({'email': normalizedEmail, 'senha': trimmedPassword}),
       );
 
       if (response.statusCode != 200) {

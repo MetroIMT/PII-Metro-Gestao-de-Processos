@@ -1,20 +1,14 @@
-# 🧪 Guia de Testes TDD - Sistema de Login
+# 🧪 Guia de Testes e TDD (atualizado)
 
-## 📊 Status Atual
+Este guia reflete a estratégia de testes em vigor no projeto, alinhada às mudanças recentes no AuthService, LoginController e LoginScreen, e ao uso de mocks sem geração de código.
 
-```
-✅ 18 testes passando
-⏱️ Tempo de execução: ~1 segundo
-📊 Cobertura: ~93%
-```
-
-## 🚀 Comandos Rápidos
+## 🚀 Comandos úteis
 
 ```bash
 # Executar todos os testes
 flutter test
 
-# Executar testes específicos
+# Executar um arquivo específico
 flutter test test/services/auth_service_test.dart
 flutter test test/controllers/login_controller_test.dart
 flutter test test/widgets/login_screen_test.dart
@@ -22,224 +16,186 @@ flutter test test/widgets/login_screen_test.dart
 # Ver cobertura
 flutter test --coverage
 
-# Ver resultados detalhados
+# Saída mais detalhada
 flutter test --reporter=expanded
-
-# Gerar mocks (após alterações nos testes)
-flutter pub run build_runner build --delete-conflicting-outputs
 ```
 
-## 📁 Estrutura de Testes
+## 📁 Estrutura atual de testes
 
 ```
 test/
 ├── services/
-│   ├── auth_service_test.dart       # 6 testes - Autenticação
-│   └── auth_service_test.mocks.dart # Gerado automaticamente
+│   └── auth_service_test.dart       # testes de integração de chamada HTTP (mockada)
 ├── controllers/
-│   ├── login_controller_test.dart   # 4 testes - Controller
-│   └── login_controller_test.mocks.dart
+│   └── login_controller_test.dart   # validação + orquestração com AuthService
 ├── widgets/
-│   └── login_screen_test.dart       # 7 testes - Interface
-└── widget_test.dart                 # 1 teste - Placeholder
+│   └── login_screen_test.dart       # testes de widget/UX
+└── widget_test.dart                 # padrão do Flutter (placeholder)
 ```
 
-## 🎯 O que é TDD?
+Observação: os arquivos gerados via codegen do Mockito (mocks.dart) foram removidos. Não usamos mais build_runner para testes.
 
-**Test Driven Development (TDD)** é uma metodologia onde os testes são escritos **antes** do código:
+## 🎯 TDD em 3 passos
 
-1. **🔴 Red**: Escrever um teste que falha
-2. **🟢 Green**: Escrever código mínimo para passar
-3. **🔵 Refactor**: Melhorar o código mantendo testes passando
+1. Red: escreva um teste que falha (define o comportamento desejado)
+2. Green: implemente o mínimo para o teste passar
+3. Refactor: melhore o design mantendo todos os testes verdes
 
-### Benefícios
+Benefícios: mais confiança, refatorações seguras, documentação viva, melhor design de código.
 
-- ✅ Código mais confiável e com menos bugs
-- ✅ Refatoração segura
-- ✅ Documentação viva (os testes documentam o comportamento)
-- ✅ Design de código melhor
+## 🧰 Estratégia de mocking (sem codegen)
 
-## 📋 Testes Implementados
+- HTTP: use `package:http/testing.dart` (MockClient) para simular respostas do backend.
+- Services/Controllers: use mocks manuais e leves com `mockito` (sem anotações/geração). Ex.: `class _MockAuthService extends Mock implements AuthService {}`.
+- Widgets: injete dependências (ex.: `LoginController`) para isolar a UI e controlar cenários.
 
-### 1. AuthService (6 testes)
-
-**Cenários testados:**
-
-- ✅ Login com credenciais inválidas (401)
-- ✅ Resposta sem token válido
-- ✅ Erro de conexão com servidor
-- ✅ Erro interno do servidor (500)
-- ✅ Email vazio
-- ✅ Senha vazia
-
-**Exemplo:**
+### Exemplo — HTTP com MockClient
 
 ```dart
-test('Login com credenciais inválidas deve retornar false', () async {
-  // Arrange - Preparação
-  when(mockClient.post(any, headers: anyNamed('headers'), body: anyNamed('body')))
-    .thenAnswer((_) async => http.Response('Unauthorized', 401));
+import 'package:http/http.dart' as http;
+import 'package:http/testing.dart';
 
-  // Act - Ação
-  final result = await authService.login(
-    email: 'errado@metro.com',
-    senha: 'senhaerrada',
+test('Login 401 retorna false', () async {
+  var called = false;
+  final client = MockClient((request) async {
+    called = true;
+    expect(request.method, 'POST');
+    return http.Response('Unauthorized', 401);
+  });
+
+  final service = AuthService(client: client);
+  final ok = await service.login(
+    email: 'errado@metrosp.com.br',
+    senha: 'senha',
   );
 
-  // Assert - Verificação
-  expect(result, false);
+  expect(called, true);
+  expect(ok, false);
 });
 ```
 
-### 2. LoginController (4 testes)
-
-**Cenários testados:**
-
-- ✅ Login bem-sucedido
-- ✅ Login com credenciais inválidas
-- ✅ Parâmetros passados corretamente ao service
-- ✅ Propagação de exceções
-
-**Exemplo:**
+### Exemplo — Mock manual do AuthService
 
 ```dart
-test('Login bem-sucedido deve retornar true', () async {
-  // Arrange
-  when(mockAuthService.login(
-    email: anyNamed('email'),
-    senha: anyNamed('senha'),
-  )).thenAnswer((_) async => true);
+class _MockAuthService extends Mock implements AuthService {}
 
-  // Act
-  final result = await loginController.login(
-    email: 'teste@metro.com',
-    password: 'senha123',
+test('Controller normaliza e-mail e delega ao service', () async {
+  final mock = _MockAuthService();
+  final controller = LoginController(authService: mock);
+
+  when(mock.login(email: 'user@metrosp.com.br', senha: '123'))
+      .thenAnswer((_) async => true);
+
+  final ok = await controller.login(
+    email: '  USER@METROSP.COM.BR ',
+    password: '123',
   );
 
-  // Assert
-  expect(result, true);
+  expect(ok, true);
+  verify(mock.login(email: 'user@metrosp.com.br', senha: '123')).called(1);
 });
 ```
 
-### 3. LoginScreen (7 testes)
-
-**Cenários testados:**
-
-- ✅ Renderização de todos elementos (campos, botões, logo)
-- ✅ Validação de campos vazios
-- ✅ Entrada de texto (email e senha)
-- ✅ Toggle de visibilidade da senha
-- ✅ Checkbox "Lembrar credenciais"
-- ✅ Exibição de textos de boas-vindas
-- ✅ Botão de cadastro presente e clicável
-
-**Exemplo:**
+### Exemplo — Teste de widget com injeção de controller
 
 ```dart
-testWidgets('Deve mostrar mensagem de erro quando campos estão vazios',
-    (WidgetTester tester) async {
-  // Arrange
-  await tester.pumpWidget(const MaterialApp(home: LoginPage()));
+class _MockLoginController extends Mock implements LoginController {}
 
-  // Act
-  await tester.ensureVisible(find.text('Entrar'));
-  await tester.pumpAndSettle();
+testWidgets('Mostra erro quando campos vazios', (tester) async {
+  final controller = _MockLoginController();
+  await tester.pumpWidget(
+    MaterialApp(home: LoginPage(controller: controller)),
+  );
+
   await tester.tap(find.text('Entrar'), warnIfMissed: false);
-  await tester.pumpAndSettle();
+  await tester.pump();
 
-  // Assert
   expect(find.text('Preencha email e senha.'), findsOneWidget);
+  verifyZeroInteractions(controller);
 });
 ```
 
-## 📊 Cobertura por Componente
+## ✅ Cenários cobertos (resumo)
 
-| Componente      | Testes | Cobertura | Status |
-| --------------- | ------ | --------- | ------ |
-| AuthService     | 6      | ~95%      | ✅     |
-| LoginController | 4      | 100%      | ✅     |
-| LoginScreen     | 7      | ~90%      | ✅     |
-| **TOTAL**       | **18** | **~93%**  | ✅     |
+### AuthService
 
-## 🔧 Dependências
+- 401/500 retornam false
+- Falha de conexão retorna false
+- Resposta 200 sem token retorna false
+- Email fora de `@metrosp.com.br` não faz POST e retorna false
+- Email ou senha vazios não fazem POST e retornam false
+
+### LoginController
+
+- Sucesso retorna true
+- Credenciais inválidas retornam false
+- Normaliza e-mail antes de delegar
+- Domínio inválido lança `FormatException`
+- Erros do service podem ser propagados
+
+### LoginScreen
+
+- Renderiza elementos principais
+- Valida campos vazios (snackbar)
+- Alterna visibilidade da senha
+- Checkbox "Lembrar credenciais" alterna estado
+- Textos de boas-vindas e botões presentes (ex.: "Contate o suporte")
+
+## 🔧 Dependências de teste
 
 ```yaml
 dev_dependencies:
   flutter_test:
     sdk: flutter
-  mockito: ^5.4.4 # Framework para criar mocks
-  build_runner: ^2.9.0 # Gerador de código
+  mockito: ^5.4.4
+
+dependencies:
+  http: ^1.2.0 # (MockClient está em package:http/testing.dart)
 ```
 
-## 📝 Padrão AAA (Arrange-Act-Assert)
-
-Todos os testes seguem este padrão:
+## 📝 Padrão AAA (Arrange–Act–Assert)
 
 ```dart
-test('descrição do teste', () async {
-  // Arrange - Preparar o cenário
-  // Configurar mocks, criar objetos, definir dados
-
-  // Act - Executar a ação
-  // Chamar o método/função que está sendo testada
-
-  // Assert - Verificar o resultado
-  // Validar se o comportamento está correto
+test('descrição', () async {
+  // Arrange
+  // Act
+  // Assert
 });
 ```
 
-## 🎓 Boas Práticas Aplicadas
+## 🎓 Boas práticas
 
-1. ✅ **Isolamento**: Cada teste é independente
-2. ✅ **Clareza**: Nomes descritivos e estrutura AAA
-3. ✅ **Rapidez**: Testes executam em ~1 segundo
-4. ✅ **Determinísticos**: Sem comportamento aleatório
-5. ✅ **Mocks**: Dependências externas mockadas (HTTP, Storage)
+1. Use nomes descritivos e mantenha testes independentes
+2. Evite rede/IO reais (mocke HTTP, storage, etc.)
+3. Em widgets, injete dependências e use `TestWidgetsFlutterBinding.ensureInitialized()` quando necessário
+4. Prefira `pump()` ao invés de `pumpAndSettle()` indiscriminadamente
+5. Use `ensureVisible` apenas quando realmente houver overflow/scroll
+6. Assegure que validações de domínio e normalização sejam cobertas por testes
 
-## ✅ Checklist Antes do Commit
+## ✅ Checklist antes do commit
 
-- [ ] Todos os testes passando (`flutter test`)
-- [ ] Código formatado (`flutter format .`)
-- [ ] Sem warnings (`flutter analyze`)
-- [ ] Cobertura acima de 85%
+- [ ] `flutter test` verde
+- [ ] `flutter analyze` sem erros
+- [ ] `flutter format .` aplicado
+- [ ] Cenários críticos cobertos (erros de rede, HTTP 401/500, entradas inválidas)
 
 ## 🐛 Troubleshooting
 
-### Problema: "Target of URI doesn't exist: '...mocks.dart'"
+- MissingPluginException em testes de widget
 
-**Solução:**
+  - Garanta `TestWidgetsFlutterBinding.ensureInitialized()` no `main()` dos testes
 
-```bash
-flutter pub run build_runner build --delete-conflicting-outputs
-```
-
-### Problema: Testes falhando com "MissingPluginException"
-
-**Solução:** Adicione no início do teste:
-
-```dart
-void main() {
-  TestWidgetsFlutterBinding.ensureInitialized();
-  // ... seus testes
-}
-```
-
-### Problema: Elementos fora da tela em testes de widget
-
-**Solução:** Use `ensureVisible`:
-
-```dart
-await tester.ensureVisible(find.text('Botão'));
-await tester.pumpAndSettle();
-```
+- Elementos fora da tela
+  - Use `await tester.ensureVisible(finder);` antes de interagir
 
 ## 📚 Referências
 
-- [Documentação Flutter Testing](https://docs.flutter.dev/testing)
-- [Mockito Package](https://pub.dev/packages/mockito)
-- [TDD - Martin Fowler](https://martinfowler.com/bliki/TestDrivenDevelopment.html)
+- https://docs.flutter.dev/testing
+- https://pub.dev/packages/http (MockClient)
+- https://pub.dev/packages/mockito
+- https://martinfowler.com/bliki/TestDrivenDevelopment.html
 
 ---
 
 **Última atualização**: 16 de outubro de 2025  
-**Versão**: 1.0.0
+**Versão**: 2.0.0
