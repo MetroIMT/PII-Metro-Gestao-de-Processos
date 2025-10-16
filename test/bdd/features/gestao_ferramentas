@@ -1,0 +1,12 @@
+Feature: Gestão de Ferramentas
+  Como um usuário do sistema
+  Eu quero gerenciar ferramentas
+  Para controlar o inventário de ferramentas do Metrô
+
+  Scenario: Cadastrar nova ferramenta
+    Given que estou na página de cadastro de ferramenta
+    When eu preencho o código com "FER-001"
+    And eu preencho o nome com "Chave de Fenda"
+    And eu preencho a quantidade com "50"
+    And eu clico no botão Salvar
+    Then a ferramenta deve ser cadastrada com sucesso

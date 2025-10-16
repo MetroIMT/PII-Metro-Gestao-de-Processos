@@ -195,7 +195,3 @@ test('descrição', () async {
 - https://pub.dev/packages/mockito
 - https://martinfowler.com/bliki/TestDrivenDevelopment.html
 
----
-
-**Última atualização**: 16 de outubro de 2025  
-**Versão**: 2.0.0
