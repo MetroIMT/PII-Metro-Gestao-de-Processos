@@ -77,6 +77,13 @@ class _EsqueciSenhaContentState extends State<_EsqueciSenhaContent> {
   final TextEditingController _email = TextEditingController();
   bool _sending = false;
 
+  // Adicionado: estados para hover/press (para web/desktop e toque)
+  bool _isHover = false;
+  bool _isPressed = false;
+
+  // Adicionado: estado de hover para o botão Cancelar
+  bool _isHoverCancel = false;
+
   @override
   void dispose() {
     _email.dispose();
@@ -114,6 +121,117 @@ class _EsqueciSenhaContentState extends State<_EsqueciSenhaContent> {
         SnackBar(content: Text('Instruções enviadas para o email')),
       );
     }
+  }
+
+  // Novo método: botão estilizado inspirado no exemplo HTML/CSS
+  Widget _buildSendButton() {
+    final borderColor = const Color(0xFF3654FF);
+    final borderRadius = BorderRadius.circular(11);
+    final duration = const Duration(milliseconds: 300);
+
+    final backgroundColor = _isHover ? borderColor : Colors.transparent;
+    final textColor = _isHover ? Colors.white : borderColor;
+
+    return MouseRegion(
+      onEnter: (_) => setState(() => _isHover = true),
+      onExit: (_) => setState(() => _isHover = false),
+      child: GestureDetector(
+        onTapDown: (_) => setState(() => _isPressed = true),
+        onTapUp: (_) => setState(() => _isPressed = false),
+        onTapCancel: () => setState(() => _isPressed = false),
+        onTap: _sending ? null : _send,
+        child: AnimatedContainer(
+          duration: duration,
+          curve: Curves.easeOut,
+          height: 46, // aproximadamente 2.9em
+          decoration: BoxDecoration(
+            color: backgroundColor,
+            border: Border.all(color: borderColor, width: 2),
+            borderRadius: borderRadius,
+          ),
+          child: Stack(
+            alignment: Alignment.center,
+            children: [
+              // Texto ou loading
+              AnimatedOpacity(
+                duration: duration,
+                opacity: _sending ? 0.0 : 1.0,
+                child: Row(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: [
+                    // Ícone com animação de deslocamento (translate X)
+                    AnimatedContainer(
+                      duration: duration,
+                      transform: Matrix4.translationValues(_isHover ? 5.0 : 0.0, 0.0, 0.0),
+                      child: Icon(
+                        Icons.arrow_forward,
+                        size: 20,
+                        color: textColor,
+                      ),
+                    ),
+                    const SizedBox(width: 10),
+                    Text(
+                      'Enviar',
+                      style: TextStyle(
+                        color: textColor,
+                        fontWeight: FontWeight.bold,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+
+              // Loading quando enviando (sobrepõe o texto)
+              if (_sending)
+                const SizedBox(
+                  height: 18,
+                  width: 18,
+                  child: CircularProgressIndicator(strokeWidth: 2, valueColor: AlwaysStoppedAnimation<Color>(Colors.white)),
+                ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+
+  // Novo método: botão Cancelar estilizado para combinar tamanho e fornecer feedback
+  Widget _buildCancelButton() {
+    final borderColor = widget.metroBlue;
+    final borderRadius = BorderRadius.circular(11);
+    final duration = const Duration(milliseconds: 220);
+
+    final backgroundColor = _isHoverCancel ? widget.metroBlue.withOpacity(0.08) : Colors.transparent;
+    final textColor = _isHoverCancel ? widget.metroBlue : widget.metroBlue;
+
+    return MouseRegion(
+      onEnter: (_) => setState(() => _isHoverCancel = true),
+      onExit: (_) => setState(() => _isHoverCancel = false),
+      child: GestureDetector(
+        onTapDown: (_) => {}, // opcional: adicionar efeito de pressionado
+        onTapUp: (_) => {}, // opcional
+        onTapCancel: () {}, // opcional
+        onTap: _sending ? null : () => Navigator.of(context).pop(),
+        child: AnimatedContainer(
+          duration: duration,
+          curve: Curves.easeOut,
+          height: 46, // igual ao botão Enviar
+          decoration: BoxDecoration(
+            color: backgroundColor,
+            border: Border.all(color: borderColor, width: 2),
+            borderRadius: borderRadius,
+          ),
+          alignment: Alignment.center,
+          child: Text(
+            'Cancelar',
+            style: TextStyle(
+              color: widget.metroBlue,
+              fontWeight: FontWeight.w600,
+            ),
+          ),
+        ),
+      ),
+    );
   }
 
   @override
@@ -172,39 +290,13 @@ class _EsqueciSenhaContentState extends State<_EsqueciSenhaContent> {
         Row(
           children: [
             Expanded(
-              child: OutlinedButton(
-                onPressed: _sending ? null : () => Navigator.of(context).pop(),
-                style: OutlinedButton.styleFrom(
-                  side: BorderSide(color: widget.metroBlue),
-                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-                  padding: EdgeInsets.symmetric(vertical: 14),
-                  foregroundColor: widget.metroBlue,
-                ),
-                child: Text('Cancelar', style: TextStyle(fontWeight: FontWeight.w600)),
-              ),
+              // Substituído: OutlinedButton -> botão customizado para ficar do mesmo tamanho e com hover sutil
+              child: _buildCancelButton(),
             ),
             const SizedBox(width: 12),
             Expanded(
-              child: ElevatedButton(
-                onPressed: _sending ? null : _send,
-                style: ElevatedButton.styleFrom(
-                  padding: EdgeInsets.zero,
-                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-                ),
-                child: Ink(
-                  decoration: BoxDecoration(
-                    gradient: LinearGradient(colors: [widget.metroBlue, widget.metroLightBlue]),
-                    borderRadius: BorderRadius.circular(12),
-                  ),
-                  child: Container(
-                    alignment: Alignment.center,
-                    padding: EdgeInsets.symmetric(vertical: 14),
-                    child: _sending
-                        ? SizedBox(height: 16, width: 16, child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white))
-                        : Text('Enviar', style: TextStyle(fontWeight: FontWeight.bold, color: Colors.white)),
-                  ),
-                ),
-              ),
+              // Substituído: ElevatedButton -> botão customizado inspirado no HTML/CSS fornecido
+              child: _buildSendButton(),
             ),
           ],
         ),
