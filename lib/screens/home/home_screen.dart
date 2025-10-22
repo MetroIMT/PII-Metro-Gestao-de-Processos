@@ -297,7 +297,7 @@ class _HomeScreenState extends State<HomeScreen>
               ),
             ),
             child: Image.asset('assets/LogoMetro.png'),
-            height: 40,
+            height: 80,
           ),
           const SizedBox(height: 20),
           _sidebarItem(Icons.person, 'Usuário', 0, expanded),
@@ -709,28 +709,10 @@ class _HomeScreenState extends State<HomeScreen>
                 // Botão de ação
                 Align(
                   alignment: Alignment.bottomRight,
-                  child: ElevatedButton(
+                  child: _CardActionButton(
+                    label: 'Ver estoque',
+                    borderColor: metroBlue,
                     onPressed: onTap,
-                    style: ElevatedButton.styleFrom(
-                      backgroundColor: metroBlue,
-                      foregroundColor: Colors.white,
-                      padding: const EdgeInsets.symmetric(
-                        horizontal: 16,
-                        vertical: 8,
-                      ),
-                      shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(8),
-                      ),
-                      elevation: 2,
-                    ),
-                    child: Row(
-                      mainAxisSize: MainAxisSize.min,
-                      children: [
-                        Text('Ver estoque'),
-                        SizedBox(width: 4),
-                        Icon(Icons.arrow_forward, size: 16),
-                      ],
-                    ),
                   ),
                 ),
               ],
@@ -891,32 +873,101 @@ class _HomeScreenState extends State<HomeScreen>
                 // Botão de ação
                 Align(
                   alignment: Alignment.bottomRight,
-                  child: ElevatedButton(
+                  child: _CardActionButton(
+                    label: 'Ver detalhes',
+                    borderColor: color,
                     onPressed: onTap,
-                    style: ElevatedButton.styleFrom(
-                      backgroundColor: color,
-                      foregroundColor: Colors.white,
-                      padding: const EdgeInsets.symmetric(
-                        horizontal: 16,
-                        vertical: 8,
-                      ),
-                      shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(8),
-                      ),
-                      elevation: 2,
-                    ),
-                    child: Row(
-                      mainAxisSize: MainAxisSize.min,
-                      children: [
-                        Text('Ver detalhes'),
-                        SizedBox(width: 4),
-                        Icon(Icons.arrow_forward, size: 16),
-                      ],
-                    ),
                   ),
                 ),
               ],
             ),
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+// Novo widget: botão estilizado replicando comportamento do exemplo HTML/CSS
+class _CardActionButton extends StatefulWidget {
+  final String label;
+  final Color borderColor;
+  final VoidCallback onPressed;
+
+  const _CardActionButton({
+    required this.label,
+    required this.borderColor,
+    required this.onPressed,
+    Key? key,
+  }) : super(key: key);
+
+  @override
+  State<_CardActionButton> createState() => _CardActionButtonState();
+}
+
+class _CardActionButtonState extends State<_CardActionButton> {
+  bool _isHover = false;
+  bool _isPressed = false;
+  final Duration _duration = const Duration(milliseconds: 300);
+
+  void _handleTap() {
+    if (!_isPressed) {
+      widget.onPressed();
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final bg = _isHover ? widget.borderColor : Colors.transparent;
+    final textColor = _isHover ? Colors.white : widget.borderColor;
+
+    return MouseRegion(
+      onEnter: (_) => setState(() => _isHover = true),
+      onExit: (_) => setState(() => _isHover = false),
+      child: GestureDetector(
+        onTapDown: (_) => setState(() => _isPressed = true),
+        onTapUp: (_) {
+          setState(() => _isPressed = false);
+          _handleTap();
+        },
+        onTapCancel: () => setState(() => _isPressed = false),
+        child: AnimatedContainer(
+          duration: _duration,
+          curve: Curves.easeOut,
+          height: 40, 
+          padding: const EdgeInsets.symmetric(horizontal: 14),
+          decoration: BoxDecoration(
+            color: bg,
+            border: Border.all(color: widget.borderColor, width: 2),
+            borderRadius: BorderRadius.circular(11),
+          ),
+          child: Stack(
+            alignment: Alignment.center,
+            children: [
+              // Texto + ícone (icone se desloca ao hover)
+              Row(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  AnimatedContainer(
+                    duration: _duration,
+                    transform: Matrix4.translationValues(_isHover ? 5.0 : 0.0, 0.0, 0.0),
+                    child: Icon(
+                      Icons.arrow_forward,
+                      size: 16,
+                      color: textColor,
+                    ),
+                  ),
+                  const SizedBox(width: 8),
+                  Text(
+                    widget.label,
+                    style: TextStyle(
+                      color: textColor,
+                      fontWeight: FontWeight.bold,
+                    ),
+                  ),
+                ],
+              ),
+            ],
           ),
         ),
       ),
