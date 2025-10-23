@@ -239,7 +239,7 @@ class _HomeScreenState extends State<HomeScreen>
                           tag: 'logo',
                           child: Image.asset(
                             'assets/LogoMetro.png',
-                            height: 40,
+                            height: 0,
                           ),
                         ),
                       ],
@@ -301,7 +301,7 @@ class _HomeScreenState extends State<HomeScreen>
             height: 80,
           ),
           const SizedBox(height: 20),
-          _sidebarItem(Icons.person, 'Usuário', 0, expanded),
+          _sidebarItem(Icons.bar_chart, 'Dashboard', 0, expanded),
           _sidebarItem(Icons.assignment, 'Estoque', 1, expanded),
           _sidebarItem(Icons.build, 'Ferramentas', 2, expanded),
           _sidebarItem(Icons.article, 'Relatórios', 3, expanded),
@@ -389,19 +389,13 @@ class _HomeScreenState extends State<HomeScreen>
                   ),
                 ],
               )
-            // Layout recolhido: ícone e texto em coluna
+            // Layout recolhido: apenas ícone com tooltip
             : Column(
                 mainAxisSize: MainAxisSize.min,
                 children: [
-                  Icon(icon, color: Colors.white, size: 24),
-                  const SizedBox(height: 4),
-                  Text(
-                    label,
-                    style: const TextStyle(
-                      color: Colors.white,
-                      fontSize: 10,
-                      fontWeight: FontWeight.w500,
-                    ),
+                  Tooltip(
+                    message: label,
+                    child: Icon(icon, color: Colors.white, size: 24),
                   ),
                 ],
               ),
