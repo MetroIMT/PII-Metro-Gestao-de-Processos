@@ -5,12 +5,15 @@ class EstoqueMaterial {
   final String nome;
   final int quantidade;
   final String local;
+  // Novo campo: vencimento opcional
+  final DateTime? vencimento;
 
   EstoqueMaterial({
     required this.codigo,
     required this.nome,
     required this.quantidade,
     required this.local,
+    this.vencimento,
   });
 
   String get status => quantidade > 0 ? 'Disponível' : 'Em Falta';
@@ -79,13 +82,21 @@ class _DashboardPageState extends State<DashboardPage> {
     );
   }
   
+  // Helper para formatar a data (dd/MM/yyyy) — retorna '-' se nulo
+  String _formatDate(DateTime? d) {
+    if (d == null) return '-';
+    return '${d.day.toString().padLeft(2, '0')}/${d.month.toString().padLeft(2, '0')}/${d.year}';
+  }
+
   // Método para mostrar o diálogo de adicionar material
   void _showAddMaterialDialog(BuildContext context) {
     final codigoController = TextEditingController();
     final nomeController = TextEditingController();
     final quantidadeController = TextEditingController();
     final localController = TextEditingController();
-    
+    DateTime? selectedVencimento;
+    final vencimentoController = TextEditingController();
+
     // Definir cores e estilos para o diálogo
     final primaryColor = const Color(0xFF253250); // Cor azul escuro do Metrô
     final secondaryColor = Colors.blue.shade700;
@@ -216,6 +227,32 @@ class _DashboardPageState extends State<DashboardPage> {
                 ),
                 style: const TextStyle(fontSize: 16),
               ),
+              const SizedBox(height: 16),
+              // Campo opcional de vencimento (abre date picker)
+              TextField(
+                controller: vencimentoController,
+                readOnly: true,
+                decoration: inputDecoration(
+                  'Vencimento (opcional)',
+                  'Selecione uma data',
+                  Icons.calendar_today,
+                ),
+                onTap: () async {
+                  final now = DateTime.now();
+                  final picked = await showDatePicker(
+                    context: context,
+                    initialDate: selectedVencimento ?? now,
+                    firstDate: DateTime(now.year - 5),
+                    lastDate: DateTime(now.year + 10),
+                  );
+                  if (picked != null) {
+                    selectedVencimento = picked;
+                    vencimentoController.text = _formatDate(picked);
+                    setState(() {}); // para atualizar se necessário
+                  }
+                },
+                style: const TextStyle(fontSize: 16),
+              ),
               
               const SizedBox(height: 24),
               const Divider(),
@@ -289,6 +326,7 @@ class _DashboardPageState extends State<DashboardPage> {
                             nome: nomeController.text,
                             quantidade: quantidade,
                             local: localController.text,
+                            vencimento: selectedVencimento,
                           )
                         );
                       });
@@ -565,6 +603,8 @@ class _DashboardPageState extends State<DashboardPage> {
                                       _buildInfoRow('Quantidade:', material.quantidade.toString()),
                                       const SizedBox(height: 8),
                                       _buildInfoRow('Local:', material.local),
+                                      const SizedBox(height: 8),
+                                      _buildInfoRow('Vencimento:', _formatDate(material.vencimento)),
                                       const SizedBox(height: 12),
                                       // Botões de ação
                                       Row(
@@ -647,138 +687,176 @@ class _DashboardPageState extends State<DashboardPage> {
                                 showCheckboxColumn: false,
                                 dividerThickness: 1,
                                 columns: [
-                                  const DataColumn(
-                                    label: Expanded(
-                                      child: Text(
-                                        'Código', 
-                                        style: TextStyle(fontWeight: FontWeight.bold),
-                                      ),
-                                    ),
-                                  ),
-                                  DataColumn(
-                                    label: Expanded(
-                                      flex: 3,
-                                      child: Text(
-                                        'Nome', 
-                                        style: TextStyle(fontWeight: FontWeight.bold),
-                                      ),
-                                    ),
-                                  ),
-                                  const DataColumn(
-                                    label: Expanded(
-                                      child: Text(
-                                        'Quantidade', 
-                                        style: TextStyle(fontWeight: FontWeight.bold),
-                                      ),
-                                    ),
-                                    numeric: true,
-                                  ),
-                                  const DataColumn(
-                                    label: Expanded(
-                                      child: Text(
-                                        'Local', 
-                                        style: TextStyle(fontWeight: FontWeight.bold),
-                                      ),
-                                    ),
-                                  ),
-                                  const DataColumn(
-                                    label: Expanded(
-                                      child: Text(
-                                        'Status', 
-                                        style: TextStyle(fontWeight: FontWeight.bold),
-                                      ),
-                                    ),
-                                  ),
-                                  const DataColumn(
-                                    label: Expanded(
-                                      child: Text(
-                                        'Ações', 
-                                        style: TextStyle(fontWeight: FontWeight.bold),
-                                      ),
-                                    ),
-                                  ),
-                                ],
-                                rows: _filteredMateriais.map((material) {
-                                  return DataRow(
-                                    cells: [
-                                      DataCell(
-                                        Text(
-                                          material.codigo,
-                                          style: const TextStyle(fontWeight: FontWeight.w500),
-                                        ),
-                                      ),
-                                      DataCell(
-                                        Text(
-                                          material.nome, 
-                                          style: TextStyle(
-                                            color: Colors.grey.shade800,
-                                          ),
-                                        ),
-                                      ),
-                                      DataCell(
-                                        Text(
-                                          material.quantidade.toString(),
-                                          style: TextStyle(
-                                            fontWeight: FontWeight.bold,
-                                            color: material.quantidade > 0 ? Colors.black : Colors.red,
-                                          ),
-                                        ),
-                                      ),
-                                      DataCell(Text(material.local)),
-                                      DataCell(
-                                        Container(
-                                          padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-                                          decoration: BoxDecoration(
-                                            color: material.quantidade > 0 ? Colors.green : Colors.red,
-                                            borderRadius: BorderRadius.circular(12),
-                                          ),
-                                          child: Text(
-                                            material.status,
-                                            style: const TextStyle(
-                                              color: Colors.white,
-                                              fontSize: 12,
-                                              fontWeight: FontWeight.bold,
-                                            ),
-                                          ),
-                                        ),
-                                      ),
-                                      DataCell(
-                                        Row(
-                                          mainAxisSize: MainAxisSize.min,
-                                          children: [
-                                            IconButton(
-                                              icon: const Icon(Icons.edit, size: 20),
-                                              color: Colors.blue,
-                                              tooltip: "Editar",
-                                              onPressed: () {
-                                                // Implementar edição
-                                              },
-                                            ),
-                                            IconButton(
-                                              icon: const Icon(Icons.swap_vert, size: 20),
-                                              color: const Color(0xFF253250),
-                                              tooltip: "Movimentar",
-                                              onPressed: () {
-                                                // Implementar movimentação
-                                              },
-                                            ),
-                                          ],
-                                        ),
-                                      ),
-                                    ],
-                                    onSelectChanged: (selected) {
-                                      if (selected == true) {
-                                        // Implementar ação ao selecionar linha
-                                      }
-                                    },
-                                  );
-                                }).toList(),
-                              ),
-                            ),
-                          ),
-                        ),
-                      ),
-                    );
+                                   const DataColumn(
+                                     label: Expanded(
+                                       child: Text(
+                                         'Código', 
+                                         style: TextStyle(fontWeight: FontWeight.bold),
+                                       ),
+                                     ),
+                                   ),
+                                   DataColumn(
+                                     label: Expanded(
+                                       flex: 3,
+                                       child: Text(
+                                         'Nome', 
+                                         style: TextStyle(fontWeight: FontWeight.bold),
+                                       ),
+                                     ),
+                                   ),
+                                   // Cabeçalho centralizado para a coluna Quantidade
+                                   DataColumn(
+                                     label: SizedBox(
+                                       width: 120,
+                                       child: Center(
+                                         child: Text(
+                                           'Quantidade',
+                                           style: TextStyle(fontWeight: FontWeight.bold),
+                                         ),
+                                       ),
+                                     ),
+                                     numeric: true,
+                                   ),
+                                   const DataColumn(
+                                     label: Expanded(
+                                       child: Text(
+                                         'Local', 
+                                         style: TextStyle(fontWeight: FontWeight.bold),
+                                       ),
+                                     ),
+                                   ),
+                                   // Nova coluna de Vencimento (opcional)
+                                   DataColumn(
+                                     label: SizedBox(
+                                       width: 120,
+                                       child: Center(
+                                         child: Text(
+                                           'Vencimento',
+                                           style: TextStyle(fontWeight: FontWeight.bold),
+                                         ),
+                                       ),
+                                     ),
+                                   ),
+                                   const DataColumn(
+                                     label: Expanded(
+                                       child: Text(
+                                         'Status', 
+                                         style: TextStyle(fontWeight: FontWeight.bold),
+                                       ),
+                                     ),
+                                   ),
+                                   const DataColumn(
+                                     label: Expanded(
+                                       child: Text(
+                                         'Ações', 
+                                         style: TextStyle(fontWeight: FontWeight.bold),
+                                       ),
+                                     ),
+                                   ),
+                                 ],
+                                 rows: _filteredMateriais.map((material) {
+                                   return DataRow(
+                                     cells: [
+                                       DataCell(
+                                         Text(
+                                           material.codigo,
+                                           style: const TextStyle(fontWeight: FontWeight.w500),
+                                         ),
+                                       ),
+                                       DataCell(
+                                         Text(
+                                           material.nome, 
+                                           style: TextStyle(
+                                             color: Colors.grey.shade800,
+                                           ),
+                                         ),
+                                       ),
+                                       // Célula centralizada para a quantidade
+                                       DataCell(
+                                         SizedBox(
+                                           width: 120,
+                                           child: Center(
+                                             child: Text(
+                                               material.quantidade.toString(),
+                                               textAlign: TextAlign.center,
+                                               style: TextStyle(
+                                                 fontWeight: FontWeight.bold,
+                                                 color: material.quantidade > 0 ? Colors.black : Colors.red,
+                                               ),
+                                             ),
+                                           ),
+                                         ),
+                                       ),
+                                       DataCell(Text(material.local)),
+                                       // Célula de vencimento (formatação ou '-')
+                                       DataCell(
+                                         SizedBox(
+                                           width: 120,
+                                           child: Center(
+                                             child: Text(
+                                               _formatDate(material.vencimento),
+                                               textAlign: TextAlign.center,
+                                               style: TextStyle(
+                                                 color: material.vencimento == null ? Colors.grey : Colors.black87,
+                                               ),
+                                             ),
+                                           ),
+                                         ),
+                                       ),
+                                       DataCell(
+                                         Container(
+                                           padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                                           decoration: BoxDecoration(
+                                             color: material.quantidade > 0 ? Colors.green : Colors.red,
+                                             borderRadius: BorderRadius.circular(12),
+                                           ),
+                                           child: Text(
+                                             material.status,
+                                             style: const TextStyle(
+                                               color: Colors.white,
+                                               fontSize: 12,
+                                               fontWeight: FontWeight.bold,
+                                             ),
+                                           ),
+                                         ),
+                                       ),
+                                       DataCell(
+                                         Row(
+                                           mainAxisSize: MainAxisSize.min,
+                                           children: [
+                                             IconButton(
+                                               icon: const Icon(Icons.edit, size: 20),
+                                               color: Colors.blue,
+                                               tooltip: "Editar",
+                                               onPressed: () {
+                                                 // Implementar edição
+                                               },
+                                             ),
+                                             IconButton(
+                                               icon: const Icon(Icons.swap_vert, size: 20),
+                                               color: const Color(0xFF253250),
+                                               tooltip: "Movimentar",
+                                               onPressed: () {
+                                                 // Implementar movimentação
+                                               },
+                                             ),
+                                           ],
+                                         ),
+                                       ),
+                                     ],
+                                     onSelectChanged: (selected) {
+                                       if (selected == true) {
+                                         // Implementar ação ao selecionar linha
+                                       }
+                                     },
+                                   );
+                                 }).toList(),
+                               ),
+                             ),
+                           ),
+                         ),
+                       ),
+                     );
                   }
                 },
               ),

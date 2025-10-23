@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'dart:math';
 import 'tool_page.dart';
 import 'estoque_page.dart';
+import 'alerts_page.dart';
 import '../../services/auth_service.dart';
 import '../login/login_screen.dart';
 
@@ -456,7 +457,12 @@ class _HomeScreenState extends State<HomeScreen>
               'Alertas (estoque baixo / vencimento)',
               Icons.warning_amber,
               Colors.red,
-              () {},
+              () {
+                Navigator.push(
+                  context,
+                  MaterialPageRoute(builder: (_) => const AlertsPage()),
+                );
+              },
               hasAlert: true,
               color2: Colors.red.shade200,
             ),

@@ -1,0 +1,417 @@
+import 'package:flutter/material.dart';
+
+// Modelo simples de alerta
+class AlertItem {
+  final String codigo;
+  final String nome;
+  final int quantidade;
+  final String local;
+  final DateTime? vencimento;
+  final AlertType type;
+  final int severity; // 1 = baixo, 2 = médio, 3 = alto
+
+  AlertItem({
+    required this.codigo,
+    required this.nome,
+    required this.quantidade,
+    required this.local,
+    this.vencimento,
+    required this.type,
+    required this.severity,
+  });
+}
+
+enum AlertType { lowStock, nearExpiry }
+
+class AlertsPage extends StatefulWidget {
+  const AlertsPage({super.key});
+
+  @override
+  State<AlertsPage> createState() => _AlertsPageState();
+}
+
+class _AlertsPageState extends State<AlertsPage> {
+  // Alertas fictícios para demonstração
+  final List<AlertItem> _alerts = [
+    AlertItem(
+      codigo: 'M003',
+      nome: 'Conduíte Flexível 20mm',
+      quantidade: 0,
+      local: 'Base A',
+      vencimento: null,
+      type: AlertType.lowStock,
+      severity: 3,
+    ),
+    AlertItem(
+      codigo: 'M005',
+      nome: 'Fusível 10A',
+      quantidade: 0,
+      local: 'Base B',
+      vencimento: DateTime.now().add(const Duration(days: 10)),
+      type: AlertType.nearExpiry,
+      severity: 3,
+    ),
+    AlertItem(
+      codigo: 'M008',
+      nome: 'Chave Seccionadora',
+      quantidade: 5,
+      local: 'Base C',
+      vencimento: DateTime.now().add(const Duration(days: 40)),
+      type: AlertType.nearExpiry,
+      severity: 2,
+    ),
+    AlertItem(
+      codigo: 'M002',
+      nome: 'Disjuntor 20A',
+      quantidade: 45,
+      local: 'Base B',
+      vencimento: null,
+      type: AlertType.lowStock,
+      severity: 1,
+    ),
+    AlertItem(
+      codigo: 'M007',
+      nome: 'Relé de Proteção',
+      quantidade: 18,
+      local: 'Base A',
+      vencimento: DateTime.now().add(const Duration(days: 5)),
+      type: AlertType.nearExpiry,
+      severity: 3,
+    ),
+  ];
+
+  String _query = '';
+  AlertType? _filterType;
+  int _minSeverity = 1;
+
+  String _formatDate(DateTime? d) {
+    if (d == null) return '-';
+    return '${d.day.toString().padLeft(2, '0')}/${d.month.toString().padLeft(2, '0')}/${d.year}';
+  }
+
+  Color _severityColor(int s) {
+    switch (s) {
+      case 3:
+        return Colors.red;
+      case 2:
+        return Colors.orange;
+      default:
+        return Colors.yellow.shade700;
+    }
+  }
+
+  String _typeLabel(AlertType t) => t == AlertType.lowStock ? 'Estoque baixo' : 'Vencimento próximo';
+
+  List<AlertItem> get _visibleAlerts {
+    // Protege contra _query ou campos inesperadamente nulos/indefinidos em tempo de execução.
+    String q;
+    try {
+      q = _query.trim().toLowerCase();
+    } catch (_) {
+      q = '';
+    }
+
+    return _alerts.where((a) {
+      try {
+        if (_filterType != null && a.type != _filterType) return false;
+        if (a.severity < _minSeverity) return false;
+        if (q.isEmpty) return true;
+        final nome = a.nome.toLowerCase();
+        final codigo = a.codigo.toLowerCase();
+        final local = a.local.toLowerCase();
+        return nome.contains(q) || codigo.contains(q) || local.contains(q);
+      } catch (_) {
+        // Se algum campo estiver ausente/inválido, ignorar este item no filtro
+        return false;
+      }
+    }).toList();
+  }
+
+  void _markResolved(AlertItem a) {
+    setState(() => _alerts.remove(a));
+    ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Alerta marcado como resolvido')));
+  }
+
+  void _resolveAlertAt(int index) {
+    final removed = _visibleAlerts[index];
+    setState(() => _alerts.remove(removed));
+    ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Alerta de ${removed.nome} resolvido')));
+  }
+
+  void _showDetail(AlertItem a) {
+    showDialog(
+      context: context,
+      builder: (_) => Dialog(
+        insetPadding: const EdgeInsets.symmetric(horizontal: 24, vertical: 24),
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+        child: Padding(
+          padding: const EdgeInsets.all(18),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Row(
+                children: [
+                  Container(
+                    padding: const EdgeInsets.all(10),
+                    decoration: BoxDecoration(
+                      color: _severityColor(a.severity).withOpacity(0.12),
+                      borderRadius: BorderRadius.circular(8),
+                    ),
+                    child: Icon(a.type == AlertType.lowStock ? Icons.inventory_2 : Icons.event,
+                        color: _severityColor(a.severity)),
+                  ),
+                  const SizedBox(width: 12),
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(a.nome, style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
+                        const SizedBox(height: 4),
+                        Text('${a.codigo} • ${a.local}', style: TextStyle(color: Colors.grey.shade600)),
+                      ],
+                    ),
+                  ),
+                  Chip(
+                    backgroundColor: _severityColor(a.severity).withOpacity(0.12),
+                    avatar: CircleAvatar(backgroundColor: _severityColor(a.severity), radius: 10),
+                    label: Text('Prioridade ${a.severity}', style: TextStyle(color: _severityColor(a.severity))),
+                  )
+                ],
+              ),
+              const SizedBox(height: 12),
+              Row(
+                children: [
+                  _infoTile('Quantidade', a.quantidade.toString()),
+                  const SizedBox(width: 8),
+                  _infoTile('Vencimento', _formatDate(a.vencimento)),
+                  const SizedBox(width: 8),
+                  _infoTile('Tipo', _typeLabel(a.type)),
+                ],
+              ),
+              const SizedBox(height: 16),
+              Text(
+                a.type == AlertType.lowStock
+                    ? 'Estoque baixo — considere reposição ou realocação.'
+                    : 'Vencimento próximo — priorize uso ou inspeção.',
+                style: TextStyle(color: Colors.grey.shade700),
+              ),
+              const SizedBox(height: 16),
+              Row(
+                mainAxisAlignment: MainAxisAlignment.end,
+                children: [
+                  TextButton(onPressed: () => Navigator.pop(context), child: const Text('Fechar')),
+                  const SizedBox(width: 8),
+                  ElevatedButton.icon(
+                    icon: const Icon(Icons.check),
+                    label: const Text('Marcar resolvido'),
+                    style: ElevatedButton.styleFrom(backgroundColor: Colors.green),
+                    onPressed: () {
+                      Navigator.pop(context);
+                      _markResolved(a);
+                    },
+                  ),
+                ],
+              )
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+
+  Widget _infoTile(String title, String value) {
+    return Expanded(
+      child: Container(
+        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+        decoration: BoxDecoration(
+          color: Colors.grey.shade50,
+          borderRadius: BorderRadius.circular(10),
+          border: Border.all(color: Colors.grey.shade200),
+        ),
+        child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+          Text(title, style: TextStyle(fontSize: 12, color: Colors.grey.shade600)),
+          const SizedBox(height: 6),
+          Text(value, style: const TextStyle(fontWeight: FontWeight.bold)),
+        ]),
+      ),
+    );
+  }
+
+  Widget _smallStat(String label, String value, Color color) {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
+      decoration: BoxDecoration(
+        color: color.withOpacity(0.12),
+        borderRadius: BorderRadius.circular(10),
+        border: Border.all(color: color.withOpacity(0.18)),
+      ),
+      child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+        Text(label, style: TextStyle(fontSize: 12, color: color.withOpacity(0.9))),
+        const SizedBox(height: 4),
+        Text(value, style: TextStyle(fontWeight: FontWeight.bold, color: color)),
+      ]),
+    );
+  }
+
+  Widget _buildTopBar() {
+    final total = _alerts.length;
+    final lowStock = _alerts.where((a) => a.type == AlertType.lowStock).length;
+    final nearExpiry = _alerts.where((a) => a.type == AlertType.nearExpiry).length;
+
+    return Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+      Row(children: [
+        const Expanded(child: Text('Alertas', style: TextStyle(fontSize: 22, fontWeight: FontWeight.bold))),
+        _smallStat('Total', total.toString(), Colors.blue),
+        const SizedBox(width: 8),
+        _smallStat('Estoque baixo', lowStock.toString(), Colors.red),
+        const SizedBox(width: 8),
+        _smallStat('Vencimento', nearExpiry.toString(), Colors.orange),
+      ]),
+      const SizedBox(height: 12),
+      Row(children: [
+        Expanded(
+          child: TextField(
+            decoration: InputDecoration(
+              hintText: 'Pesquisar por nome, código ou local...',
+              prefixIcon: const Icon(Icons.search),
+              filled: true,
+              fillColor: Colors.grey.shade100,
+              border: OutlineInputBorder(borderRadius: BorderRadius.circular(10), borderSide: BorderSide.none),
+            ),
+            onChanged: (v) => setState(() => _query = v),
+          ),
+        ),
+        const SizedBox(width: 12),
+        DropdownButton<int>(
+          value: _minSeverity,
+          items: const [
+            DropdownMenuItem(value: 1, child: Text('Prioridade >=1')),
+            DropdownMenuItem(value: 2, child: Text('Prioridade >=2')),
+            DropdownMenuItem(value: 3, child: Text('Prioridade >=3')),
+          ],
+          onChanged: (v) => setState(() => _minSeverity = v ?? 1),
+        ),
+      ]),
+      const SizedBox(height: 12),
+      Wrap(spacing: 8, runSpacing: 6, children: [
+        ChoiceChip(selected: _filterType == null, label: const Text('Todos'), onSelected: (_) => setState(() => _filterType = null)),
+        ChoiceChip(selected: _filterType == AlertType.lowStock, label: const Text('Estoque baixo'), onSelected: (_) => setState(() => _filterType = AlertType.lowStock)),
+        ChoiceChip(selected: _filterType == AlertType.nearExpiry, label: const Text('Vencimento próximo'), onSelected: (_) => setState(() => _filterType = AlertType.nearExpiry)),
+      ]),
+      const SizedBox(height: 12),
+    ]);
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final isMobile = MediaQuery.of(context).size.width < 700;
+
+    return Scaffold(
+      appBar: AppBar(
+        title: const Text('Alertas'),
+        backgroundColor: Colors.white,
+        foregroundColor: const Color(0xFF001489),
+        elevation: 0,
+        actions: [Padding(padding: const EdgeInsets.only(right: 16.0), child: Image.asset('assets/LogoMetro.png', height: 32))],
+      ),
+      body: Padding(
+        padding: const EdgeInsets.all(16),
+        child: Column(children: [
+          _buildTopBar(),
+          Expanded(
+            child: _visibleAlerts.isEmpty
+                ? Center(child: Column(mainAxisSize: MainAxisSize.min, children: [Icon(Icons.check_circle_outline, size: 64, color: Colors.green.shade400), const SizedBox(height: 12), Text('Nenhum alerta encontrado', style: TextStyle(color: Colors.grey.shade600))]))
+                : isMobile
+                    ? ListView.separated(
+                        itemCount: _visibleAlerts.length,
+                        separatorBuilder: (_, __) => const SizedBox(height: 12),
+                        itemBuilder: (context, i) {
+                          final a = _visibleAlerts[i];
+                          return Dismissible(
+                            key: ValueKey(a.codigo + a.nome),
+                            direction: DismissDirection.endToStart,
+                            background: Container(
+                              alignment: Alignment.centerRight,
+                              padding: const EdgeInsets.only(right: 20),
+                              decoration: BoxDecoration(color: Colors.green, borderRadius: BorderRadius.circular(12)),
+                              child: const Icon(Icons.check, color: Colors.white),
+                            ),
+                            onDismissed: (_) => _resolveAlertAt(i),
+                            child: Card(
+                              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                              elevation: 2,
+                              child: InkWell(
+                                onTap: () => _showDetail(a),
+                                borderRadius: BorderRadius.circular(12),
+                                child: Padding(
+                                  padding: const EdgeInsets.all(12),
+                                  child: Row(children: [
+                                    Container(width: 6, height: 56, decoration: BoxDecoration(color: _severityColor(a.severity), borderRadius: BorderRadius.circular(4))),
+                                    const SizedBox(width: 12),
+                                    Expanded(
+                                      child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+                                        Text(a.nome, style: const TextStyle(fontWeight: FontWeight.bold)),
+                                        const SizedBox(height: 4),
+                                        Text('${a.codigo} • ${a.local}', style: TextStyle(color: Colors.grey.shade600)),
+                                        const SizedBox(height: 8),
+                                        Row(children: [
+                                          Chip(avatar: Icon(a.type == AlertType.lowStock ? Icons.inventory_2 : Icons.event, size: 16, color: _severityColor(a.severity)), label: Text(_typeLabel(a.type)), backgroundColor: _severityColor(a.severity).withOpacity(0.08)),
+                                          const SizedBox(width: 8),
+                                          Text('Qtd: ${a.quantidade}', style: const TextStyle(fontWeight: FontWeight.bold)),
+                                          const SizedBox(width: 8),
+                                          Text('Venc: ${_formatDate(a.vencimento)}', style: TextStyle(color: Colors.grey.shade600)),
+                                        ]),
+                                      ]),
+                                    ),
+                                    Column(children: [
+                                      IconButton(icon: const Icon(Icons.visibility), onPressed: () => _showDetail(a)),
+                                      IconButton(icon: const Icon(Icons.check_circle_outline, color: Colors.green), onPressed: () => _markResolved(a)),
+                                    ])
+                                  ]),
+                                ),
+                              ),
+                            ),
+                          );
+                        },
+                      )
+                    : SingleChildScrollView(
+                        scrollDirection: Axis.horizontal,
+                        child: ConstrainedBox(
+                          constraints: BoxConstraints(minWidth: MediaQuery.of(context).size.width),
+                          child: DataTable(
+                            headingRowColor: MaterialStateProperty.all(const Color(0xFFF5F7FA)),
+                            columnSpacing: 24,
+                            columns: const [
+                              DataColumn(label: Text('Código', style: TextStyle(fontWeight: FontWeight.bold))),
+                              DataColumn(label: Text('Nome', style: TextStyle(fontWeight: FontWeight.bold))),
+                              DataColumn(label: Text('Tipo', style: TextStyle(fontWeight: FontWeight.bold))),
+                              DataColumn(label: Text('Quantidade', style: TextStyle(fontWeight: FontWeight.bold)), numeric: true),
+                              DataColumn(label: Text('Local', style: TextStyle(fontWeight: FontWeight.bold))),
+                              DataColumn(label: Text('Vencimento', style: TextStyle(fontWeight: FontWeight.bold))),
+                              DataColumn(label: Text('Prioridade', style: TextStyle(fontWeight: FontWeight.bold))),
+                              DataColumn(label: Text('Ações', style: TextStyle(fontWeight: FontWeight.bold))),
+                            ],
+                            rows: _visibleAlerts.map((a) {
+                              return DataRow(cells: [
+                                DataCell(Text(a.codigo)),
+                                DataCell(Text(a.nome)),
+                                DataCell(Text(_typeLabel(a.type))),
+                                DataCell(Center(child: Text(a.quantidade.toString()))),
+                                DataCell(Text(a.local)),
+                                DataCell(Center(child: Text(_formatDate(a.vencimento)))),
+                                DataCell(Chip(backgroundColor: _severityColor(a.severity).withOpacity(0.12), label: Text('${a.severity}', style: TextStyle(color: _severityColor(a.severity))))),
+                                DataCell(Row(mainAxisSize: MainAxisSize.min, children: [
+                                  IconButton(icon: const Icon(Icons.visibility), tooltip: 'Detalhes', onPressed: () => _showDetail(a)),
+                                  IconButton(icon: const Icon(Icons.check), tooltip: 'Marcar resolvido', onPressed: () => _markResolved(a)),
+                                ])),
+                              ]);
+                            }).toList(),
+                          ),
+                        ),
+                      ),
+          ),
+        ]),
+      ),
+    );
+  }
+}
