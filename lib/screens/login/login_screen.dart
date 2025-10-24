@@ -186,7 +186,7 @@ class _LoginPageState extends State<LoginPage>
                         width: 140,
                         height: 140,
                         fit: BoxFit.contain,
-                        color: Colors.white,
+                        // color: Colors.white, # Era essa linha que estava deixando a logo toda branca
                       ),
                     ),
                     Center(
