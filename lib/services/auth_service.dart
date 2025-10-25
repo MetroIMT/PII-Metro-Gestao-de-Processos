@@ -27,6 +27,9 @@ class AuthService {
     return _desktopHost; // macOS/Windows/Linux
   }
 
+  static const String baseUrl = 'http://10.0.2.2:8080';
+  static const Duration _timeoutDuration = Duration(seconds: 30); // Aumentado de 5-10 para 30 segundos
+
   Future<bool> login({required String email, required String senha}) async {
     final normalizedEmail = email.trim().toLowerCase();
     final trimmedPassword = senha.trim();
@@ -48,33 +51,44 @@ class AuthService {
         uri,
         headers: {'Content-Type': 'application/json'},
         body: jsonEncode({'email': normalizedEmail, 'senha': trimmedPassword}),
+      ).timeout(
+        _timeoutDuration,
+        onTimeout: () {
+          throw TimeoutException('Conexão com o servidor expirou. Tente novamente.');
+        },
       );
 
-      if (response.statusCode != 200) {
-        debugPrint('Login falhou: ${response.statusCode} ${response.body}');
-        return false;
+      if (response.statusCode == 200) {
+        final data = jsonDecode(response.body) as Map<String, dynamic>;
+        final token = data['token'] as String?;
+        if (token == null || token.isEmpty) return false;
+
+        await Future.wait([
+          _storage.write(key: 'token', value: token),
+          _storage.write(key: 'role', value: data['role'] as String?),
+          _storage.write(key: 'nome', value: data['nome'] as String?),
+          _storage.write(key: 'userId', value: data['id'] as String?),
+          _storage.write(
+            key: 'tokenExpiresIn',
+            value: (data['expiresIn']?.toString() ?? ''),
+          ),
+        ]);
+
+        return true;
+      } else if (response.statusCode == 401) {
+        throw Exception('Email ou senha incorretos');
+      } else {
+        throw Exception('Erro do servidor: ${response.statusCode}');
       }
-
-      final data = jsonDecode(response.body) as Map<String, dynamic>;
-      final token = data['token'] as String?;
-      if (token == null || token.isEmpty) return false;
-
-      await Future.wait([
-        _storage.write(key: 'token', value: token),
-        _storage.write(key: 'role', value: data['role'] as String?),
-        _storage.write(key: 'nome', value: data['nome'] as String?),
-        _storage.write(key: 'userId', value: data['id'] as String?),
-        _storage.write(
-          key: 'tokenExpiresIn',
-          value: (data['expiresIn']?.toString() ?? ''),
-        ),
-      ]);
-
-      return true;
-    } catch (e, stack) {
-      debugPrint('Erro ao chamar /auth/login: $e');
-      debugPrint(stack.toString());
-      return false;
+    } on TimeoutException catch (e) {
+      print('Timeout: ${e.message}');
+      throw Exception('Conexão expirou. Verifique sua conexão com a internet e tente novamente.');
+    } on http.ClientException catch (e) {
+      print('Erro ao chamar /auth/login: $e');
+      throw Exception('Erro de conexão: ${e.message}. Verifique se o servidor está rodando.');
+    } catch (e) {
+      print('Erro desconhecido: $e');
+      throw Exception('Erro ao fazer login: $e');
     }
   }
 
