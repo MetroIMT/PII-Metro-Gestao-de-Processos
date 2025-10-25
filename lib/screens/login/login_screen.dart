@@ -33,8 +33,7 @@ class LoginPage extends StatefulWidget {
   State<LoginPage> createState() => _LoginPageState();
 }
 
-class _LoginPageState extends State<LoginPage>
-    with SingleTickerProviderStateMixin {
+class _LoginPageState extends State<LoginPage> {
   late final LoginController _loginController =
       widget.controller ?? LoginController();
 
@@ -45,31 +44,8 @@ class _LoginPageState extends State<LoginPage>
   bool _obscurePassword = true;
   bool _isLoading = false;
 
-  late AnimationController _animationController;
-  late Animation<double> _fadeAnimation;
-
-  @override
-  void initState() {
-    super.initState();
-
-    _animationController = AnimationController(
-      vsync: this,
-      duration: const Duration(milliseconds: 1200),
-    );
-
-    _fadeAnimation = Tween<double>(begin: 0.0, end: 1.0).animate(
-      CurvedAnimation(
-        parent: _animationController,
-        curve: const Interval(0.2, 1.0, curve: Curves.easeOut),
-      ),
-    );
-
-    _animationController.forward();
-  }
-
   @override
   void dispose() {
-    _animationController.dispose();
     emailController.dispose();
     passwordController.dispose();
     super.dispose();
@@ -107,20 +83,7 @@ class _LoginPageState extends State<LoginPage>
         if (!mounted) return;
         Navigator.pushReplacement(
           context,
-          PageRouteBuilder(
-            transitionDuration: const Duration(milliseconds: 700),
-            pageBuilder: (_, animation, __) => const HomeScreen(),
-            transitionsBuilder: (_, animation, __, child) {
-              final tween = Tween(
-                begin: 0.0,
-                end: 1.0,
-              ).chain(CurveTween(curve: Curves.easeInOut));
-              return FadeTransition(
-                opacity: animation.drive(tween),
-                child: child,
-              );
-            },
-          ),
+          MaterialPageRoute(builder: (_) => const HomeScreen()),
         );
       } else {
         _showSnack('Credenciais inválidas.', isError: true);
@@ -138,529 +101,245 @@ class _LoginPageState extends State<LoginPage>
   Widget build(BuildContext context) {
     final size = MediaQuery.of(context).size;
     final isDesktop = size.width > 900;
-    final isTablet = size.width > 600 && size.width <= 900;
-    final keyboardVisible = MediaQuery.of(context).viewInsets.bottom > 0;
 
     final metroBlue = const Color(0xFF001489);
 
     return Scaffold(
-      backgroundColor: isDesktop ? Colors.white : null,
+      backgroundColor: isDesktop ? Colors.white : Colors.white,
       resizeToAvoidBottomInset: true,
-      body: SizedBox.expand(
-        child: GestureDetector(
-          onTap: () => FocusScope.of(context).unfocus(),
-          child: isDesktop
-              ? _buildDesktopLayout(metroBlue, size)
-              : _buildMobileTabletLayout(
-                  metroBlue,
-                  isTablet,
-                  keyboardVisible,
-                  size,
-                ),
-        ),
-      ),
+      body: isDesktop
+          ? _buildDesktopLayout(metroBlue, size)
+          : _buildMobileLayout(metroBlue),
     );
   }
 
   Widget _buildDesktopLayout(Color metroBlue, Size size) {
-    return FadeTransition(
-      opacity: _fadeAnimation,
-      child: Container(
-        width: double.infinity,
-        height: double.infinity,
-        color: Colors.white,
-        child: Row(
-          children: [
-            Expanded(
-              flex: 5,
-              child: Container(
-                color: metroBlue,
-                padding: const EdgeInsets.all(40),
-                child: Stack(
-                  children: [
-                    Positioned(
-                      top: 8,
-                      left: 8,
-                      child: Image.asset(
-                        'assets/LogoMetro.png',
-                        width: 140,
-                        height: 140,
-                        fit: BoxFit.contain,
-                        // color: Colors.white, # Era essa linha que estava deixando a logo toda branca
-                      ),
+    return Container(
+      width: double.infinity,
+      height: double.infinity,
+      color: Colors.white,
+      child: Row(
+        children: [
+          Expanded(
+            flex: 5,
+            child: Container(
+              color: metroBlue,
+              padding: const EdgeInsets.all(40),
+              child: Stack(
+                children: [
+                  Positioned(
+                    top: 8,
+                    left: 8,
+                    child: Image.asset(
+                      'assets/LogoMetro.png',
+                      width: 140,
+                      height: 140,
+                      fit: BoxFit.contain,
+                      color: Colors.white,
                     ),
-                    Center(
-                      child: Column(
-                        mainAxisSize: MainAxisSize.min,
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          const Text(
-                            'Bem-vindo',
-                            style: TextStyle(
-                              fontSize: 36,
-                              color: Colors.white,
-                              fontWeight: FontWeight.w300,
-                            ),
-                          ),
-                          const Text(
-                            'de volta!',
-                            style: TextStyle(
-                              fontSize: 36,
-                              fontWeight: FontWeight.bold,
-                              color: Colors.white,
-                            ),
-                          ),
-                          const SizedBox(height: 20),
-                          Container(
-                            width: 80,
-                            height: 4,
-                            decoration: BoxDecoration(
-                              color: Colors.white,
-                              borderRadius: BorderRadius.circular(2),
-                            ),
-                          ),
-                          const SizedBox(height: 24),
-                          const Text(
-                            'Acesse o sistema de gerenciamento do Metrô e administre os recursos, monitore a manutenção e tenha acesso a todos os relatórios.',
-                            style: TextStyle(
-                              fontSize: 16,
-                              height: 1.5,
-                              color: Colors.white,
-                            ),
-                          ),
-                          const SizedBox(height: 28),
-                          const Text(
-                            '© 2025 Metrô | Todos os direitos reservados',
-                            style: TextStyle(
-                              fontSize: 12,
-                              color: Colors.white70,
-                            ),
-                          ),
-                        ],
-                      ),
-                    ),
-                  ],
-                ),
-              ),
-            ),
-            Expanded(
-              flex: 4,
-              child: Container(
-                padding: const EdgeInsets.symmetric(
-                  horizontal: 48,
-                  vertical: 48,
-                ),
-                color: Colors.white,
-                child: Column(
-                  mainAxisAlignment: MainAxisAlignment.center,
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(
-                      'Login',
-                      style: TextStyle(
-                        fontSize: 32,
-                        fontWeight: FontWeight.bold,
-                        color: metroBlue,
-                      ),
-                    ),
-                    const SizedBox(height: 12),
-                    Text(
-                      'Entre com suas credenciais para acessar o sistema',
-                      style: TextStyle(fontSize: 14, color: Colors.grey[600]),
-                    ),
-                    const SizedBox(height: 40),
-                    _buildAnimatedTextField(
-                      controller: emailController,
-                      label: 'Email',
-                      prefixIcon: Icons.email_outlined,
-                    ),
-                    const SizedBox(height: 24),
-                    _buildAnimatedTextField(
-                      controller: passwordController,
-                      label: 'Senha',
-                      prefixIcon: Icons.lock_outline,
-                      obscureText: _obscurePassword,
-                      suffixIcon: IconButton(
-                        icon: Icon(
-                          _obscurePassword
-                              ? Icons.visibility
-                              : Icons.visibility_off,
-                          color: Colors.grey,
-                        ),
-                        onPressed: () {
-                          setState(() {
-                            _obscurePassword = !_obscurePassword;
-                          });
-                        },
-                      ),
-                    ),
-                    const SizedBox(height: 12),
-                    Row(
-                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  ),
+                  Center(
+                    child: Column(
+                      mainAxisSize: MainAxisSize.min,
+                      crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
-                        Flexible(
-                          child: Row(
-                            children: [
-                              SizedBox(
-                                height: 24,
-                                width: 24,
-                                child: Checkbox(
-                                  value: rememberMe,
-                                  activeColor: metroBlue,
-                                  shape: RoundedRectangleBorder(
-                                    borderRadius: BorderRadius.circular(4),
-                                  ),
-                                  onChanged: (val) {
-                                    setState(() {
-                                      rememberMe = val ?? false;
-                                    });
-                                  },
-                                ),
-                              ),
-                              const SizedBox(width: 8),
-                              Flexible(
-                                child: Text(
-                                  'Lembrar credenciais',
-                                  style: TextStyle(
-                                    color: Colors.grey[700],
-                                    fontSize: 14,
-                                  ),
-                                  overflow: TextOverflow.ellipsis,
-                                ),
-                              ),
-                            ],
+                        const Text(
+                          'Bem-vindo',
+                          style: TextStyle(
+                            fontSize: 36,
+                            color: Colors.white,
+                            fontWeight: FontWeight.w300,
                           ),
                         ),
-                        const SizedBox(width: 8),
-                        Flexible(
-                          child: TextButton(
-                            onPressed: () {
-                              showEsqueciSenhaPopup(context);
-                            },
-                            style: TextButton.styleFrom(
-                              padding: EdgeInsets.zero,
-                              minimumSize: Size.zero,
-                              tapTargetSize: MaterialTapTargetSize.shrinkWrap,
-                            ),
-                            child: Text(
-                              'Esqueceu a senha?',
-                              style: TextStyle(
-                                color: metroBlue,
-                                fontWeight: FontWeight.w600,
-                              ),
-                              overflow: TextOverflow.ellipsis,
-                            ),
+                        const Text(
+                          'de volta!',
+                          style: TextStyle(
+                            fontSize: 36,
+                            fontWeight: FontWeight.bold,
+                            color: Colors.white,
+                          ),
+                        ),
+                        const SizedBox(height: 20),
+                        Container(
+                          width: 80,
+                          height: 4,
+                          decoration: BoxDecoration(
+                            color: Colors.white,
+                            borderRadius: BorderRadius.circular(2),
+                          ),
+                        ),
+                        const SizedBox(height: 24),
+                        const Text(
+                          'Acesse o sistema de gerenciamento do Metrô e administre os recursos, monitore a manutenção e tenha acesso a todos os relatórios.',
+                          style: TextStyle(
+                            fontSize: 16,
+                            height: 1.5,
+                            color: Colors.white,
+                          ),
+                        ),
+                        const SizedBox(height: 28),
+                        const Text(
+                          '© 2025 Metrô | Todos os direitos reservados',
+                          style: TextStyle(
+                            fontSize: 12,
+                            color: Colors.white70,
                           ),
                         ),
                       ],
                     ),
-                    const SizedBox(height: 32),
-                    SizedBox(
-                      width: double.infinity,
-                      height: 52,
-                      child: ElevatedButton(
-                        onPressed: _isLoading ? null : _login,
-                        style: ElevatedButton.styleFrom(
-                          backgroundColor: metroBlue,
-                          padding: const EdgeInsets.symmetric(vertical: 16),
-                          shape: RoundedRectangleBorder(
-                            borderRadius: BorderRadius.circular(12),
-                          ),
-                        ),
-                        child: _isLoading
-                            ? const SizedBox(
-                                width: 20,
-                                height: 20,
-                                child: CircularProgressIndicator(
-                                  valueColor: AlwaysStoppedAnimation<Color>(
-                                    Colors.white,
-                                  ),
-                                  strokeWidth: 2,
-                                ),
-                              )
-                            : const Text(
-                                'Entrar',
-                                style: TextStyle(
-                                  fontSize: 16,
-                                  fontWeight: FontWeight.bold,
-                                  color: Colors.white,
-                                ),
-                              ),
-                      ),
-                    ),
-                    const SizedBox(height: 40),
-                    Center(
-                      child: Column(
-                        children: [
-                          Text(
-                            'Precisa de ajuda?',
-                            style: TextStyle(
-                              color: Colors.grey[600],
-                              fontSize: 14,
-                            ),
-                          ),
-                          const SizedBox(height: 8),
-                          TextButton(
-                            onPressed: () {},
-                            child: Text(
-                              'Contate o suporte',
-                              style: TextStyle(
-                                color: metroBlue,
-                                fontWeight: FontWeight.w600,
-                              ),
-                            ),
-                          ),
-                        ],
-                      ),
-                    ),
-                  ],
-                ),
+                  ),
+                ],
               ),
-            ),
-          ],
-        ),
-      ),
-    );
-  }
-
-  Widget _buildMobileTabletLayout(
-    Color metroBlue,
-    bool isTablet,
-    bool keyboardVisible,
-    Size size,
-  ) {
-    return SingleChildScrollView(
-      physics: const ClampingScrollPhysics(),
-      reverse: keyboardVisible,
-      child: FadeTransition(
-        opacity: _fadeAnimation,
-        child: Container(
-          width: double.infinity,
-          constraints: BoxConstraints(minHeight: size.height),
-          decoration: BoxDecoration(
-            gradient: const LinearGradient(
-              begin: Alignment.topLeft,
-              end: Alignment.bottomRight,
-              colors: [Colors.white, Color(0xFFF5F7FF), Color(0xFFEDF1FF)],
-              stops: [0.0, 0.5, 1.0],
-            ),
-            image: const DecorationImage(
-              image: AssetImage('assets/LogoMetro.png'),
-              fit: BoxFit.cover,
-              opacity: 0.03,
-              alignment: Alignment.topCenter,
             ),
           ),
-          child: SafeArea(
-            bottom: true,
-            child: Padding(
-              padding: EdgeInsets.only(
-                left: isTablet ? 64.0 : 32.0,
-                right: isTablet ? 64.0 : 32.0,
-                top: keyboardVisible ? 10.0 : (isTablet ? 40.0 : 32.0),
-                bottom: keyboardVisible
-                    ? MediaQuery.of(context).viewInsets.bottom + 16.0
-                    : 40.0,
+          Expanded(
+            flex: 4,
+            child: Container(
+              padding: const EdgeInsets.symmetric(
+                horizontal: 48,
+                vertical: 48,
               ),
+              color: Colors.white,
               child: Column(
                 mainAxisAlignment: MainAxisAlignment.center,
-                crossAxisAlignment: CrossAxisAlignment.center,
+                crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  if (!keyboardVisible || isTablet) ...[
-                    AnimatedContainer(
-                      duration: const Duration(milliseconds: 300),
-                      padding: const EdgeInsets.symmetric(vertical: 8),
-                      height: isTablet ? 140 : (keyboardVisible ? 80 : 100),
-                      child: Image.asset(
-                        'assets/LogoMetro.png',
-                        fit: BoxFit.contain,
-                      ),
-                    ),
-                    SizedBox(height: isTablet ? 32 : 20),
-                  ],
-                  AnimatedDefaultTextStyle(
-                    duration: const Duration(milliseconds: 300),
+                  Text(
+                    'Login',
                     style: TextStyle(
-                      fontSize: isTablet ? 32 : (keyboardVisible ? 24 : 28),
-                      color: metroBlue,
-                      fontWeight: FontWeight.w300,
-                    ),
-                    child: const Text('Bem-vindo'),
-                  ),
-                  AnimatedDefaultTextStyle(
-                    duration: const Duration(milliseconds: 300),
-                    style: TextStyle(
-                      fontSize: isTablet ? 32 : (keyboardVisible ? 24 : 28),
+                      fontSize: 32,
                       fontWeight: FontWeight.bold,
                       color: metroBlue,
                     ),
-                    child: const Text('de volta!'),
                   ),
-                  if (!keyboardVisible || isTablet) ...[
-                    const SizedBox(height: 12),
-                    Container(
-                      width: 60,
-                      height: 3,
-                      decoration: BoxDecoration(
-                        color: metroBlue,
-                        borderRadius: BorderRadius.circular(1.5),
+                  const SizedBox(height: 12),
+                  Text(
+                    'Entre com suas credenciais para acessar o sistema',
+                    style: TextStyle(fontSize: 14, color: Colors.grey[600]),
+                  ),
+                  const SizedBox(height: 40),
+                  _buildAnimatedTextField(
+                    controller: emailController,
+                    label: 'Email',
+                    prefixIcon: Icons.email_outlined,
+                  ),
+                  const SizedBox(height: 24),
+                  _buildAnimatedTextField(
+                    controller: passwordController,
+                    label: 'Senha',
+                    prefixIcon: Icons.lock_outline,
+                    obscureText: _obscurePassword,
+                    suffixIcon: IconButton(
+                      icon: Icon(
+                        _obscurePassword
+                            ? Icons.visibility
+                            : Icons.visibility_off,
+                        color: Colors.grey,
                       ),
+                      onPressed: () {
+                        setState(() {
+                          _obscurePassword = !_obscurePassword;
+                        });
+                      },
                     ),
-                    const SizedBox(height: 12),
-                    Text(
-                      'Faça login para continuar',
-                      textAlign: TextAlign.center,
-                      style: TextStyle(
-                        fontSize: isTablet ? 16 : 14,
-                        color: Colors.grey[700],
-                      ),
-                    ),
-                  ],
-                  SizedBox(height: isTablet ? 40 : (keyboardVisible ? 20 : 32)),
-                  AnimatedContainer(
-                    duration: const Duration(milliseconds: 300),
-                    width: double.infinity,
-                    margin: EdgeInsets.symmetric(horizontal: isTablet ? 16 : 0),
-                    decoration: BoxDecoration(
-                      color: Colors.white,
-                      borderRadius: BorderRadius.circular(20),
-                      boxShadow: [
-                        BoxShadow(
-                          color: Colors.black.withOpacity(0.08),
-                          blurRadius: 20,
-                          offset: const Offset(0, 10),
-                        ),
-                      ],
-                      border: Border.all(
-                        color: Colors.white.withOpacity(0.8),
-                        width: 1,
-                      ),
-                    ),
-                    padding: EdgeInsets.all(keyboardVisible ? 20 : 24),
-                    child: Column(
-                      children: [
-                        _buildAnimatedTextField(
-                          controller: emailController,
-                          label: 'Email',
-                          prefixIcon: Icons.email_outlined,
-                          isTablet: isTablet,
-                        ),
-                        const SizedBox(height: 20),
-                        _buildAnimatedTextField(
-                          controller: passwordController,
-                          label: 'Senha',
-                          prefixIcon: Icons.lock_outline,
-                          obscureText: _obscurePassword,
-                          isTablet: isTablet,
-                          suffixIcon: IconButton(
-                            icon: Icon(
-                              _obscurePassword
-                                  ? Icons.visibility
-                                  : Icons.visibility_off,
-                              color: Colors.grey,
-                              size: 20,
-                            ),
-                            onPressed: () {
-                              setState(() {
-                                _obscurePassword = !_obscurePassword;
-                              });
-                            },
-                          ),
-                        ),
-                        const SizedBox(height: 16),
-                        if (isTablet || !keyboardVisible)
-                          Row(
-                            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                            children: [
-                              Row(
-                                children: [
-                                  SizedBox(
-                                    height: 24,
-                                    width: 24,
-                                    child: Checkbox(
-                                      value: rememberMe,
-                                      activeColor: metroBlue,
-                                      shape: RoundedRectangleBorder(
-                                        borderRadius: BorderRadius.circular(4),
-                                      ),
-                                      onChanged: (val) {
-                                        setState(() {
-                                          rememberMe = val ?? false;
-                                        });
-                                      },
-                                    ),
-                                  ),
-                                  const SizedBox(width: 8),
-                                  Text(
-                                    'Lembrar credenciais',
-                                    style: TextStyle(
-                                      color: Colors.grey[700],
-                                      fontSize: 14,
-                                    ),
-                                  ),
-                                ],
-                              ),
-                              TextButton(
-                                onPressed: () {
-                                  showEsqueciSenhaPopup(context);
+                  ),
+                  const SizedBox(height: 12),
+                  Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                    children: [
+                      Flexible(
+                        child: Row(
+                          children: [
+                            SizedBox(
+                              height: 24,
+                              width: 24,
+                              child: Checkbox(
+                                value: rememberMe,
+                                activeColor: metroBlue,
+                                shape: RoundedRectangleBorder(
+                                  borderRadius: BorderRadius.circular(4),
+                                ),
+                                onChanged: (val) {
+                                  setState(() {
+                                    rememberMe = val ?? false;
+                                  });
                                 },
-                                style: TextButton.styleFrom(
-                                  padding: EdgeInsets.zero,
-                                  minimumSize: Size.zero,
-                                  tapTargetSize:
-                                      MaterialTapTargetSize.shrinkWrap,
-                                ),
-                                child: Text(
-                                  'Esqueceu a senha?',
-                                  style: TextStyle(
-                                    color: metroBlue,
-                                    fontWeight: FontWeight.w600,
-                                  ),
-                                ),
-                              ),
-                            ],
-                          ),
-                        const SizedBox(height: 24),
-                        SizedBox(
-                          width: double.infinity,
-                          height: 52,
-                          child: ElevatedButton(
-                            onPressed: _isLoading ? null : _login,
-                            style: ElevatedButton.styleFrom(
-                              backgroundColor: metroBlue,
-                              padding: EdgeInsets.zero,
-                              shape: RoundedRectangleBorder(
-                                borderRadius: BorderRadius.circular(12),
                               ),
                             ),
-                            child: _isLoading
-                                ? const SizedBox(
-                                    width: 20,
-                                    height: 20,
-                                    child: CircularProgressIndicator(
-                                      valueColor: AlwaysStoppedAnimation<Color>(
-                                        Colors.white,
-                                      ),
-                                      strokeWidth: 2,
-                                    ),
-                                  )
-                                : const Text(
-                                    'Entrar',
-                                    style: TextStyle(
-                                      fontSize: 16,
-                                      fontWeight: FontWeight.bold,
-                                      color: Colors.white,
-                                    ),
-                                  ),
+                            const SizedBox(width: 8),
+                            Flexible(
+                              child: Text(
+                                'Lembrar credenciais',
+                                style: TextStyle(
+                                  color: Colors.grey[700],
+                                  fontSize: 14,
+                                ),
+                                overflow: TextOverflow.ellipsis,
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                      const SizedBox(width: 8),
+                      Flexible(
+                        child: TextButton(
+                          onPressed: () {
+                            showEsqueciSenhaPopup(context);
+                          },
+                          style: TextButton.styleFrom(
+                            padding: EdgeInsets.zero,
+                            minimumSize: Size.zero,
+                            tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                          ),
+                          child: Text(
+                            'Esqueceu a senha?',
+                            style: TextStyle(
+                              color: metroBlue,
+                              fontWeight: FontWeight.w600,
+                            ),
+                            overflow: TextOverflow.ellipsis,
                           ),
                         ),
-                      ],
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: 32),
+                  SizedBox(
+                    width: double.infinity,
+                    height: 52,
+                    child: ElevatedButton(
+                      onPressed: _isLoading ? null : _login,
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: metroBlue,
+                        padding: const EdgeInsets.symmetric(vertical: 16),
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(12),
+                        ),
+                      ),
+                      child: _isLoading
+                          ? const SizedBox(
+                              width: 20,
+                              height: 20,
+                              child: CircularProgressIndicator(
+                                valueColor: AlwaysStoppedAnimation<Color>(
+                                  Colors.white,
+                                ),
+                                strokeWidth: 2,
+                              ),
+                            )
+                          : const Text(
+                              'Entrar',
+                              style: TextStyle(
+                                fontSize: 16,
+                                fontWeight: FontWeight.bold,
+                                color: Colors.white,
+                              ),
+                            ),
                     ),
                   ),
-                  if (isTablet || !keyboardVisible) ...[
-                    const SizedBox(height: 24),
-                    Row(
-                      mainAxisAlignment: MainAxisAlignment.center,
+                  const SizedBox(height: 40),
+                  Center(
+                    child: Column(
                       children: [
                         Text(
                           'Precisa de ajuda?',
@@ -669,14 +348,9 @@ class _LoginPageState extends State<LoginPage>
                             fontSize: 14,
                           ),
                         ),
-                        const SizedBox(width: 4),
+                        const SizedBox(height: 8),
                         TextButton(
                           onPressed: () {},
-                          style: TextButton.styleFrom(
-                            padding: const EdgeInsets.symmetric(horizontal: 8),
-                            minimumSize: Size.zero,
-                            tapTargetSize: MaterialTapTargetSize.shrinkWrap,
-                          ),
                           child: Text(
                             'Contate o suporte',
                             style: TextStyle(
@@ -687,20 +361,299 @@ class _LoginPageState extends State<LoginPage>
                         ),
                       ],
                     ),
-                    Padding(
-                      padding: const EdgeInsets.only(top: 16),
-                      child: Text(
-                        '© 2023 Metrô | Todos os direitos reservados',
-                        style: TextStyle(fontSize: 12, color: Colors.grey[500]),
-                      ),
-                    ),
-                  ],
+                  ),
                 ],
               ),
             ),
           ),
-        ),
+        ],
       ),
+    );
+  }
+
+  Widget _buildMobileLayout(Color metroBlue) {
+    return ListView(
+      shrinkWrap: true,
+      physics: const ClampingScrollPhysics(),
+      padding: EdgeInsets.zero,
+      children: [
+        // Header com logo
+        Container(
+          padding: const EdgeInsets.symmetric(vertical: 32),
+          color: metroBlue,
+          child: Center(
+            child: Image.asset(
+              'assets/LogoMetro.png',
+              width: 100,
+              height: 100,
+              fit: BoxFit.contain,
+              color: Colors.white,
+            ),
+          ),
+        ),
+        // Conteúdo principal
+        Container(
+          color: Colors.white,
+          padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 32),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              // Textos de boas-vindas
+              Text(
+                'Bem-vindo',
+                style: TextStyle(
+                  fontSize: 28,
+                  color: metroBlue,
+                  fontWeight: FontWeight.w300,
+                ),
+              ),
+              Text(
+                'de volta!',
+                style: TextStyle(
+                  fontSize: 28,
+                  fontWeight: FontWeight.bold,
+                  color: metroBlue,
+                ),
+              ),
+              const SizedBox(height: 8),
+              Container(
+                width: 50,
+                height: 3,
+                decoration: BoxDecoration(
+                  color: metroBlue,
+                  borderRadius: BorderRadius.circular(1.5),
+                ),
+              ),
+              const SizedBox(height: 12),
+              Text(
+                'Faça login para continuar',
+                style: TextStyle(
+                  fontSize: 14,
+                  color: Colors.grey[600],
+                  fontWeight: FontWeight.w400,
+                ),
+              ),
+              const SizedBox(height: 32),
+              // Campo de Email
+              Text(
+                'Email',
+                style: TextStyle(
+                  fontSize: 14,
+                  fontWeight: FontWeight.w600,
+                  color: Colors.grey[800],
+                ),
+              ),
+              const SizedBox(height: 8),
+              TextField(
+                controller: emailController,
+                keyboardType: TextInputType.emailAddress,
+                textInputAction: TextInputAction.next,
+                decoration: InputDecoration(
+                  hintText: 'seu@email.com',
+                  prefixIcon: Icon(Icons.email_outlined, color: Colors.grey[600]),
+                  filled: true,
+                  fillColor: Colors.grey[100],
+                  border: OutlineInputBorder(
+                    borderRadius: BorderRadius.circular(10),
+                    borderSide: BorderSide(color: Colors.grey[300]!),
+                  ),
+                  enabledBorder: OutlineInputBorder(
+                    borderRadius: BorderRadius.circular(10),
+                    borderSide: BorderSide(color: Colors.grey[300]!),
+                  ),
+                  focusedBorder: OutlineInputBorder(
+                    borderRadius: BorderRadius.circular(10),
+                    borderSide: BorderSide(color: metroBlue, width: 2),
+                  ),
+                  contentPadding: const EdgeInsets.symmetric(vertical: 14, horizontal: 12),
+                ),
+                style: const TextStyle(fontSize: 16),
+              ),
+              const SizedBox(height: 20),
+              // Campo de Senha
+              Text(
+                'Senha',
+                style: TextStyle(
+                  fontSize: 14,
+                  fontWeight: FontWeight.w600,
+                  color: Colors.grey[800],
+                ),
+              ),
+              const SizedBox(height: 8),
+              TextField(
+                controller: passwordController,
+                obscureText: _obscurePassword,
+                textInputAction: TextInputAction.done,
+                onSubmitted: (_) => _isLoading ? null : _login(),
+                decoration: InputDecoration(
+                  hintText: 'Digite sua senha',
+                  prefixIcon: Icon(Icons.lock_outline, color: Colors.grey[600]),
+                  suffixIcon: IconButton(
+                    icon: Icon(
+                      _obscurePassword ? Icons.visibility_off : Icons.visibility,
+                      color: Colors.grey[600],
+                    ),
+                    onPressed: () {
+                      setState(() {
+                        _obscurePassword = !_obscurePassword;
+                      });
+                    },
+                  ),
+                  filled: true,
+                  fillColor: Colors.grey[100],
+                  border: OutlineInputBorder(
+                    borderRadius: BorderRadius.circular(10),
+                    borderSide: BorderSide(color: Colors.grey[300]!),
+                  ),
+                  enabledBorder: OutlineInputBorder(
+                    borderRadius: BorderRadius.circular(10),
+                    borderSide: BorderSide(color: Colors.grey[300]!),
+                  ),
+                  focusedBorder: OutlineInputBorder(
+                    borderRadius: BorderRadius.circular(10),
+                    borderSide: BorderSide(color: metroBlue, width: 2),
+                  ),
+                  contentPadding: const EdgeInsets.symmetric(vertical: 14, horizontal: 12),
+                ),
+                style: const TextStyle(fontSize: 16),
+              ),
+              const SizedBox(height: 16),
+              // Checkbox e Esqueceu a senha
+              Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                children: [
+                  Row(
+                    children: [
+                      SizedBox(
+                        width: 20,
+                        height: 20,
+                        child: Checkbox(
+                          value: rememberMe,
+                          activeColor: metroBlue,
+                          shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(4),
+                          ),
+                          onChanged: (val) {
+                            setState(() {
+                              rememberMe = val ?? false;
+                            });
+                          },
+                        ),
+                      ),
+                      const SizedBox(width: 8),
+                      Text(
+                        'Lembrar',
+                        style: TextStyle(
+                          fontSize: 13,
+                          color: Colors.grey[700],
+                        ),
+                      ),
+                    ],
+                  ),
+                  TextButton(
+                    onPressed: () {
+                      showEsqueciSenhaPopup(context);
+                    },
+                    style: TextButton.styleFrom(
+                      padding: EdgeInsets.zero,
+                      minimumSize: Size.zero,
+                      tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                    ),
+                    child: Text(
+                      'Esqueceu a senha?',
+                      style: TextStyle(
+                        color: metroBlue,
+                        fontWeight: FontWeight.w600,
+                        fontSize: 13,
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+              const SizedBox(height: 28),
+              // Botão de Login
+              SizedBox(
+                width: double.infinity,
+                height: 50,
+                child: ElevatedButton(
+                  onPressed: _isLoading ? null : _login,
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: metroBlue,
+                    foregroundColor: Colors.white,
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(10),
+                    ),
+                    disabledBackgroundColor: Colors.grey[400],
+                  ),
+                  child: _isLoading
+                      ? const SizedBox(
+                          width: 20,
+                          height: 20,
+                          child: CircularProgressIndicator(
+                            valueColor: AlwaysStoppedAnimation<Color>(
+                              Colors.white,
+                            ),
+                            strokeWidth: 2.5,
+                          ),
+                        )
+                      : const Text(
+                          'Entrar',
+                          style: TextStyle(
+                            fontSize: 16,
+                            fontWeight: FontWeight.w700,
+                            letterSpacing: 0.5,
+                          ),
+                        ),
+                ),
+              ),
+              const SizedBox(height: 24),
+              // Texto de suporte
+              Center(
+                child: Column(
+                  children: [
+                    Text(
+                      'Precisa de ajuda?',
+                      style: TextStyle(
+                        fontSize: 13,
+                        color: Colors.grey[600],
+                      ),
+                    ),
+                    const SizedBox(height: 6),
+                    TextButton(
+                      onPressed: () {},
+                      style: TextButton.styleFrom(
+                        padding: EdgeInsets.zero,
+                        minimumSize: Size.zero,
+                        tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                      ),
+                      child: Text(
+                        'Contate o suporte',
+                        style: TextStyle(
+                          color: metroBlue,
+                          fontWeight: FontWeight.w600,
+                          fontSize: 13,
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+              const SizedBox(height: 16),
+              Center(
+                child: Text(
+                  '© 2025 Metrô | Todos os direitos reservados',
+                  style: TextStyle(
+                    fontSize: 11,
+                    color: Colors.grey[500],
+                  ),
+                  textAlign: TextAlign.center,
+                ),
+              ),
+              const SizedBox(height: 20),
+            ],
+          ),
+        ),
+      ],
     );
   }
 
@@ -713,8 +666,7 @@ class _LoginPageState extends State<LoginPage>
     bool obscureText = false,
     Widget? suffixIcon,
   }) {
-    return AnimatedContainer(
-      duration: const Duration(milliseconds: 300),
+    return SizedBox(
       height: isTablet ? 60 : 56,
       child: TextField(
         controller: controller,
@@ -752,10 +704,7 @@ class _LoginPageState extends State<LoginPage>
         style: TextStyle(fontSize: isTablet ? 16 : 14),
         keyboardType: keyboardType,
         obscureText: obscureText,
-        textInputAction: obscureText
-            ? TextInputAction.done
-            : TextInputAction.next,
-        onSubmitted: obscureText ? (_) => _login() : null,
+        textInputAction: TextInputAction.next,
       ),
     );
   }

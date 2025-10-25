@@ -19,18 +19,33 @@ class EstoqueMaterial {
   String get status => quantidade > 0 ? 'Disponível' : 'Em Falta';
 }
 
-class DashboardPage extends StatefulWidget {
-  const DashboardPage({super.key});
+class EstoquePage extends StatefulWidget {
+  final String title;
+  final List<EstoqueMaterial> materiais;
+
+  const EstoquePage({
+    super.key, 
+    this.title = 'Estoque',
+    required this.materiais,
+  });
 
   @override
-  State<DashboardPage> createState() => _DashboardPageState();
+  State<EstoquePage> createState() => _EstoquePageState();
 }
 
-class _DashboardPageState extends State<DashboardPage> {
+class _EstoquePageState extends State<EstoquePage> {
   final TextEditingController _searchController = TextEditingController();
   String _searchQuery = '';
+  late List<EstoqueMaterial> _materiais;
+
+  @override
+  void initState() {
+    super.initState();
+    _materiais = List.from(widget.materiais);
+  }
   
   // Lista de exemplo de materiais
+  /*
   final List<EstoqueMaterial> _materiais = [
     EstoqueMaterial(codigo: 'M001', nome: 'Cabo Elétrico 2.5mm', quantidade: 150, local: 'Base A'),
     EstoqueMaterial(codigo: 'M002', nome: 'Disjuntor 20A', quantidade: 45, local: 'Base B'),
@@ -41,6 +56,7 @@ class _DashboardPageState extends State<DashboardPage> {
     EstoqueMaterial(codigo: 'M007', nome: 'Relé de Proteção', quantidade: 18, local: 'Base A'),
     EstoqueMaterial(codigo: 'M008', nome: 'Chave Seccionadora', quantidade: 5, local: 'Base C'),
   ];
+  */
   
   List<EstoqueMaterial> get _filteredMateriais {
     if (_searchQuery.isEmpty) {
@@ -388,9 +404,9 @@ class _DashboardPageState extends State<DashboardPage> {
     
     return Scaffold(
       appBar: AppBar(
-        title: const Text(
-          'Estoque', 
-          style: TextStyle(fontWeight: FontWeight.bold)
+        title: Text(
+          widget.title, 
+          style: const TextStyle(fontWeight: FontWeight.bold)
         ),
         backgroundColor: Colors.white,
         foregroundColor: const Color(0xFF2D3748),
