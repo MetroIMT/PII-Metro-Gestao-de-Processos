@@ -80,36 +80,37 @@ class _EstoqueCategoriasPageState extends State<EstoqueCategoriasPage> {
       backgroundColor: Colors.grey.shade50,
       body: LayoutBuilder(
         builder: (context, constraints) {
-          // Layout responsivo: ListView para mobile, GridView para tablet/desktop
-          if (constraints.maxWidth < 600) {
-            // Mobile: Lista vertical
-            return ListView.builder(
+          final isMobile = constraints.maxWidth < 700;
+          
+          if (isMobile) {
+            // Mobile: SingleChildScrollView com Column
+            return SingleChildScrollView(
               padding: const EdgeInsets.all(16.0),
-              itemCount: categorias.length,
-              itemBuilder: (context, index) {
-                final categoria = categorias[index];
-                return Padding(
-                  padding: const EdgeInsets.only(bottom: 16.0),
-                  child: _EstoqueCategoriaCard(
-                    title: categoria['titulo'],
-                    icon: categoria['icone'],
-                    color: categoria['cor'],
-                    materiais: categoria['materiais'],
-                    onTap: () => Navigator.push(context, MaterialPageRoute(builder: (_) => categoria['pagina']())),
-                  ),
-                );
-              },
+              child: Column(
+                children: categorias.map((categoria) {
+                  return Padding(
+                    padding: const EdgeInsets.only(bottom: 16.0),
+                    child: _EstoqueCategoriaCard(
+                      title: categoria['titulo'],
+                      icon: categoria['icone'],
+                      color: categoria['cor'],
+                      materiais: categoria['materiais'],
+                      onTap: () => Navigator.push(context, MaterialPageRoute(builder: (_) => categoria['pagina']())),
+                    ),
+                  );
+                }).toList(),
+              ),
             );
           } else {
             // Tablet e Desktop: Grid
-            final crossAxisCount = constraints.maxWidth < 1100 ? 2 : 3;
+            final crossAxisCount = constraints.maxWidth < 1200 ? 2 : 3;
             return GridView.builder(
               padding: const EdgeInsets.all(24.0),
               gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
                 crossAxisCount: crossAxisCount,
                 crossAxisSpacing: 24,
                 mainAxisSpacing: 24,
-                childAspectRatio: 1.4, // Ajuste para um card mais equilibrado
+                childAspectRatio: 1.5,
               ),
               itemCount: categorias.length,
               itemBuilder: (context, index) {
@@ -153,6 +154,10 @@ class _EstoqueCategoriaCard extends StatelessWidget {
     final int materiaisEmFalta = materiais.where((m) => m.quantidade <= 0).length;
     final double porcentagemDisponivel = totalMateriais > 0 ? (materiaisDisponiveis / totalMateriais) * 100 : 0.0;
 
+    final isMobile = MediaQuery.of(context).size.width < 700;
+    final isVerySmall = MediaQuery.of(context).size.width < 500;
+    final cardHeight = isMobile ? 280.0 : null;
+
     return Material(
       elevation: 2,
       color: Colors.white,
@@ -161,17 +166,19 @@ class _EstoqueCategoriaCard extends StatelessWidget {
         onTap: onTap,
         borderRadius: BorderRadius.circular(16),
         child: Container(
+          height: cardHeight,
           decoration: BoxDecoration(
             borderRadius: BorderRadius.circular(16),
             border: Border.all(color: Colors.grey.shade200, width: 1),
           ),
           child: Padding(
-            padding: const EdgeInsets.all(16.0),
+            padding: EdgeInsets.all(isMobile ? 12.0 : 16.0),
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 // Header do Card
                 Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
                   children: [
                     Container(
                       padding: const EdgeInsets.all(10),
@@ -183,19 +190,22 @@ class _EstoqueCategoriaCard extends StatelessWidget {
                         ),
                         borderRadius: BorderRadius.circular(12),
                       ),
-                      child: Icon(icon, color: Colors.white, size: 22),
+                      child: Icon(icon, color: Colors.white, size: isMobile ? 20 : 22),
                     ),
                     const SizedBox(width: 12),
-                    Expanded(
+                    Flexible(
                       child: Text(
                         title,
+                        maxLines: 2,
+                        overflow: TextOverflow.ellipsis,
                         style: TextStyle(
                           fontWeight: FontWeight.bold,
                           color: Colors.grey.shade800,
-                          fontSize: 17,
+                          fontSize: isMobile ? 15 : 17,
                         ),
                       ),
                     ),
+                    const SizedBox(width: 8),
                     Container(
                       padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
                       decoration: BoxDecoration(
@@ -209,42 +219,53 @@ class _EstoqueCategoriaCard extends StatelessWidget {
                     ),
                   ],
                 ),
-                const SizedBox(height: 16),
+                SizedBox(height: isMobile ? 12 : 16),
                 // Corpo do Card
                 Expanded(
-                  child: Row(
-                    children: [
-                      // Estatísticas
-                      Expanded(
-                        flex: 3,
-                        child: Column(
+                  child: isVerySmall
+                      ? Column(
                           crossAxisAlignment: CrossAxisAlignment.start,
-                          mainAxisAlignment: MainAxisAlignment.center,
+                          mainAxisAlignment: MainAxisAlignment.spaceEvenly,
                           children: [
                             _buildEstoqueStat('Total', '$totalMateriais', Icons.category_outlined, color),
-                            const Spacer(),
                             _buildEstoqueStat('Disponíveis', '$materiaisDisponiveis', Icons.check_circle_outline, Colors.green.shade600),
-                            const Spacer(),
                             _buildEstoqueStat('Em falta', '$materiaisEmFalta', Icons.error_outline, Colors.red.shade600),
                           ],
+                        )
+                      : Row(
+                          children: [
+                            // Estatísticas
+                            Expanded(
+                              flex: 3,
+                              child: Column(
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                mainAxisAlignment: MainAxisAlignment.center,
+                                children: [
+                                  _buildEstoqueStat('Total', '$totalMateriais', Icons.category_outlined, color),
+                                  SizedBox(height: isMobile ? 8 : 12),
+                                  _buildEstoqueStat('Disponíveis', '$materiaisDisponiveis', Icons.check_circle_outline, Colors.green.shade600),
+                                  SizedBox(height: isMobile ? 8 : 12),
+                                  _buildEstoqueStat('Em falta', '$materiaisEmFalta', Icons.error_outline, Colors.red.shade600),
+                                ],
+                              ),
+                            ),
+                            // Gráfico
+                            Expanded(
+                              flex: 2,
+                              child: CustomPaint(
+                                painter: PieChartPainter(
+                                  disponivel: totalMateriais > 0 ? materiaisDisponiveis / totalMateriais : 0,
+                                  emFalta: totalMateriais > 0 ? materiaisEmFalta / totalMateriais : 0,
+                                  corDisponivel: Colors.green.shade400,
+                                  corEmFalta: Colors.red.shade400,
+                                ),
+                                size: const Size(100, 100),
+                              ),
+                            ),
+                          ],
                         ),
-                      ),
-                      // Gráfico
-                      Expanded(
-                        flex: 2,
-                        child: CustomPaint(
-                          painter: PieChartPainter(
-                            disponivel: totalMateriais > 0 ? materiaisDisponiveis / totalMateriais : 0,
-                            emFalta: totalMateriais > 0 ? materiaisEmFalta / totalMateriais : 0,
-                            corDisponivel: Colors.green.shade400,
-                            corEmFalta: Colors.red.shade400,
-                          ),
-                          size: const Size(100, 100),
-                        ),
-                      ),
-                    ],
-                  ),
                 ),
+                SizedBox(height: isMobile ? 8 : 12),
                 // Rodapé do Card
                 Align(
                   alignment: Alignment.bottomRight,
@@ -264,14 +285,15 @@ class _EstoqueCategoriaCard extends StatelessWidget {
 
   Widget _buildEstoqueStat(String label, String value, IconData icon, Color color) {
     return Row(
+      mainAxisSize: MainAxisSize.min,
       children: [
-        Icon(icon, color: color, size: 20),
-        const SizedBox(width: 8),
+        Icon(icon, color: color, size: 18),
+        const SizedBox(width: 6),
         Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            Text(label, style: TextStyle(color: Colors.grey.shade600, fontSize: 12, fontWeight: FontWeight.w500)),
-            Text(value, style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 18)),
+            Text(label, style: TextStyle(color: Colors.grey.shade600, fontSize: 11, fontWeight: FontWeight.w500)),
+            Text(value, style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 16)),
           ],
         ),
       ],
