@@ -1,27 +1,5 @@
 import 'package:flutter/material.dart';
-
-// Modelo simples de alerta
-class AlertItem {
-  final String codigo;
-  final String nome;
-  final int quantidade;
-  final String local;
-  final DateTime? vencimento;
-  final AlertType type;
-  final int severity; // 1 = baixo, 2 = médio, 3 = alto
-
-  AlertItem({
-    required this.codigo,
-    required this.nome,
-    required this.quantidade,
-    required this.local,
-    this.vencimento,
-    required this.type,
-    required this.severity,
-  });
-}
-
-enum AlertType { lowStock, nearExpiry }
+import '../../repositories/alert_repository.dart';
 
 class AlertsPage extends StatefulWidget {
   const AlertsPage({super.key});
@@ -31,55 +9,6 @@ class AlertsPage extends StatefulWidget {
 }
 
 class _AlertsPageState extends State<AlertsPage> {
-  // Alertas fictícios para demonstração
-  final List<AlertItem> _alerts = [
-    AlertItem(
-      codigo: 'M003',
-      nome: 'Conduíte Flexível 20mm',
-      quantidade: 0,
-      local: 'Base A',
-      vencimento: null,
-      type: AlertType.lowStock,
-      severity: 3,
-    ),
-    AlertItem(
-      codigo: 'M005',
-      nome: 'Fusível 10A',
-      quantidade: 0,
-      local: 'Base B',
-      vencimento: DateTime.now().add(const Duration(days: 10)),
-      type: AlertType.nearExpiry,
-      severity: 3,
-    ),
-    AlertItem(
-      codigo: 'M008',
-      nome: 'Chave Seccionadora',
-      quantidade: 5,
-      local: 'Base C',
-      vencimento: DateTime.now().add(const Duration(days: 40)),
-      type: AlertType.nearExpiry,
-      severity: 2,
-    ),
-    AlertItem(
-      codigo: 'M002',
-      nome: 'Disjuntor 20A',
-      quantidade: 45,
-      local: 'Base B',
-      vencimento: null,
-      type: AlertType.lowStock,
-      severity: 1,
-    ),
-    AlertItem(
-      codigo: 'M007',
-      nome: 'Relé de Proteção',
-      quantidade: 18,
-      local: 'Base A',
-      vencimento: DateTime.now().add(const Duration(days: 5)),
-      type: AlertType.nearExpiry,
-      severity: 3,
-    ),
-  ];
-
   String _query = '';
   AlertType? _filterType;
   int _minSeverity = 1;
@@ -111,7 +40,8 @@ class _AlertsPageState extends State<AlertsPage> {
       q = '';
     }
 
-    return _alerts.where((a) {
+    final items = AlertRepository.instance.items;
+    return items.where((a) {
       try {
         if (_filterType != null && a.type != _filterType) return false;
         if (a.severity < _minSeverity) return false;
@@ -128,16 +58,20 @@ class _AlertsPageState extends State<AlertsPage> {
   }
 
   void _markResolved(AlertItem a) {
-    setState(() => _alerts.remove(a));
+    setState(() {
+      AlertRepository.instance.remove(a);
+    });
     ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Alerta marcado como resolvido')));
   }
 
   // Remove o alerta pela posição na lista visível (usado pelo Dismissible)
   void _resolveAlertAt(int index) {
-    // Protege contra índices inválidos
-    if (index < 0 || index >= _visibleAlerts.length) return;
-    final removed = _visibleAlerts[index];
-    setState(() => _alerts.remove(removed));
+    final visible = _visibleAlerts;
+    if (index < 0 || index >= visible.length) return;
+    final removed = visible[index];
+    setState(() {
+      AlertRepository.instance.remove(removed);
+    });
     ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Alerta de ${removed.nome} resolvido')));
   }
 
@@ -183,8 +117,7 @@ class _AlertsPageState extends State<AlertsPage> {
                       color: _severityColor(a.severity).withOpacity(0.12),
                       borderRadius: BorderRadius.circular(8),
                     ),
-                    child: Icon(a.type == AlertType.lowStock ? Icons.inventory_2 : Icons.event,
-                        color: _severityColor(a.severity)),
+                    child: Icon(a.type == AlertType.lowStock ? Icons.inventory_2 : Icons.event, color: _severityColor(a.severity)),
                   ),
                   const SizedBox(width: 12),
                   Expanded(
@@ -260,7 +193,6 @@ class _AlertsPageState extends State<AlertsPage> {
           Text(value, style: const TextStyle(fontWeight: FontWeight.bold)),
         ]),
       ),
-    
     );
   }
 
@@ -281,9 +213,9 @@ class _AlertsPageState extends State<AlertsPage> {
   }
 
   Widget _buildTopBar() {
-    final total = _alerts.length;
-    final lowStock = _alerts.where((a) => a.type == AlertType.lowStock).length;
-    final nearExpiry = _alerts.where((a) => a.type == AlertType.nearExpiry).length;
+    final total = AlertRepository.instance.items.length;
+    final lowStock = AlertRepository.instance.items.where((a) => a.type == AlertType.lowStock).length;
+    final nearExpiry = AlertRepository.instance.items.where((a) => a.type == AlertType.nearExpiry).length;
 
     return Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
       Row(children: [
