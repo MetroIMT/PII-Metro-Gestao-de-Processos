@@ -132,10 +132,36 @@ class _AlertsPageState extends State<AlertsPage> {
     ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Alerta marcado como resolvido')));
   }
 
+  // Remove o alerta pela posição na lista visível (usado pelo Dismissible)
   void _resolveAlertAt(int index) {
+    // Protege contra índices inválidos
+    if (index < 0 || index >= _visibleAlerts.length) return;
     final removed = _visibleAlerts[index];
     setState(() => _alerts.remove(removed));
     ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Alerta de ${removed.nome} resolvido')));
+  }
+
+  // Nova função: mostra diálogo de confirmação e, se confirmado, remove o alerta
+  Future<void> _confirmAndMark(AlertItem a) async {
+    final confirmed = await showDialog<bool>(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Text('Confirmar ação'),
+        content: Text('Deseja marcar o alerta de "${a.nome}" como resolvido? Esta ação não pode ser desfeita.'),
+        actions: [
+          TextButton(onPressed: () => Navigator.of(context).pop(false), child: const Text('Cancelar')),
+          ElevatedButton(
+            onPressed: () => Navigator.of(context).pop(true),
+            style: ElevatedButton.styleFrom(backgroundColor: Colors.green),
+            child: const Text('Confirmar'),
+          ),
+        ],
+      ),
+    );
+
+    if (confirmed == true) {
+      _markResolved(a);
+    }
   }
 
   void _showDetail(AlertItem a) {
@@ -205,9 +231,9 @@ class _AlertsPageState extends State<AlertsPage> {
                     icon: const Icon(Icons.check),
                     label: const Text('Marcar resolvido'),
                     style: ElevatedButton.styleFrom(backgroundColor: Colors.green),
-                    onPressed: () {
+                    onPressed: () async {
                       Navigator.pop(context);
-                      _markResolved(a);
+                      await _confirmAndMark(a);
                     },
                   ),
                 ],
@@ -234,6 +260,7 @@ class _AlertsPageState extends State<AlertsPage> {
           Text(value, style: const TextStyle(fontWeight: FontWeight.bold)),
         ]),
       ),
+    
     );
   }
 
@@ -330,6 +357,24 @@ class _AlertsPageState extends State<AlertsPage> {
                           return Dismissible(
                             key: ValueKey(a.codigo + a.nome),
                             direction: DismissDirection.endToStart,
+                            confirmDismiss: (direction) async {
+                              return await showDialog<bool>(
+                                    context: context,
+                                    builder: (context) => AlertDialog(
+                                      title: const Text('Confirmar remoção'),
+                                      content: Text('Deseja marcar o alerta de "${a.nome}" como resolvido?'),
+                                      actions: [
+                                        TextButton(onPressed: () => Navigator.of(context).pop(false), child: const Text('Cancelar')),
+                                        ElevatedButton(
+                                          onPressed: () => Navigator.of(context).pop(true),
+                                          style: ElevatedButton.styleFrom(backgroundColor: Colors.green),
+                                          child: const Text('Confirmar'),
+                                        ),
+                                      ],
+                                    ),
+                                  ) ??
+                                  false;
+                            },
                             background: Container(
                               alignment: Alignment.centerRight,
                               padding: const EdgeInsets.only(right: 20),
@@ -337,40 +382,7 @@ class _AlertsPageState extends State<AlertsPage> {
                               child: const Icon(Icons.check, color: Colors.white),
                             ),
                             onDismissed: (_) => _resolveAlertAt(i),
-                            child: Card(
-                              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-                              elevation: 2,
-                              child: InkWell(
-                                onTap: () => _showDetail(a),
-                                borderRadius: BorderRadius.circular(12),
-                                child: Padding(
-                                  padding: const EdgeInsets.all(12),
-                                  child: Row(children: [
-                                    Container(width: 6, height: 56, decoration: BoxDecoration(color: _severityColor(a.severity), borderRadius: BorderRadius.circular(4))),
-                                    const SizedBox(width: 12),
-                                    Expanded(
-                                      child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-                                        Text(a.nome, style: const TextStyle(fontWeight: FontWeight.bold)),
-                                        const SizedBox(height: 4),
-                                        Text('${a.codigo} • ${a.local}', style: TextStyle(color: Colors.grey.shade600)),
-                                        const SizedBox(height: 8),
-                                        Row(children: [
-                                          Chip(avatar: Icon(a.type == AlertType.lowStock ? Icons.inventory_2 : Icons.event, size: 16, color: _severityColor(a.severity)), label: Text(_typeLabel(a.type)), backgroundColor: _severityColor(a.severity).withOpacity(0.08)),
-                                          const SizedBox(width: 8),
-                                          Text('Qtd: ${a.quantidade}', style: const TextStyle(fontWeight: FontWeight.bold)),
-                                          const SizedBox(width: 8),
-                                          Text('Venc: ${_formatDate(a.vencimento)}', style: TextStyle(color: Colors.grey.shade600)),
-                                        ]),
-                                      ]),
-                                    ),
-                                    Column(children: [
-                                      IconButton(icon: const Icon(Icons.visibility), onPressed: () => _showDetail(a)),
-                                      IconButton(icon: const Icon(Icons.check_circle_outline, color: Colors.green), onPressed: () => _markResolved(a)),
-                                    ])
-                                  ]),
-                                ),
-                              ),
-                            ),
+                            child: _buildAlertCardMobile(a, i), // use responsive mobile card
                           );
                         },
                       )
@@ -402,7 +414,7 @@ class _AlertsPageState extends State<AlertsPage> {
                                 DataCell(Chip(backgroundColor: _severityColor(a.severity).withOpacity(0.12), label: Text('${a.severity}', style: TextStyle(color: _severityColor(a.severity))))),
                                 DataCell(Row(mainAxisSize: MainAxisSize.min, children: [
                                   IconButton(icon: const Icon(Icons.visibility), tooltip: 'Detalhes', onPressed: () => _showDetail(a)),
-                                  IconButton(icon: const Icon(Icons.check), tooltip: 'Marcar resolvido', onPressed: () => _markResolved(a)),
+                                  IconButton(icon: const Icon(Icons.check), tooltip: 'Marcar resolvido', onPressed: () => _confirmAndMark(a)),
                                 ])),
                               ]);
                             }).toList(),
@@ -411,6 +423,117 @@ class _AlertsPageState extends State<AlertsPage> {
                       ),
           ),
         ]),
+      ),
+    );
+  }
+
+  // Novo helper: card otimizado para mobile (empilhado, textos quebram)
+  Widget _buildAlertCardMobile(AlertItem a, int index) {
+    return Card(
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+      elevation: 2,
+      child: InkWell(
+        onTap: () => _showDetail(a),
+        borderRadius: BorderRadius.circular(12),
+        child: Padding(
+          padding: const EdgeInsets.all(12),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              // Linha superior: nome e prioridade chip
+              Row(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Container(
+                    width: 6,
+                    height: 42,
+                    decoration: BoxDecoration(
+                      color: _severityColor(a.severity),
+                      borderRadius: BorderRadius.circular(4),
+                    ),
+                  ),
+                  const SizedBox(width: 12),
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        // Nome (permite quebra em múltiplas linhas)
+                        Text(
+                          a.nome,
+                          style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 16),
+                          softWrap: true,
+                        ),
+                        const SizedBox(height: 4),
+                        // Código e local (permitem quebra)
+                        Text(
+                          '${a.codigo} • ${a.local}',
+                          style: TextStyle(color: Colors.grey.shade600),
+                          softWrap: true,
+                        ),
+                      ],
+                    ),
+                  ),
+                  const SizedBox(width: 8),
+                  // Ações compactas no topo (visão rápida)
+                  Column(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      IconButton(icon: const Icon(Icons.visibility), onPressed: () => _showDetail(a)),
+                      IconButton(icon: const Icon(Icons.check_circle_outline, color: Colors.green), onPressed: () => _confirmAndMark(a)),
+                    ],
+                  ),
+                ],
+              ),
+              const SizedBox(height: 10),
+              // Linha de chips / detalhes (usa wrap para quebrar)
+              Wrap(
+                spacing: 8,
+                runSpacing: 6,
+                children: [
+                  Chip(
+                    avatar: Icon(
+                      a.type == AlertType.lowStock ? Icons.inventory_2 : Icons.event,
+                      size: 16,
+                      color: _severityColor(a.severity),
+                    ),
+                    label: Text(_typeLabel(a.type)),
+                    backgroundColor: _severityColor(a.severity).withOpacity(0.08),
+                  ),
+                  Container(
+                    padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+                    decoration: BoxDecoration(
+                      color: Colors.grey.shade100,
+                      borderRadius: BorderRadius.circular(8),
+                    ),
+                    child: Text('Qtd: ${a.quantidade}', style: const TextStyle(fontWeight: FontWeight.bold)),
+                  ),
+                  Container(
+                    padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+                    decoration: BoxDecoration(
+                      color: Colors.grey.shade100,
+                      borderRadius: BorderRadius.circular(8),
+                    ),
+                    child: Text('Venc: ${_formatDate(a.vencimento)}', style: TextStyle(color: Colors.grey.shade700)),
+                  ),
+                ],
+              ),
+              const SizedBox(height: 8),
+              // Descrição curta ou instrução (se houver) — permite múltiplas linhas
+              if (a.type == AlertType.lowStock)
+                Text(
+                  'Estoque baixo — considere reposição ou realocação.',
+                  style: TextStyle(color: Colors.grey.shade700),
+                  softWrap: true,
+                )
+              else
+                Text(
+                  'Vencimento próximo — priorize uso ou inspeção.',
+                  style: TextStyle(color: Colors.grey.shade700),
+                  softWrap: true,
+                ),
+            ],
+          ),
+        ),
       ),
     );
   }
