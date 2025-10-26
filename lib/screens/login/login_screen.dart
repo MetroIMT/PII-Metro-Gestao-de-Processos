@@ -358,6 +358,28 @@ class _LoginPageState extends State<LoginPage> {
                             ),
                           ),
                         ),
+                        // Botão adicionado: navega direto para HomeScreen
+                        const SizedBox(height: 8),
+                        TextButton(
+                          onPressed: _isLoading
+                              ? null
+                              : () {
+                                  if (!mounted) return;
+                                  Navigator.pushReplacement(
+                                    context,
+                                    MaterialPageRoute(
+                                      builder: (_) => const HomeScreen(),
+                                    ),
+                                  );
+                                },
+                          child: Text(
+                            'Entrar direto',
+                            style: TextStyle(
+                              color: metroBlue,
+                              fontWeight: FontWeight.w600,
+                            ),
+                          ),
+                        ),
                       ],
                     ),
                   ),
@@ -626,6 +648,33 @@ class _LoginPageState extends State<LoginPage> {
                       ),
                       child: Text(
                         'Contate o suporte',
+                        style: TextStyle(
+                          color: metroBlue,
+                          fontWeight: FontWeight.w600,
+                          fontSize: 13,
+                        ),
+                      ),
+                    ),
+                    // Botão adicionado para mobile: navegação direta
+                    TextButton(
+                      onPressed: _isLoading
+                          ? null
+                          : () {
+                              if (!mounted) return;
+                              Navigator.pushReplacement(
+                                context,
+                                MaterialPageRoute(
+                                  builder: (_) => const HomeScreen(),
+                                ),
+                              );
+                            },
+                      style: TextButton.styleFrom(
+                        padding: EdgeInsets.zero,
+                        minimumSize: Size.zero,
+                        tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                      ),
+                      child: Text(
+                        'Entrar direto',
                         style: TextStyle(
                           color: metroBlue,
                           fontWeight: FontWeight.w600,
