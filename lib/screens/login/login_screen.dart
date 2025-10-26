@@ -134,8 +134,7 @@ class _LoginPageState extends State<LoginPage> {
                       'assets/LogoMetro.png',
                       width: 140,
                       height: 140,
-                      fit: BoxFit.contain,
-                      color: Colors.white,
+                      fit: BoxFit.contain,                    
                     ),
                   ),
                   Center(
@@ -387,7 +386,6 @@ class _LoginPageState extends State<LoginPage> {
               width: 100,
               height: 100,
               fit: BoxFit.contain,
-              color: Colors.white,
             ),
           ),
         ),
