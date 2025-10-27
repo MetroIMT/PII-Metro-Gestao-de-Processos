@@ -4,8 +4,10 @@ import 'tool_page.dart';
 import 'estoque_page.dart';
 import 'alerts_page.dart';
 import 'reports_page.dart';
+import 'estoque_categorias_page.dart';
 import '../../services/auth_service.dart';
 import '../login/login_screen.dart';
+import '../../repositories/alert_repository.dart';
 
 // Classe para desenhar o gráfico de pizza do estoque
 class PieChartPainter extends CustomPainter {
@@ -117,10 +119,18 @@ class _HomeScreenState extends State<HomeScreen>
       vsync: this,
       duration: const Duration(milliseconds: 300),
     );
+    // Escutar mudanças na contagem de alertas para atualizar o dashboard
+    AlertRepository.instance.countNotifier.addListener(_onAlertsCountChanged);
+  }
+
+  void _onAlertsCountChanged() {
+    if (mounted) setState(() {});
   }
 
   @override
   void dispose() {
+    // Remover listener para evitar leaks
+    AlertRepository.instance.countNotifier.removeListener(_onAlertsCountChanged);
     _animationController.dispose();
     super.dispose();
   }
@@ -332,7 +342,7 @@ class _HomeScreenState extends State<HomeScreen>
           case 1:
             Navigator.push(
               context,
-              MaterialPageRoute(builder: (_) => const DashboardPage()),
+              MaterialPageRoute(builder: (_) => const EstoqueCategoriasPage()),
             );
             break;
           case 2:
@@ -428,7 +438,7 @@ class _HomeScreenState extends State<HomeScreen>
             _buildEstoqueCard(
               () => Navigator.push(
                 context,
-                MaterialPageRoute(builder: (_) => const DashboardPage()),
+                MaterialPageRoute(builder: (_) => const EstoqueCategoriasPage()),
               ),
             ),
 
@@ -450,7 +460,7 @@ class _HomeScreenState extends State<HomeScreen>
               color2: Colors.green.shade200,
             ),
 
-            // Card de Alertas (estoque baixo / vencimento)
+            // Card de Alertas (estoque baixo / vencimento) - usa contagem do repositório
             _buildDashboardCard(
               'Alertas (estoque baixo / vencimento)',
               Icons.warning_amber,
@@ -461,26 +471,9 @@ class _HomeScreenState extends State<HomeScreen>
                   MaterialPageRoute(builder: (_) => const AlertsPage()),
                 );
               },
-              hasAlert: true,
+              hasAlert: AlertRepository.instance.countNotifier.value > 0,
+              alertCount: AlertRepository.instance.countNotifier.value,
               color2: Colors.red.shade200,
-            ),
-
-            // Card de Materiais de Consumo
-            _buildDashboardCard(
-              'Materiais de Consumo',
-              Icons.warning_amber,
-              const Color.fromARGB(255, 54, 231, 244),
-              () {},
-              color2: const Color.fromARGB(255, 154, 172, 239),
-            ),
-
-            // Card de Materiais de Giro
-            _buildDashboardCard(
-              'Materiais de Giro',
-              Icons.warning_amber,
-              const Color.fromARGB(255, 184, 244, 54),
-              () {},
-              color2: const Color.fromARGB(255, 155, 239, 154),
             ),
           ],
         );
@@ -713,7 +706,7 @@ class _HomeScreenState extends State<HomeScreen>
                 // Botão de ação
                 Align(
                   alignment: Alignment.bottomRight,
-                  child: _CardActionButton(
+                  child: CardActionButton(
                     label: 'Ver estoque',
                     borderColor: metroBlue,
                     onPressed: onTap,
@@ -723,8 +716,7 @@ class _HomeScreenState extends State<HomeScreen>
             ),
           ),
         ),
-      ),
-    );
+    ));
   }
 
   // Widget para mostrar uma estatística no card de estoque
@@ -775,6 +767,7 @@ class _HomeScreenState extends State<HomeScreen>
     VoidCallback onTap, {
     bool hasAlert = false,
     Color? color2,
+    int? alertCount, // novo parâmetro opcional
   }) {
     final gradientColor = color2 ?? color.withOpacity(0.6);
 
@@ -854,9 +847,9 @@ class _HomeScreenState extends State<HomeScreen>
                             ),
                           ],
                         ),
-                        child: const Text(
-                          '3',
-                          style: TextStyle(
+                        child: Text(
+                          '${alertCount ?? AlertRepository.instance.countNotifier.value}',
+                          style: const TextStyle(
                             color: Colors.white,
                             fontWeight: FontWeight.bold,
                             fontSize: 12,
@@ -877,7 +870,7 @@ class _HomeScreenState extends State<HomeScreen>
                 // Botão de ação
                 Align(
                   alignment: Alignment.bottomRight,
-                  child: _CardActionButton(
+                  child: CardActionButton(
                     label: 'Ver detalhes',
                     borderColor: color,
                     onPressed: onTap,
@@ -887,18 +880,17 @@ class _HomeScreenState extends State<HomeScreen>
             ),
           ),
         ),
-      ),
-    );
+    ));
   }
 }
 
 // Novo widget: botão estilizado replicando comportamento do exemplo HTML/CSS
-class _CardActionButton extends StatefulWidget {
+class CardActionButton extends StatefulWidget {
   final String label;
   final Color borderColor;
   final VoidCallback onPressed;
 
-  const _CardActionButton({
+  const CardActionButton({
     required this.label,
     required this.borderColor,
     required this.onPressed,
@@ -906,10 +898,10 @@ class _CardActionButton extends StatefulWidget {
   }) : super(key: key);
 
   @override
-  State<_CardActionButton> createState() => _CardActionButtonState();
+  State<CardActionButton> createState() => _CardActionButtonState();
 }
 
-class _CardActionButtonState extends State<_CardActionButton> {
+class _CardActionButtonState extends State<CardActionButton> {
   bool _isHover = false;
   bool _isPressed = false;
   final Duration _duration = const Duration(milliseconds: 300);
