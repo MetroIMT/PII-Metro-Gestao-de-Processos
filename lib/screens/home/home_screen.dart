@@ -330,6 +330,34 @@ class _HomeScreenState extends State<HomeScreen>
               alertCount: AlertRepository.instance.countNotifier.value,
               color2: Colors.red.shade200,
             ),
+
+              // Card Gerenciar Usuários
+              _buildDashboardCard(
+                'Gerenciar Usuários',
+                Icons.people,
+                Colors.blue,
+                () {
+                  Navigator.push(
+                    context,
+                    MaterialPageRoute(builder: (_) => const GerenciarUsuarios()),
+                  );
+                },
+                color2: Colors.blue.shade200,
+              ),
+
+              // Card Relatórios
+              _buildDashboardCard(
+                'Relatórios',
+                Icons.insert_chart,
+                const Color.fromARGB(255, 231, 126, 6),
+                () {
+                  Navigator.push(
+                    context,
+                    MaterialPageRoute(builder: (_) => const RelatoriosPage()),
+                  );
+                },
+                color2: const Color.fromARGB(255, 219, 193, 153),
+              ),
           ],
         );
       },
