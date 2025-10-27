@@ -27,26 +27,19 @@ class PieChartPainter extends CustomPainter {
 
   @override
   void paint(Canvas canvas, Size size) {
+    // ... (Seu código original do paint)
     final center = Offset(size.width / 2, size.height / 2);
     final radius = min(size.width, size.height) / 2;
     final rect = Rect.fromCircle(center: center, radius: radius);
-
-    // Definir as cores do gráfico
     final corDisponivelClara = corDisponivel.withOpacity(0.8);
     final corEmFaltaClara = corEmFalta.withOpacity(0.8);
-
-    // Desenhar arco disponível
     final paintDisponivel = Paint()
       ..style = PaintingStyle.fill
       ..color = corDisponivelClara;
-
     canvas.drawArc(rect, -pi / 2, 2 * pi * disponivel, true, paintDisponivel);
-
-    // Desenhar arco em falta
     final paintEmFalta = Paint()
       ..style = PaintingStyle.fill
       ..color = corEmFaltaClara;
-
     canvas.drawArc(
       rect,
       -pi / 2 + 2 * pi * disponivel,
@@ -54,23 +47,15 @@ class PieChartPainter extends CustomPainter {
       true,
       paintEmFalta,
     );
-
-    // Desenhar borda branca
     final paintBorda = Paint()
       ..style = PaintingStyle.stroke
       ..color = Colors.white
       ..strokeWidth = 2;
-
     canvas.drawCircle(center, radius, paintBorda);
-
-    // Desenhar círculo central
     final paintCentro = Paint()
       ..style = PaintingStyle.fill
       ..color = Colors.white;
-
     canvas.drawCircle(center, radius * 0.5, paintCentro);
-
-    // Desenhar texto de porcentagem no centro
     final textSpan = TextSpan(
       text: '${(disponivel * 100).toStringAsFixed(0)}%',
       style: TextStyle(
@@ -79,13 +64,11 @@ class PieChartPainter extends CustomPainter {
         fontWeight: FontWeight.bold,
       ),
     );
-
     final textPainter = TextPainter(
       text: textSpan,
       textDirection: TextDirection.ltr,
       textAlign: TextAlign.center,
     );
-
     textPainter.layout();
     textPainter.paint(
       canvas,
@@ -191,7 +174,7 @@ class _HomeScreenState extends State<HomeScreen>
             )
           : null,
       
-      // ATUALIZADO: Usa o novo widget Sidebar
+      // ATUALIZADO: Usa o novo widget Sidebar (CORRETO)
       drawer: isMobile
           ? Drawer(
               child: Sidebar(
@@ -212,7 +195,7 @@ class _HomeScreenState extends State<HomeScreen>
               top: 0,
               bottom: 0,
               width: _isRailExtended ? 180 : 70,
-              // ATUALIZADO: Usa o novo widget Sidebar
+              // ATUALIZADO: Usa o novo widget Sidebar (CORRETO)
               child: Sidebar(
                 expanded: _isRailExtended,
                 selectedIndex: 0, // 0 = Dashboard
@@ -282,147 +265,12 @@ class _HomeScreenState extends State<HomeScreen>
     );
   }
 
-  // Barra lateral com menu de navegação
-  Widget _buildSidebar({bool expanded = false}) {
-    final metroBlue = const Color(0xFF001489);
-    final metroLightBlue = const Color(0xFF001489);
-
-    return Container(
-      width: expanded ? 180 : 70,
-      decoration: BoxDecoration(
-        gradient: LinearGradient(
-          begin: Alignment.topCenter,
-          end: Alignment.bottomCenter,
-          colors: [metroBlue, metroLightBlue.withOpacity(0.9)],
-        ),
-        boxShadow: [
-          BoxShadow(
-            color: Colors.black.withOpacity(0.2),
-            blurRadius: 8,
-            offset: const Offset(2, 0),
-          ),
-        ],
-      ),
-      child: Column(
-        children: [
-          // Aumentando o espaçamento no topo
-          const SizedBox(height: 60),
-          // Logo do Metrô no topo da sidebar
-          Container(
-            padding: const EdgeInsets.symmetric(vertical: 16),
-            decoration: BoxDecoration(
-              border: Border(
-                bottom: BorderSide(
-                  color: Colors.white.withOpacity(0.2),
-                  width: 1,
-                ),
-              ),
-            ),
-            child: Image.asset('assets/LogoMetro.png'),
-            height: 80,
-          ),
-          const SizedBox(height: 20),
-          _sidebarItem(Icons.bar_chart, 'Dashboard', 0, expanded),
-          _sidebarItem(Icons.assignment, 'Estoque', 1, expanded),
-          _sidebarItem(Icons.build, 'Ferramentas', 2, expanded),
-          _sidebarItem(Icons.article, 'Relatórios', 3, expanded),
-          const Spacer(),
-          // Item de logout
-          _sidebarItem(Icons.logout, 'Sair', 4, expanded),
-          const SizedBox(height: 16),
-        ],
-      ),
-    );
-  }
-
-  // Item individual da barra lateral
-  Widget _sidebarItem(IconData icon, String label, int index, bool expanded) {
-    final isSelected = _selectedIndex == index;
-    return InkWell(
-      onTap: () async {
-        setState(() {
-          _selectedIndex = index;
-        });
-
-        // Navegação para as diferentes páginas
-        switch (index) {
-          case 0:
-            // Navegar para perfil do usuário
-            break;
-          case 1:
-            Navigator.push(
-              context,
-              MaterialPageRoute(builder: (_) => const EstoqueCategoriasPage()),
-            );
-            break;
-          case 2:
-            Navigator.push(
-              context,
-              MaterialPageRoute(builder: (_) => const ToolPage()),
-            );
-            break;
-          case 3:
-            // Navegar para relatórios
-            break;
-          case 4:
-            // Lógica de logout: limpar sessão e voltar para login
-            try {
-              await AuthService().logout();
-            } catch (_) {}
-            if (!mounted) return;
-            Navigator.pushAndRemoveUntil(
-              context,
-              MaterialPageRoute(builder: (_) => const LoginPage()),
-              (route) => false,
-            );
-            break;
-        }
-      },
-      child: Container(
-        width: double.infinity,
-        padding: EdgeInsets.symmetric(
-          vertical: 16,
-          horizontal: expanded ? 16 : 0,
-        ),
-        decoration: BoxDecoration(
-          color: isSelected
-              ? Colors.white.withOpacity(0.2)
-              : Colors.transparent,
-          border: isSelected
-              ? Border(left: BorderSide(color: Colors.white, width: 3))
-              : null,
-        ),
-        child: expanded
-            // Layout expandido: ícone e texto lado a lado
-            ? Row(
-                children: [
-                  Icon(icon, color: Colors.white, size: 24),
-                  const SizedBox(width: 16),
-                  Expanded(
-                    child: Text(
-                      label,
-                      style: const TextStyle(
-                        color: Colors.white,
-                        fontSize: 14,
-                        fontWeight: FontWeight.w500,
-                      ),
-                    ),
-                  ),
-                ],
-              )
-            // Layout recolhido: apenas ícone com tooltip
-            : Column(
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  Tooltip(
-                    message: label,
-                    child: Icon(icon, color: Colors.white, size: 24),
-                  ),
-                ],
-              ),
-      ),
-    );
-  }
+  //
+  //
+  // OS MÉTODOS ANTIGOS _buildSidebar E _sidebarItem (QUE ESTAVAM DAQUI PARA BAIXO) 
+  // FORAM REMOVIDOS.
+  //
+  //
 
   // Conteúdo do Dashboard baseado na imagem de referência
   Widget _buildDashboardContent() {

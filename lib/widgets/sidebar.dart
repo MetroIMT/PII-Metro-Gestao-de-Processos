@@ -5,6 +5,7 @@ import '../screens/home/estoque_categorias_page.dart';
 import '../screens/home/tool_page.dart';
 import '../screens/home/gerenciar_usuarios.dart';
 import '../screens/home/home_screen.dart';
+import '../screens/home/reports_page.dart';
 
 class Sidebar extends StatelessWidget {
   final bool expanded;
@@ -68,17 +69,22 @@ class Sidebar extends StatelessWidget {
   }
 
   // Item individual da barra lateral (com navegação embutida)
-  Widget _sidebarItem(BuildContext context, IconData icon, String label, int index) {
-    final isSelected = selectedIndex == index; 
-    
+  Widget _sidebarItem(
+    BuildContext context,
+    IconData icon,
+    String label,
+    int index,
+  ) {
+    final isSelected = selectedIndex == index;
+
     return InkWell(
       onTap: () async {
         // Se já estiver na página selecionada, só fecha o drawer (se mobile)
         if (isSelected) {
-           if (MediaQuery.of(context).size.width < 600) {
-             Navigator.pop(context);
-           }
-           return;
+          if (MediaQuery.of(context).size.width < 600) {
+            Navigator.pop(context);
+          }
+          return;
         }
 
         // Navegação com pushReplacement
@@ -102,7 +108,10 @@ class Sidebar extends StatelessWidget {
             );
             break;
           case 3:
-            // Navegar para relatórios
+            Navigator.pushReplacement(
+              context,
+              MaterialPageRoute(builder: (_) => const RelatoriosPage()),
+            );
             break;
           case 4:
             Navigator.pushReplacement(

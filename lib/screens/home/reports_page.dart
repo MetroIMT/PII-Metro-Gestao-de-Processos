@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import '../../widgets/sidebar.dart'; // 1. IMPORTAR A SIDEBAR
 
 class RelatoriosPage extends StatefulWidget {
   const RelatoriosPage({Key? key}) : super(key: key);
@@ -7,204 +8,400 @@ class RelatoriosPage extends StatefulWidget {
   State<RelatoriosPage> createState() => _RelatoriosPageState();
 }
 
-class _RelatoriosPageState extends State<RelatoriosPage> {
+// 2. ADICIONAR O 'SingleTickerProviderStateMixin'
+class _RelatoriosPageState extends State<RelatoriosPage>
+    with SingleTickerProviderStateMixin {
+  //
+  // --- Início da Lógica de Layout (IDÊNTICA à GerenciarUsuarios) ---
+  //
+  bool _isRailExtended = false;
+  late AnimationController _animationController;
+  final GlobalKey<ScaffoldState> _scaffoldKey = GlobalKey<ScaffoldState>();
+
+  @override
+  void initState() {
+    super.initState();
+    _animationController = AnimationController(
+      vsync: this,
+      duration: const Duration(milliseconds: 300),
+    );
+  }
+
+  @override
+  void dispose() {
+    _animationController.dispose();
+    super.dispose();
+  }
+
+  void _toggleRail() {
+    setState(() {
+      _isRailExtended = !_isRailExtended;
+      if (_isRailExtended) {
+        _animationController.forward();
+      } else {
+        _animationController.reverse();
+      }
+    });
+  }
+  //
+  // --- Fim da Lógica de Layout ---
+  //
+
+  // Variáveis de estado originais da página de Relatórios
   DateTime? _selectedStartDate;
   DateTime? _selectedEndDate;
   String? _selectedItemType;
   String? _selectedBase;
+  final Color backgroundColor = const Color(0xFFF4F5FA); // Fundo cinza
 
   @override
   Widget build(BuildContext context) {
+    // 3. Detectar se está em modo mobile
+    final isMobile = MediaQuery.of(context).size.width < 600;
+
+    // 4. Usar o Scaffold com a nova estrutura
     return Scaffold(
-      body: Row(
-        children: [
-          Expanded(
-            child: Padding(
-              padding: const EdgeInsets.all(24.0),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                    // Header
-                  Row(
-                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                    children: [
-                      IconButton(
-                        icon: const Icon(Icons.arrow_back),
-                        onPressed: () {
-                          Navigator.pop(context);
-                        },
-                      ),
-                      const Text(
-                        'Relatórios',
-                        style: TextStyle(
-                          fontSize: 24,
-                          fontWeight: FontWeight.bold,
-                        ),
-                      ),
-                      Image.asset('assets/LogoMetro.png', height: 40),
-                    ],
-                  ),
-                  const SizedBox(height: 16),
-                  const Text(
-                    'Gere e exporte relatórios personalizados sobre materiais, instrumentos e históricos de movimentação.',
-                    style: TextStyle(fontSize: 16),
-                  ),
-                  const SizedBox(height: 24),
-                  Row(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      // Filter
-                      Expanded(
-                        flex: 1,
-                        child: Card(
-                          child: Padding(
-                            padding: const EdgeInsets.all(16.0),
-                            child: Column(
-                              crossAxisAlignment: CrossAxisAlignment.start,
-                              children: [
-                                const Text(
-                                  'Filtros',
-                                  style: TextStyle(
-                                    fontSize: 20,
-                                    fontWeight: FontWeight.bold,
-                                  ),
-                                ),
-                                const SizedBox(height: 16),
-                                const Text('Período'),
-                                Row(
-                                  children: [
-                                    Expanded(
-                                      child: TextFormField(
-                                        decoration: const InputDecoration(
-                                          hintText: 'Data inicial',
-                                          suffixIcon: Icon(Icons.calendar_today),
-                                        ),
-                                        onTap: () async {
-                                          final date = await showDatePicker(
-                                            context: context,
-                                            initialDate: DateTime.now(),
-                                            firstDate: DateTime(2000),
-                                            lastDate: DateTime(2100),
-                                          );
-                                          if (date != null) {
-                                            setState(() => _selectedStartDate = date);
-                                          }
-                                        },
-                                      ),
-                                    ),
-                                  ],
-                                ),
-                                const SizedBox(height: 16),
-                                const Text('Tipos de Item'),
-                                DropdownButtonFormField<String>(
-                                  decoration: const InputDecoration(
-                                    border: OutlineInputBorder(),
-                                  ),
-                                  hint: const Text('Selecione o tipo'),
-                                  value: _selectedItemType,
-                                  items: const [
-                                    DropdownMenuItem(value: 'material', child: Text('Material')),
-                                    DropdownMenuItem(value: 'instrumento', child: Text('Instrumento')),
-                                  ],
-                                  onChanged: (value) {
-                                    setState(() => _selectedItemType = value);
-                                  },
-                                ),
-                                const SizedBox(height: 16),
-                                const Text('Base de manutenção'),
-                                DropdownButtonFormField<String>(
-                                  decoration: const InputDecoration(
-                                    border: OutlineInputBorder(),
-                                  ),
-                                  hint: const Text('Selecione a base'),
-                                  value: _selectedBase,
-                                  items: const [
-                                    DropdownMenuItem(value: 'base1', child: Text('Base 1')),
-                                    DropdownMenuItem(value: 'base2', child: Text('Base 2')),
-                                  ],
-                                  onChanged: (value) {
-                                    setState(() => _selectedBase = value);
-                                  },
-                                ),
-                                const SizedBox(height: 24),
-                                SizedBox(
-                                  width: double.infinity,
-                                  child: ElevatedButton(
-                                    onPressed: () {
-                                      // Implement filter logic
-                                    },
-                                    child: const Text('Aplicar filtro'),
-                                  ),
-                                ),
-                              ],
-                            ),
-                          ),
-                        ),
-                      ),
-                      const SizedBox(width: 24),
-                      // Results 
-                      Expanded(
-                        flex: 2,
-                        child: Card(
-                          child: Padding(
-                            padding: const EdgeInsets.all(16.0),
-                            child: Column(
-                              crossAxisAlignment: CrossAxisAlignment.start,
-                              children: [
-                                Row(
-                                  mainAxisAlignment: MainAxisAlignment.end,
-                                  children: [
-                                    ElevatedButton.icon(
-                                      onPressed: () {
-                                        // PDF export
-                                      },
-                                      icon: const Icon(Icons.picture_as_pdf),
-                                      label: const Text('Exportar PDF'),
-                                    ),
-                                    const SizedBox(width: 8),
-                                    ElevatedButton.icon(
-                                      onPressed: () {
-                                        // EXEL export
-                                      },
-                                      icon: const Icon(Icons.table_chart),
-                                      label: const Text('Exportar EXEL'),
-                                    ),
-                                    const SizedBox(width: 8),
-                                    ElevatedButton.icon(
-                                      onPressed: () {
-                                        // Imprimir
-                                      },
-                                      icon: const Icon(Icons.print),
-                                      label: const Text('Imprimir'),
-                                    ),
-                                  ],
-                                ),
-                                const SizedBox(height: 16),
-                                SingleChildScrollView(
-                                  scrollDirection: Axis.horizontal,
-                                  child: DataTable(
-                                    columns: const [
-                                      DataColumn(label: Text('Data')),
-                                      DataColumn(label: Text('Item')),
-                                      DataColumn(label: Text('Categoria')),
-                                      DataColumn(label: Text('Qntd')),
-                                      DataColumn(label: Text('Usuário')),
-                                    ],
-                                    rows: const [], 
-                                  ),
-                                ),
-                              ],
-                            ),
-                          ),
-                        ),
-                      ),
-                    ],
-                  ),
-                ],
+      key: _scaffoldKey,
+      backgroundColor: backgroundColor,
+
+      // 5. AppBar apenas no mobile
+      appBar: isMobile
+          ? AppBar(
+              elevation: 0,
+              backgroundColor: Colors.white,
+              leading: IconButton(
+                icon: AnimatedIcon(
+                  icon: AnimatedIcons.menu_close,
+                  progress: _animationController,
+                  color: const Color(0xFF001489),
+                ),
+                onPressed: () {
+                  _scaffoldKey.currentState?.openDrawer();
+                },
               ),
+              title: const Text(
+                'Relatórios', // <-- TÍTULO ATUALIZADO
+                style: TextStyle(
+                  color: Color(0xFF001489),
+                  fontWeight: FontWeight.bold,
+                ),
+              ),
+              actions: [
+                Padding(
+                  padding: const EdgeInsets.only(right: 16.0),
+                  child: Image.asset('assets/LogoMetro.png', height: 32),
+                ),
+              ],
+            )
+          : null,
+
+      // 6. Drawer apenas no mobile
+      drawer: isMobile
+          ? Drawer(
+              child: Sidebar(
+                expanded: true,
+                selectedIndex: 3, // <-- ÍNDICE ATUALIZADO (3 = Relatórios)
+              ),
+            )
+          : null,
+
+      // 7. Body com Stack para o layout desktop
+      body: Stack(
+        children: [
+          // 8. Barra lateral fixa em desktop
+          if (!isMobile)
+            AnimatedPositioned(
+              duration: const Duration(milliseconds: 300),
+              curve: Curves.easeInOut,
+              left: 0,
+              top: 0,
+              bottom: 0,
+              width: _isRailExtended ? 180 : 70,
+              child: Sidebar(
+                expanded: _isRailExtended,
+                selectedIndex: 3, // <-- ÍNDICE ATUALIZADO (3 = Relatórios)
+              ),
+            ),
+
+          // 9. Conteúdo principal (com o padding animado)
+          AnimatedPadding(
+            duration: const Duration(milliseconds: 300),
+            padding: EdgeInsets.only(
+              left: !isMobile ? (_isRailExtended ? 180 : 70) : 0,
+            ),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                // 10. Cabeçalho com título (apenas em desktop)
+                if (!isMobile)
+                  Padding(
+                    padding: const EdgeInsets.all(16.0),
+                    child: Row(
+                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                      children: [
+                        Row(
+                          children: [
+                            IconButton(
+                              icon: Icon(
+                                _isRailExtended ? Icons.menu_open : Icons.menu,
+                                color: const Color(0xFF001489),
+                              ),
+                              onPressed: _toggleRail,
+                            ),
+                            const SizedBox(width: 12),
+                            const Text(
+                              'Relatórios', // <-- TÍTULO ATUALIZADO
+                              style: TextStyle(
+                                fontSize: 24,
+                                fontWeight: FontWeight.bold,
+                                color: Color(0xFF001489),
+                              ),
+                            ),
+                          ],
+                        ),
+                        Image.asset('assets/LogoMetro.png', height: 40),
+                      ],
+                    ),
+                  ),
+
+                //
+                // 11. INÍCIO DO CONTEÚDO ORIGINAL DE RELATÓRIOS
+                //
+
+                // Descrição da página
+                Padding(
+                  padding: EdgeInsets.fromLTRB(16, isMobile ? 16 : 0, 16, 16),
+                  child: const Text(
+                    'Gere e exporte relatórios personalizados sobre materiais, instrumentos e históricos de movimentação.',
+                    style: TextStyle(fontSize: 16, color: Colors.black54),
+                  ),
+                ),
+
+                // Conteúdo (Filtros e Resultados)
+                Expanded(
+                  child: Padding(
+                    padding: const EdgeInsets.fromLTRB(16, 0, 16, 16),
+                    // LayoutBuilder para tornar responsivo (opcional, mas recomendado)
+                    child: LayoutBuilder(
+                      builder: (context, constraints) {
+                        // Se a tela for muito estreita, bota um filtro em cima do outro
+                        bool isNarrow = constraints.maxWidth < 700;
+
+                        if (isNarrow) {
+                          // Modo Coluna (telas estreitas)
+                          return SingleChildScrollView(
+                            child: Column(
+                              children: [
+                                _buildFilterCard(),
+                                const SizedBox(height: 16),
+                                _buildResultsCard(),
+                              ],
+                            ),
+                          );
+                        } else {
+                          // Modo Linha (telas largas)
+                          return Row(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Expanded(flex: 1, child: _buildFilterCard()),
+                              const SizedBox(width: 16),
+                              Expanded(flex: 2, child: _buildResultsCard()),
+                            ],
+                          );
+                        }
+                      },
+                    ),
+                  ),
+                ),
+
+                //
+                // FIM DO CONTEÚDO ORIGINAL
+                //
+              ],
             ),
           ),
         ],
+      ),
+    );
+  }
+
+  //
+  // WIDGETS DE CONTEÚDO (Extraídos do seu código original)
+  //
+
+  /// Constrói o Card de Filtros
+  Widget _buildFilterCard() {
+    return Card(
+      elevation: 2,
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+      child: Padding(
+        padding: const EdgeInsets.all(16.0),
+        // Adicionado para evitar overflow em telas menores
+        child: SingleChildScrollView(
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            mainAxisSize: MainAxisSize.min, // Para não esticar verticalmente
+            children: [
+              const Text(
+                'Filtros',
+                style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
+              ),
+              const SizedBox(height: 16),
+              const Text('Período'),
+              TextFormField(
+                // O controller deve ser usado para exibir a data
+                controller: TextEditingController(
+                  text: _selectedStartDate == null
+                      ? ''
+                      : "${_selectedStartDate!.day}/${_selectedStartDate!.month}/${_selectedStartDate!.year}",
+                ),
+                readOnly: true,
+                decoration: const InputDecoration(
+                  hintText: 'Data inicial',
+                  suffixIcon: Icon(Icons.calendar_today),
+                ),
+                onTap: () async {
+                  final date = await showDatePicker(
+                    context: context,
+                    initialDate: DateTime.now(),
+                    firstDate: DateTime(2000),
+                    lastDate: DateTime(2100),
+                  );
+                  if (date != null) {
+                    setState(() => _selectedStartDate = date);
+                  }
+                },
+              ),
+              // Adicione o TextFormField para _selectedEndDate se necessário
+              const SizedBox(height: 16),
+              const Text('Tipos de Item'),
+              DropdownButtonFormField<String>(
+                decoration: const InputDecoration(border: OutlineInputBorder()),
+                hint: const Text('Selecione o tipo'),
+                value: _selectedItemType,
+                items: const [
+                  DropdownMenuItem(value: 'material', child: Text('Material')),
+                  DropdownMenuItem(
+                    value: 'instrumento',
+                    child: Text('Instrumento'),
+                  ),
+                ],
+                onChanged: (value) {
+                  setState(() => _selectedItemType = value);
+                },
+              ),
+              const SizedBox(height: 16),
+              const Text('Base de manutenção'),
+              DropdownButtonFormField<String>(
+                decoration: const InputDecoration(border: OutlineInputBorder()),
+                hint: const Text('Selecione a base'),
+                value: _selectedBase,
+                items: const [
+                  DropdownMenuItem(value: 'base1', child: Text('Base 1')),
+                  DropdownMenuItem(value: 'base2', child: Text('Base 2')),
+                ],
+                onChanged: (value) {
+                  setState(() => _selectedBase = value);
+                },
+              ),
+              const SizedBox(height: 24),
+              SizedBox(
+                width: double.infinity,
+                child: ElevatedButton(
+                  onPressed: () {
+                    // Implement filter logic
+                  },
+                  child: const Text('Aplicar filtro'),
+                ),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+
+  /// Constrói o Card de Resultados
+  Widget _buildResultsCard() {
+    return Card(
+      elevation: 2,
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+      child: Padding(
+        padding: const EdgeInsets.all(16.0),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            // Botões de Ação
+            Wrap(
+              spacing: 8,
+              runSpacing: 8,
+              alignment: WrapAlignment.end,
+              children: [
+                ElevatedButton.icon(
+                  onPressed: () {
+                    // PDF export
+                  },
+                  icon: const Icon(Icons.picture_as_pdf, size: 18),
+                  label: const Text('Exportar PDF'),
+                ),
+                ElevatedButton.icon(
+                  onPressed: () {
+                    // EXEL export
+                  },
+                  icon: const Icon(Icons.table_chart, size: 18),
+                  label: const Text('Exportar EXEL'),
+                ),
+                ElevatedButton.icon(
+                  onPressed: () {
+                    // Imprimir
+                  },
+                  icon: const Icon(Icons.print, size: 18),
+                  label: const Text('Imprimir'),
+                ),
+              ],
+            ),
+            const SizedBox(height: 16),
+            // Tabela de Dados
+            Expanded(
+              child: SingleChildScrollView(
+                scrollDirection: Axis.vertical,
+                child: SingleChildScrollView(
+                  scrollDirection: Axis.horizontal,
+                  child: DataTable(
+                    columns: const [
+                      DataColumn(label: Text('Data')),
+                      DataColumn(label: Text('Item')),
+                      DataColumn(label: Text('Categoria')),
+                      DataColumn(label: Text('Qntd')),
+                      DataColumn(label: Text('Usuário')),
+                    ],
+                    rows: const [
+                      // Exemplo de linha, substitua por seus dados
+                      DataRow(
+                        cells: [
+                          DataCell(Text('27/10/2025')),
+                          DataCell(Text('Cabo Elétrico')),
+                          DataCell(Text('Material')),
+                          DataCell(Text('-5')),
+                          DataCell(Text('João Pereira')),
+                        ],
+                      ),
+                      DataRow(
+                        cells: [
+                          DataCell(Text('26/10/2025')),
+                          DataCell(Text('Multímetro XYZ')),
+                          DataCell(Text('Instrumento')),
+                          DataCell(Text('1')),
+                          DataCell(Text('Ana Silva')),
+                        ],
+                      ),
+                    ],
+                  ),
+                ),
+              ),
+            ),
+          ],
+        ),
       ),
     );
   }
