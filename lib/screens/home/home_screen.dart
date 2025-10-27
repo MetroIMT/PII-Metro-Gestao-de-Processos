@@ -3,6 +3,7 @@ import 'dart:math';
 import 'tool_page.dart';
 import 'estoque_page.dart';
 import 'alerts_page.dart';
+import 'reports_page.dart';
 import 'estoque_categorias_page.dart';
 import '../../services/auth_service.dart';
 import '../login/login_screen.dart';
@@ -351,7 +352,10 @@ class _HomeScreenState extends State<HomeScreen>
             );
             break;
           case 3:
-            // Navegar para relatórios
+            Navigator.push(
+              context,
+              MaterialPageRoute(builder: (_) => const RelatoriosPage()),
+            );
             break;
           case 4:
             // Lógica de logout: limpar sessão e voltar para login
