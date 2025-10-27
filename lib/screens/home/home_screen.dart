@@ -7,8 +7,10 @@ import 'estoque_categorias_page.dart';
 import '../../services/auth_service.dart';
 import '../login/login_screen.dart';
 import '../../repositories/alert_repository.dart';
+import 'gerenciar_usuarios.dart';
+import '../../widgets/sidebar.dart'; 
 
-// Classe para desenhar o gráfico de pizza do estoque
+// Classe para desenhar o gráfico de pizza do estoque (Sem alterações)
 class PieChartPainter extends CustomPainter {
   final double disponivel;
   final double emFalta;
@@ -106,7 +108,8 @@ class HomeScreen extends StatefulWidget {
 
 class _HomeScreenState extends State<HomeScreen>
     with SingleTickerProviderStateMixin {
-  int _selectedIndex = 0;
+  
+  // A lógica de estado da sidebar (animação) permanece na página
   bool _isRailExtended = false;
   late AnimationController _animationController;
   final GlobalKey<ScaffoldState> _scaffoldKey = GlobalKey<ScaffoldState>();
@@ -134,6 +137,7 @@ class _HomeScreenState extends State<HomeScreen>
     super.dispose();
   }
 
+  // Função que controla a animação e estado da sidebar
   void _toggleRail() {
     setState(() {
       _isRailExtended = !_isRailExtended;
@@ -158,7 +162,7 @@ class _HomeScreenState extends State<HomeScreen>
           ? AppBar(
               elevation: 0,
               backgroundColor: Colors.white,
-              // No mobile: botão abre drawer, no desktop: botão expande/contrai a sidebar
+              // No mobile: botão abre drawer
               leading: IconButton(
                 icon: AnimatedIcon(
                   icon: AnimatedIcons.menu_close,
@@ -185,7 +189,17 @@ class _HomeScreenState extends State<HomeScreen>
               ],
             )
           : null,
-      drawer: isMobile ? Drawer(child: _buildSidebar(expanded: true)) : null,
+      
+      // ATUALIZADO: Usa o novo widget Sidebar
+      drawer: isMobile
+          ? Drawer(
+              child: Sidebar(
+                expanded: true, // No drawer, está sempre expandida
+                selectedIndex: 0, // 0 = Dashboard
+              ),
+            )
+          : null,
+      
       body: Stack(
         children: [
           // Barra lateral fixa em desktop (posicionada sobre o conteúdo)
@@ -197,7 +211,11 @@ class _HomeScreenState extends State<HomeScreen>
               top: 0,
               bottom: 0,
               width: _isRailExtended ? 180 : 70,
-              child: _buildSidebar(expanded: _isRailExtended),
+              // ATUALIZADO: Usa o novo widget Sidebar
+              child: Sidebar(
+                expanded: _isRailExtended,
+                selectedIndex: 0, // 0 = Dashboard
+              ),
             ),
 
           // Conteúdo principal (com padding à esquerda apenas em desktop)
@@ -223,18 +241,10 @@ class _HomeScreenState extends State<HomeScreen>
                                 _isRailExtended ? Icons.menu_open : Icons.menu,
                                 color: const Color(0xFF001489),
                               ),
-                              onPressed: () {
-                                setState(() {
-                                  _isRailExtended = !_isRailExtended;
-                                  if (_isRailExtended) {
-                                    _animationController.forward();
-                                  } else {
-                                    _animationController.reverse();
-                                  }
-                                });
-                              },
+                              // ATUALIZADO: Chama a função de toggle
+                              onPressed: _toggleRail,
                             ),
-                            SizedBox(width: 12),
+                            const SizedBox(width: 12),
                             const Text(
                               'Dashboard',
                               style: TextStyle(
@@ -249,7 +259,7 @@ class _HomeScreenState extends State<HomeScreen>
                           tag: 'logo',
                           child: Image.asset(
                             'assets/LogoMetro.png',
-                            height: 0,
+                            height: 40, // Altura ajustada
                           ),
                         ),
                       ],
@@ -260,7 +270,7 @@ class _HomeScreenState extends State<HomeScreen>
                 Expanded(
                   child: Padding(
                     padding: const EdgeInsets.all(16.0),
-                    child: _buildDashboardContent(),
+                    child: _buildDashboardContent(), // Método de conteúdo
                   ),
                 ),
               ],
@@ -271,149 +281,11 @@ class _HomeScreenState extends State<HomeScreen>
     );
   }
 
-  // Barra lateral com menu de navegação
-  Widget _buildSidebar({bool expanded = false}) {
-    final metroBlue = const Color(0xFF001489);
-    final metroLightBlue = const Color(0xFF001489);
+  //
+  // OS MÉTODOS _buildSidebar E _sidebarItem FORAM REMOVIDOS DESTE ARQUIVO
+  //
 
-    return Container(
-      width: expanded ? 180 : 70,
-      decoration: BoxDecoration(
-        gradient: LinearGradient(
-          begin: Alignment.topCenter,
-          end: Alignment.bottomCenter,
-          colors: [metroBlue, metroLightBlue.withOpacity(0.9)],
-        ),
-        boxShadow: [
-          BoxShadow(
-            color: Colors.black.withOpacity(0.2),
-            blurRadius: 8,
-            offset: const Offset(2, 0),
-          ),
-        ],
-      ),
-      child: Column(
-        children: [
-          // Aumentando o espaçamento no topo
-          const SizedBox(height: 60),
-          // Logo do Metrô no topo da sidebar
-          Container(
-            padding: const EdgeInsets.symmetric(vertical: 16),
-            decoration: BoxDecoration(
-              border: Border(
-                bottom: BorderSide(
-                  color: Colors.white.withOpacity(0.2),
-                  width: 1,
-                ),
-              ),
-            ),
-            child: Image.asset('assets/LogoMetro.png'),
-            height: 80,
-          ),
-          const SizedBox(height: 20),
-          _sidebarItem(Icons.bar_chart, 'Dashboard', 0, expanded),
-          _sidebarItem(Icons.assignment, 'Estoque', 1, expanded),
-          _sidebarItem(Icons.build, 'Ferramentas', 2, expanded),
-          _sidebarItem(Icons.article, 'Relatórios', 3, expanded),
-          const Spacer(),
-          // Item de logout
-          _sidebarItem(Icons.logout, 'Sair', 4, expanded),
-          const SizedBox(height: 16),
-        ],
-      ),
-    );
-  }
-
-  // Item individual da barra lateral
-  Widget _sidebarItem(IconData icon, String label, int index, bool expanded) {
-    final isSelected = _selectedIndex == index;
-    return InkWell(
-      onTap: () async {
-        setState(() {
-          _selectedIndex = index;
-        });
-
-        // Navegação para as diferentes páginas
-        switch (index) {
-          case 0:
-            // Navegar para perfil do usuário
-            break;
-          case 1:
-            Navigator.push(
-              context,
-              MaterialPageRoute(builder: (_) => const EstoqueCategoriasPage()),
-            );
-            break;
-          case 2:
-            Navigator.push(
-              context,
-              MaterialPageRoute(builder: (_) => const ToolPage()),
-            );
-            break;
-          case 3:
-            // Navegar para relatórios
-            break;
-          case 4:
-            // Lógica de logout: limpar sessão e voltar para login
-            try {
-              await AuthService().logout();
-            } catch (_) {}
-            if (!mounted) return;
-            Navigator.pushAndRemoveUntil(
-              context,
-              MaterialPageRoute(builder: (_) => const LoginPage()),
-              (route) => false,
-            );
-            break;
-        }
-      },
-      child: Container(
-        width: double.infinity,
-        padding: EdgeInsets.symmetric(
-          vertical: 16,
-          horizontal: expanded ? 16 : 0,
-        ),
-        decoration: BoxDecoration(
-          color: isSelected
-              ? Colors.white.withOpacity(0.2)
-              : Colors.transparent,
-          border: isSelected
-              ? Border(left: BorderSide(color: Colors.white, width: 3))
-              : null,
-        ),
-        child: expanded
-            // Layout expandido: ícone e texto lado a lado
-            ? Row(
-                children: [
-                  Icon(icon, color: Colors.white, size: 24),
-                  const SizedBox(width: 16),
-                  Expanded(
-                    child: Text(
-                      label,
-                      style: const TextStyle(
-                        color: Colors.white,
-                        fontSize: 14,
-                        fontWeight: FontWeight.w500,
-                      ),
-                    ),
-                  ),
-                ],
-              )
-            // Layout recolhido: apenas ícone com tooltip
-            : Column(
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  Tooltip(
-                    message: label,
-                    child: Icon(icon, color: Colors.white, size: 24),
-                  ),
-                ],
-              ),
-      ),
-    );
-  }
-
-  // Conteúdo do Dashboard baseado na imagem de referência
+  // Conteúdo do Dashboard baseado na imagem de referência (Sem alterações)
   Widget _buildDashboardContent() {
     final metroBlue = const Color(0xFF001489);
 
@@ -477,7 +349,7 @@ class _HomeScreenState extends State<HomeScreen>
     );
   }
 
-  // Card de Estoque com gráfico e estatísticas
+  // Card de Estoque com gráfico e estatísticas (Sem alterações)
   Widget _buildEstoqueCard(VoidCallback onTap) {
     // Dados do estoque obtidos da mesma fonte de estoque_page
     // Estes valores deveriam idealmente vir de um serviço ou provider compartilhado
@@ -534,12 +406,10 @@ class _HomeScreenState extends State<HomeScreen>
 
     // Cálculos dos valores baseados nos dados acima
     final int totalMateriais = materiais.length;
-    final int materiaisDisponiveis = materiais
-        .where((m) => m.quantidade > 0)
-        .length;
-    final int materiaisEmFalta = materiais
-        .where((m) => m.quantidade <= 0)
-        .length;
+    final int materiaisDisponiveis =
+        materiais.where((m) => m.quantidade > 0).length;
+    final int materiaisEmFalta =
+        materiais.where((m) => m.quantidade <= 0).length;
     final double porcentagemDisponivel =
         (materiaisDisponiveis / totalMateriais) * 100;
 
@@ -620,8 +490,8 @@ class _HomeScreenState extends State<HomeScreen>
                         color: porcentagemDisponivel > 85
                             ? Colors.green
                             : porcentagemDisponivel > 70
-                            ? Colors.orange
-                            : Colors.red,
+                                ? Colors.orange
+                                : Colors.red,
                         borderRadius: BorderRadius.circular(12),
                       ),
                       child: Text(
@@ -712,10 +582,11 @@ class _HomeScreenState extends State<HomeScreen>
             ),
           ),
         ),
-    ));
+      ),
+    );
   }
 
-  // Widget para mostrar uma estatística no card de estoque
+  // Widget para mostrar uma estatística no card de estoque (Sem alterações)
   Widget _buildEstoqueStat(
     String label,
     String value,
@@ -755,7 +626,7 @@ class _HomeScreenState extends State<HomeScreen>
     );
   }
 
-  // Card individual do Dashboard
+  // Card individual do Dashboard (Sem alterações)
   Widget _buildDashboardCard(
     String title,
     IconData icon,
@@ -855,7 +726,7 @@ class _HomeScreenState extends State<HomeScreen>
                   ],
                 ),
                 const SizedBox(height: 16),
-                Expanded(
+                const Expanded(
                   child: Center(
                     child: Text(
                       'Dados do card vão aqui',
@@ -876,11 +747,12 @@ class _HomeScreenState extends State<HomeScreen>
             ),
           ),
         ),
-    ));
+      ),
+    );
   }
 }
 
-// Novo widget: botão estilizado replicando comportamento do exemplo HTML/CSS
+// Novo widget: botão estilizado replicando comportamento do exemplo HTML/CSS (Sem alterações)
 class CardActionButton extends StatefulWidget {
   final String label;
   final Color borderColor;
@@ -926,7 +798,7 @@ class _CardActionButtonState extends State<CardActionButton> {
         child: AnimatedContainer(
           duration: _duration,
           curve: Curves.easeOut,
-          height: 40, 
+          height: 40,
           padding: const EdgeInsets.symmetric(horizontal: 14),
           decoration: BoxDecoration(
             color: bg,
@@ -942,7 +814,8 @@ class _CardActionButtonState extends State<CardActionButton> {
                 children: [
                   AnimatedContainer(
                     duration: _duration,
-                    transform: Matrix4.translationValues(_isHover ? 5.0 : 0.0, 0.0, 0.0),
+                    transform:
+                        Matrix4.translationValues(_isHover ? 5.0 : 0.0, 0.0, 0.0),
                     child: Icon(
                       Icons.arrow_forward,
                       size: 16,

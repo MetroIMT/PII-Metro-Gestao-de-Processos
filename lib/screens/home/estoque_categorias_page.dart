@@ -4,6 +4,7 @@ import 'estoque_page.dart'; // Para EstoqueMaterial e EstoquePage
 import 'material_giro_page.dart'; // Página a ser criada
 import 'material_consumo_page.dart';
 import 'material_patrimoniado_page.dart';
+import '../../widgets/sidebar.dart';
 
 class EstoqueCategoriasPage extends StatefulWidget {
   const EstoqueCategoriasPage({super.key});
@@ -12,30 +13,24 @@ class EstoqueCategoriasPage extends StatefulWidget {
   State<EstoqueCategoriasPage> createState() => _EstoqueCategoriasPageState();
 }
 
-class _EstoqueCategoriasPageState extends State<EstoqueCategoriasPage> {
-  // Dados de exemplo para as categorias
-  final List<EstoqueMaterial> materiaisGiro = [
-    EstoqueMaterial(codigo: 'G001', nome: 'Rolamento 6203', quantidade: 50, local: 'Almox. A'),
-    EstoqueMaterial(codigo: 'G002', nome: 'Correia V', quantidade: 20, local: 'Almox. B'),
-    EstoqueMaterial(codigo: 'G003', nome: 'Filtro de Ar', quantidade: 0, local: 'Almox. A'),
-  ];
-
-  final List<EstoqueMaterial> materiaisConsumo = [
-    EstoqueMaterial(codigo: 'C001', nome: 'Óleo Lubrificante', quantidade: 15, local: 'Oficina 1'),
-    EstoqueMaterial(codigo: 'C002', nome: 'Graxa', quantidade: 5, local: 'Oficina 2'),
-    EstoqueMaterial(codigo: 'C003', nome: 'Estopa', quantidade: 100, local: 'Oficina 1'),
-  ];
-
-  final List<EstoqueMaterial> materiaisPatrimoniado = [
-    EstoqueMaterial(codigo: 'P001', nome: 'Furadeira de Impacto', quantidade: 1, local: 'Ferramentaria'),
-    EstoqueMaterial(codigo: 'P002', nome: 'Multímetro Digital', quantidade: 1, local: 'Eletrônica'),
-  ];
-
-  late final List<Map<String, dynamic>> categorias;
+// ADICIONADO: 'with SingleTickerProviderStateMixin' para a animação
+class _EstoqueCategoriasPageState extends State<EstoqueCategoriasPage>
+    with SingleTickerProviderStateMixin {
+      
+  // --- Início da Lógica de Layout (IDÊNTICA à HomeScreen) ---
+  bool _isRailExtended = false;
+  late AnimationController _animationController;
+  final GlobalKey<ScaffoldState> _scaffoldKey = GlobalKey<ScaffoldState>();
 
   @override
   void initState() {
     super.initState();
+    _animationController = AnimationController(
+      vsync: this,
+      duration: const Duration(milliseconds: 300),
+    );
+    
+    // Seus dados do initState original
     categorias = [
       {
         'titulo': 'Material de Giro',
@@ -62,76 +57,210 @@ class _EstoqueCategoriasPageState extends State<EstoqueCategoriasPage> {
   }
 
   @override
+  void dispose() {
+    _animationController.dispose();
+    super.dispose();
+  }
+
+  void _toggleRail() {
+    setState(() {
+      _isRailExtended = !_isRailExtended;
+      if (_isRailExtended) {
+        _animationController.forward();
+      } else {
+        _animationController.reverse();
+      }
+    });
+  }
+  // --- Fim da Lógica de Layout ---
+
+  // Dados de exemplo (do seu código)
+  final List<EstoqueMaterial> materiaisGiro = [
+    EstoqueMaterial(codigo: 'G001', nome: 'Rolamento 6203', quantidade: 50, local: 'Almox. A'),
+    EstoqueMaterial(codigo: 'G002', nome: 'Correia V', quantidade: 20, local: 'Almox. B'),
+    EstoqueMaterial(codigo: 'G003', nome: 'Filtro de Ar', quantidade: 0, local: 'Almox. A'),
+  ];
+  final List<EstoqueMaterial> materiaisConsumo = [
+    EstoqueMaterial(codigo: 'C001', nome: 'Óleo Lubrificante', quantidade: 15, local: 'Oficina 1'),
+    EstoqueMaterial(codigo: 'C002', nome: 'Graxa', quantidade: 5, local: 'Oficina 2'),
+    EstoqueMaterial(codigo: 'C003', nome: 'Estopa', quantidade: 100, local: 'Oficina 1'),
+  ];
+  final List<EstoqueMaterial> materiaisPatrimoniado = [
+    EstoqueMaterial(codigo: 'P001', nome: 'Furadeira de Impacto', quantidade: 1, local: 'Ferramentaria'),
+    EstoqueMaterial(codigo: 'P002', nome: 'Multímetro Digital', quantidade: 1, local: 'Eletrônica'),
+  ];
+  late final List<Map<String, dynamic>> categorias;
+  // Fim dos dados
+
+  @override
   Widget build(BuildContext context) {
+    final isMobile = MediaQuery.of(context).size.width < 600;
+    final metroBlue = const Color(0xFF001489);
+
     return Scaffold(
-      appBar: AppBar(
-        title: const Text('Categorias de Estoque', style: TextStyle(fontWeight: FontWeight.bold)),
-        backgroundColor: Colors.white,
-        foregroundColor: const Color(0xFF2D3748),
-        elevation: 1,
-        shadowColor: Colors.black.withOpacity(0.1),
-        actions: [
-          Padding(
-            padding: const EdgeInsets.only(right: 16.0),
-            child: Image.asset('assets/LogoMetro.png', height: 32),
+      key: _scaffoldKey,
+      backgroundColor: Colors.grey.shade50, // Cor de fundo da sua página
+      
+      // AppBar (Mobile)
+      appBar: isMobile
+          ? AppBar(
+              // Lógica do botão da sidebar
+              leading: IconButton(
+                icon: AnimatedIcon(
+                  icon: AnimatedIcons.menu_close,
+                  progress: _animationController,
+                  color: metroBlue,
+                ),
+                onPressed: () {
+                  _scaffoldKey.currentState?.openDrawer();
+                },
+              ),
+              // Seu título e ações originais
+              title: const Text('Categorias de Estoque', style: TextStyle(fontWeight: FontWeight.bold, color: Color(0xFF2D3748))),
+              backgroundColor: Colors.white,
+              foregroundColor: const Color(0xFF2D3748),
+              elevation: 1,
+              shadowColor: Colors.black.withOpacity(0.1),
+              actions: [
+                Padding(
+                  padding: const EdgeInsets.only(right: 16.0),
+                  child: Image.asset('assets/LogoMetro.png', height: 32),
+                ),
+              ],
+            )
+          : null,
+      
+      // Drawer (Mobile)
+      drawer: isMobile
+          ? Drawer(
+              child: Sidebar(
+                expanded: true,
+                selectedIndex: 1, // 1 = Estoque
+              ),
+            )
+          : null,
+      
+      // Body (Desktop/Tablet com Stack)
+      body: Stack(
+        children: [
+          // Sidebar (Desktop)
+          if (!isMobile)
+            AnimatedPositioned(
+              duration: const Duration(milliseconds: 300),
+              curve: Curves.easeInOut,
+              left: 0,
+              top: 0,
+              bottom: 0,
+              width: _isRailExtended ? 180 : 70,
+              child: Sidebar(
+                expanded: _isRailExtended,
+                selectedIndex: 1, // 1 = Estoque
+              ),
+            ),
+          
+          // Conteúdo Principal
+          AnimatedPadding(
+            duration: const Duration(milliseconds: 300),
+            padding: EdgeInsets.only(
+              left: !isMobile ? (_isRailExtended ? 180 : 70) : 0,
+            ),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                // Header (Desktop)
+                if (!isMobile)
+                  Padding(
+                    padding: const EdgeInsets.all(16.0),
+                    child: Row(
+                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                      children: [
+                        Row(
+                          children: [
+                            IconButton(
+                              icon: Icon(
+                                _isRailExtended ? Icons.menu_open : Icons.menu,
+                                color: metroBlue,
+                              ),
+                              onPressed: _toggleRail,
+                            ),
+                            const SizedBox(width: 12),
+                            const Text(
+                              'Categorias de Estoque',
+                              style: TextStyle(
+                                fontSize: 24,
+                                fontWeight: FontWeight.bold,
+                                color: Color(0xFF001489),
+                              ),
+                            ),
+                          ],
+                        ),
+                        Image.asset('assets/LogoMetro.png', height: 40),
+                      ],
+                    ),
+                  ),
+                
+                // O SEU CONTEÚDO ORIGINAL (o LayoutBuilder)
+                Expanded(
+                  child: LayoutBuilder(
+                    builder: (context, constraints) {
+                      final isMobileContent = constraints.maxWidth < 700;
+
+                      if (isMobileContent) {
+                        // Mobile: SingleChildScrollView com Column
+                        return SingleChildScrollView(
+                          padding: const EdgeInsets.all(16.0),
+                          child: Column(
+                            children: categorias.map((categoria) {
+                              return Padding(
+                                padding: const EdgeInsets.only(bottom: 16.0),
+                                child: _EstoqueCategoriaCard(
+                                  title: categoria['titulo'],
+                                  icon: categoria['icone'],
+                                  color: categoria['cor'],
+                                  materiais: categoria['materiais'],
+                                  onTap: () => Navigator.push(context, MaterialPageRoute(builder: (_) => categoria['pagina']())),
+                                ),
+                              );
+                            }).toList(),
+                          ),
+                        );
+                      } else {
+                        // Tablet e Desktop: Grid
+                        final crossAxisCount = constraints.maxWidth < 1200 ? 2 : 3;
+                        return GridView.builder(
+                          padding: const EdgeInsets.all(24.0),
+                          gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
+                            crossAxisCount: crossAxisCount,
+                            crossAxisSpacing: 24,
+                            mainAxisSpacing: 24,
+                            childAspectRatio: 1.5,
+                          ),
+                          itemCount: categorias.length,
+                          itemBuilder: (context, index) {
+                            final categoria = categorias[index];
+                            return _EstoqueCategoriaCard(
+                              title: categoria['titulo'],
+                              icon: categoria['icone'],
+                              color: categoria['cor'],
+                              materiais: categoria['materiais'],
+                              onTap: () => Navigator.push(context, MaterialPageRoute(builder: (_) => categoria['pagina']())),
+                            );
+                          },
+                        );
+                      }
+                    },
+                  ),
+                ),
+              ],
+            ),
           ),
         ],
-      ),
-      backgroundColor: Colors.grey.shade50,
-      body: LayoutBuilder(
-        builder: (context, constraints) {
-          final isMobile = constraints.maxWidth < 700;
-          
-          if (isMobile) {
-            // Mobile: SingleChildScrollView com Column
-            return SingleChildScrollView(
-              padding: const EdgeInsets.all(16.0),
-              child: Column(
-                children: categorias.map((categoria) {
-                  return Padding(
-                    padding: const EdgeInsets.only(bottom: 16.0),
-                    child: _EstoqueCategoriaCard(
-                      title: categoria['titulo'],
-                      icon: categoria['icone'],
-                      color: categoria['cor'],
-                      materiais: categoria['materiais'],
-                      onTap: () => Navigator.push(context, MaterialPageRoute(builder: (_) => categoria['pagina']())),
-                    ),
-                  );
-                }).toList(),
-              ),
-            );
-          } else {
-            // Tablet e Desktop: Grid
-            final crossAxisCount = constraints.maxWidth < 1200 ? 2 : 3;
-            return GridView.builder(
-              padding: const EdgeInsets.all(24.0),
-              gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
-                crossAxisCount: crossAxisCount,
-                crossAxisSpacing: 24,
-                mainAxisSpacing: 24,
-                childAspectRatio: 1.5,
-              ),
-              itemCount: categorias.length,
-              itemBuilder: (context, index) {
-                final categoria = categorias[index];
-                return _EstoqueCategoriaCard(
-                  title: categoria['titulo'],
-                  icon: categoria['icone'],
-                  color: categoria['cor'],
-                  materiais: categoria['materiais'],
-                  onTap: () => Navigator.push(context, MaterialPageRoute(builder: (_) => categoria['pagina']())),
-                );
-              },
-            );
-          }
-        },
       ),
     );
   }
 }
 
-// Card de categoria simplificado, sem efeitos de hover ou animação
+// Card de categoria (Seu código original, sem alterações)
 class _EstoqueCategoriaCard extends StatelessWidget {
   final String title;
   final IconData icon;
@@ -283,6 +412,7 @@ class _EstoqueCategoriaCard extends StatelessWidget {
     );
   }
 
+  // Helper (Seu código original, sem alterações)
   Widget _buildEstoqueStat(String label, String value, IconData icon, Color color) {
     return Row(
       mainAxisSize: MainAxisSize.min,
