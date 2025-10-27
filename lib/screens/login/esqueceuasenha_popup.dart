@@ -1,5 +1,6 @@
 import 'dart:ui';
 import 'package:flutter/material.dart';
+import 'package:pi_metro_2025_2/services/auth_service.dart'; // Verifique se este caminho está correto
 
 Future<void> showEsqueciSenhaPopup(BuildContext context) {
   final metroBlue = const Color(0xFF001489);
@@ -77,11 +78,12 @@ class _EsqueciSenhaContentState extends State<_EsqueciSenhaContent> {
   final TextEditingController _email = TextEditingController();
   bool _sending = false;
 
-  // Adicionado: estados para hover/press (para web/desktop e toque)
+  final AuthService _authService = AuthService();
+  static final RegExp _metroEmailRegex =
+      RegExp(r'^[a-z0-9._%+-]+@metrosp\.com\.br$');
+
   bool _isHover = false;
   bool _isPressed = false;
-
-  // Adicionado: estado de hover para o botão Cancelar
   bool _isHoverCancel = false;
 
   @override
@@ -105,6 +107,14 @@ class _EsqueciSenhaContentState extends State<_EsqueciSenhaContent> {
         borderRadius: BorderRadius.circular(12),
         borderSide: BorderSide(color: widget.metroLightBlue, width: 2),
       ),
+      errorBorder: OutlineInputBorder(
+        borderRadius: BorderRadius.circular(12),
+        borderSide: BorderSide(color: Colors.red.shade700, width: 1),
+      ),
+      focusedErrorBorder: OutlineInputBorder(
+        borderRadius: BorderRadius.circular(12),
+        borderSide: BorderSide(color: Colors.red.shade700, width: 2),
+      ),
     );
   }
 
@@ -112,25 +122,50 @@ class _EsqueciSenhaContentState extends State<_EsqueciSenhaContent> {
     if (!_formKey.currentState!.validate()) return;
     setState(() => _sending = true);
 
-    // Simula requisição de recuperação
-    await Future.delayed(const Duration(milliseconds: 800));
+    final email = _email.text.trim().toLowerCase();
 
-    if (mounted) {
-      Navigator.of(context).pop();
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Instruções enviadas para o email')),
-      );
+    try {
+      await _authService.sendPasswordResetEmail(email: email);
+
+      if (mounted) {
+        Navigator.of(context).pop();
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('Instruções enviadas para o email.'),
+            backgroundColor: Colors.green,
+          ),
+        );
+      }
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content:
+                Text('Erro: ${e.toString().replaceAll("Exception: ", "")}'),
+            backgroundColor: Colors.red,
+          ),
+        );
+      }
+    } finally {
+      if (mounted) {
+        setState(() => _sending = false);
+      }
     }
   }
 
-  // Novo método: botão estilizado inspirado no exemplo HTML/CSS
   Widget _buildSendButton() {
     final borderColor = const Color(0xFF3654FF);
     final borderRadius = BorderRadius.circular(11);
     final duration = const Duration(milliseconds: 300);
 
-    final backgroundColor = _isHover ? borderColor : Colors.transparent;
-    final textColor = _isHover ? Colors.white : borderColor;
+    final bool isDisabled = _sending;
+    final Color currentBorderColor = isDisabled ? Colors.grey : borderColor;
+    final Color currentBackgroundColor = isDisabled
+        ? Colors.grey.shade300
+        : (_isHover ? borderColor : Colors.transparent);
+    final Color currentTextColor = isDisabled
+        ? Colors.grey.shade600
+        : (_isHover ? Colors.white : borderColor);
 
     return MouseRegion(
       onEnter: (_) => setState(() => _isHover = true),
@@ -139,54 +174,55 @@ class _EsqueciSenhaContentState extends State<_EsqueciSenhaContent> {
         onTapDown: (_) => setState(() => _isPressed = true),
         onTapUp: (_) => setState(() => _isPressed = false),
         onTapCancel: () => setState(() => _isPressed = false),
-        onTap: _sending ? null : _send,
+        onTap: isDisabled ? null : _send,
         child: AnimatedContainer(
           duration: duration,
           curve: Curves.easeOut,
-          height: 46, // aproximadamente 2.9em
+          height: 46,
           decoration: BoxDecoration(
-            color: backgroundColor,
-            border: Border.all(color: borderColor, width: 2),
+            color: currentBackgroundColor,
+            border: Border.all(color: currentBorderColor, width: 2),
             borderRadius: borderRadius,
           ),
           child: Stack(
             alignment: Alignment.center,
             children: [
-              // Texto ou loading
               AnimatedOpacity(
                 duration: duration,
                 opacity: _sending ? 0.0 : 1.0,
                 child: Row(
                   mainAxisAlignment: MainAxisAlignment.center,
                   children: [
-                    // Ícone com animação de deslocamento (translate X)
                     AnimatedContainer(
                       duration: duration,
-                      transform: Matrix4.translationValues(_isHover ? 5.0 : 0.0, 0.0, 0.0),
+                      transform: Matrix4.translationValues(
+                          _isHover && !isDisabled ? 5.0 : 0.0, 0.0, 0.0),
                       child: Icon(
                         Icons.arrow_forward,
                         size: 20,
-                        color: textColor,
+                        color: currentTextColor,
                       ),
                     ),
                     const SizedBox(width: 10),
                     Text(
                       'Enviar',
                       style: TextStyle(
-                        color: textColor,
+                        color: currentTextColor,
                         fontWeight: FontWeight.bold,
                       ),
                     ),
                   ],
                 ),
               ),
-
-              // Loading quando enviando (sobrepõe o texto)
               if (_sending)
-                const SizedBox(
+                SizedBox(
                   height: 18,
                   width: 18,
-                  child: CircularProgressIndicator(strokeWidth: 2, valueColor: AlwaysStoppedAnimation<Color>(Colors.white)),
+                  child: CircularProgressIndicator(
+                    strokeWidth: 2,
+                    valueColor:
+                        AlwaysStoppedAnimation<Color>(Colors.grey.shade600),
+                  ),
                 ),
             ],
           ),
@@ -195,37 +231,34 @@ class _EsqueciSenhaContentState extends State<_EsqueciSenhaContent> {
     );
   }
 
-  // Novo método: botão Cancelar estilizado para combinar tamanho e fornecer feedback
   Widget _buildCancelButton() {
     final borderColor = widget.metroBlue;
     final borderRadius = BorderRadius.circular(11);
     final duration = const Duration(milliseconds: 220);
 
-    final backgroundColor = _isHoverCancel ? widget.metroBlue.withOpacity(0.08) : Colors.transparent;
-    final textColor = _isHoverCancel ? widget.metroBlue : widget.metroBlue;
+    final backgroundColor =
+        _isHoverCancel ? widget.metroBlue.withOpacity(0.08) : Colors.transparent;
 
     return MouseRegion(
       onEnter: (_) => setState(() => _isHoverCancel = true),
       onExit: (_) => setState(() => _isHoverCancel = false),
       child: GestureDetector(
-        onTapDown: (_) => {}, // opcional: adicionar efeito de pressionado
-        onTapUp: (_) => {}, // opcional
-        onTapCancel: () {}, // opcional
         onTap: _sending ? null : () => Navigator.of(context).pop(),
         child: AnimatedContainer(
           duration: duration,
           curve: Curves.easeOut,
-          height: 46, // igual ao botão Enviar
+          height: 46,
           decoration: BoxDecoration(
-            color: backgroundColor,
-            border: Border.all(color: borderColor, width: 2),
+            color: _sending ? Colors.grey.shade200 : backgroundColor,
+            border: Border.all(
+                color: _sending ? Colors.grey.shade400 : borderColor, width: 2),
             borderRadius: borderRadius,
           ),
           alignment: Alignment.center,
           child: Text(
             'Cancelar',
             style: TextStyle(
-              color: widget.metroBlue,
+              color: _sending ? Colors.grey.shade600 : widget.metroBlue,
               fontWeight: FontWeight.w600,
             ),
           ),
@@ -239,7 +272,6 @@ class _EsqueciSenhaContentState extends State<_EsqueciSenhaContent> {
     return Column(
       mainAxisSize: MainAxisSize.min,
       children: [
-        // Título centralizado
         Column(
           children: [
             Text(
@@ -259,9 +291,7 @@ class _EsqueciSenhaContentState extends State<_EsqueciSenhaContent> {
             ),
           ],
         ),
-
         const SizedBox(height: 18),
-
         Form(
           key: _formKey,
           child: Column(
@@ -276,7 +306,13 @@ class _EsqueciSenhaContentState extends State<_EsqueciSenhaContent> {
                 ),
                 validator: (v) {
                   if (v == null || v.trim().isEmpty) return 'Informe o email';
-                  if (!RegExp(r'^[^@]+@[^@]+\.[^@]+').hasMatch(v)) return 'Email inválido';
+                  final email = v.trim().toLowerCase();
+                  if (!RegExp(r'^[^@]+@[^@]+\.[^@]+').hasMatch(email)) {
+                    return 'Email inválido';
+                  }
+                  if (!_metroEmailRegex.hasMatch(email)) {
+                    return 'Use um e-mail @metrosp.com.br';
+                  }
                   return null;
                 },
                 onFieldSubmitted: (_) => _send(),
@@ -284,18 +320,14 @@ class _EsqueciSenhaContentState extends State<_EsqueciSenhaContent> {
             ],
           ),
         ),
-
         const SizedBox(height: 20),
-
         Row(
           children: [
             Expanded(
-              // Substituído: OutlinedButton -> botão customizado para ficar do mesmo tamanho e com hover sutil
               child: _buildCancelButton(),
             ),
             const SizedBox(width: 12),
             Expanded(
-              // Substituído: ElevatedButton -> botão customizado inspirado no HTML/CSS fornecido
               child: _buildSendButton(),
             ),
           ],

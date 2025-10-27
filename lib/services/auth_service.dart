@@ -28,8 +28,7 @@ class AuthService {
     return _desktopHost; // macOS/Windows/Linux
   }
 
-  static const String baseUrl = 'http://10.0.2.2:8080';
-  static const Duration _timeoutDuration = Duration(seconds: 30); // Aumentado de 5-10 para 30 segundos
+  static const Duration _timeoutDuration = Duration(seconds: 30);
 
   Future<bool> login({required String email, required String senha}) async {
     final normalizedEmail = email.trim().toLowerCase();
@@ -37,12 +36,12 @@ class AuthService {
 
     if (!_metroEmailRegex.hasMatch(normalizedEmail)) {
       debugPrint('Email fora do domínio permitido: $email');
-      return false;
+      throw Exception('Use um e-mail @metrosp.com.br');
     }
 
     if (trimmedPassword.isEmpty) {
       debugPrint('Senha não informada.');
-      return false;
+      throw Exception('Senha obrigatória');
     }
 
     final uri = Uri.parse('$_baseUrl/auth/login');
@@ -55,7 +54,8 @@ class AuthService {
       ).timeout(
         _timeoutDuration,
         onTimeout: () {
-          throw TimeoutException('Conexão com o servidor expirou. Tente novamente.');
+          throw TimeoutException(
+              'Conexão com o servidor expirou. Tente novamente.');
         },
       );
 
@@ -83,13 +83,58 @@ class AuthService {
       }
     } on TimeoutException catch (e) {
       print('Timeout: ${e.message}');
-      throw Exception('Conexão expirou. Verifique sua conexão com a internet e tente novamente.');
+      throw Exception(
+          'Conexão expirou. Verifique sua conexão com a internet e tente novamente.');
     } on http.ClientException catch (e) {
       print('Erro ao chamar /auth/login: $e');
-      throw Exception('Erro de conexão: ${e.message}. Verifique se o servidor está rodando.');
+      throw Exception(
+          'Erro de conexão: ${e.message}. Verifique se o servidor está rodando.');
     } catch (e) {
       print('Erro desconhecido: $e');
       throw Exception('Erro ao fazer login: $e');
+    }
+  }
+
+  Future<void> sendPasswordResetEmail({required String email}) async {
+    final normalizedEmail = email.trim().toLowerCase();
+
+    if (!_metroEmailRegex.hasMatch(normalizedEmail)) {
+      throw Exception('Use um e-mail @metrosp.com.br');
+    }
+
+    final uri = Uri.parse('$_baseUrl/auth/reset-password');
+
+    try {
+      final response = await _client.post(
+        uri,
+        headers: {'Content-Type': 'application/json'},
+        body: jsonEncode({'email': normalizedEmail}),
+      ).timeout(
+        _timeoutDuration,
+        onTimeout: () {
+          throw TimeoutException(
+              'Conexão com o servidor expirou. Tente novamente.');
+        },
+      );
+
+      if (response.statusCode == 200 || response.statusCode == 204) {
+        return;
+      } else if (response.statusCode == 404) {
+        throw Exception('Nenhum usuário encontrado para este email');
+      } else {
+        throw Exception('Erro do servidor: ${response.statusCode}');
+      }
+    } on TimeoutException catch (e) {
+      print('Timeout: ${e.message}');
+      throw Exception(
+          'Conexão expirou. Verifique sua conexão com a internet e tente novamente.');
+    } on http.ClientException catch (e) {
+      print('Erro ao chamar /auth/reset-password: $e');
+      throw Exception(
+          'Erro de conexão: ${e.message}. Verifique se o servidor está rodando.');
+    } catch (e) {
+      print('Erro desconhecido: $e');
+      throw Exception(e.toString().replaceAll("Exception: ", ""));
     }
   }
 
