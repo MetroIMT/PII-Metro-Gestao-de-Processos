@@ -3,6 +3,7 @@ import 'dart:math';
 import 'tool_page.dart';
 import 'estoque_page.dart';
 import 'alerts_page.dart';
+import 'reports_page.dart';
 import 'estoque_categorias_page.dart';
 import '../../services/auth_service.dart';
 import '../login/login_screen.dart';
@@ -281,11 +282,149 @@ class _HomeScreenState extends State<HomeScreen>
     );
   }
 
-  //
-  // OS MÉTODOS _buildSidebar E _sidebarItem FORAM REMOVIDOS DESTE ARQUIVO
-  //
+  // Barra lateral com menu de navegação
+  Widget _buildSidebar({bool expanded = false}) {
+    final metroBlue = const Color(0xFF001489);
+    final metroLightBlue = const Color(0xFF001489);
 
-  // Conteúdo do Dashboard baseado na imagem de referência (Sem alterações)
+    return Container(
+      width: expanded ? 180 : 70,
+      decoration: BoxDecoration(
+        gradient: LinearGradient(
+          begin: Alignment.topCenter,
+          end: Alignment.bottomCenter,
+          colors: [metroBlue, metroLightBlue.withOpacity(0.9)],
+        ),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withOpacity(0.2),
+            blurRadius: 8,
+            offset: const Offset(2, 0),
+          ),
+        ],
+      ),
+      child: Column(
+        children: [
+          // Aumentando o espaçamento no topo
+          const SizedBox(height: 60),
+          // Logo do Metrô no topo da sidebar
+          Container(
+            padding: const EdgeInsets.symmetric(vertical: 16),
+            decoration: BoxDecoration(
+              border: Border(
+                bottom: BorderSide(
+                  color: Colors.white.withOpacity(0.2),
+                  width: 1,
+                ),
+              ),
+            ),
+            child: Image.asset('assets/LogoMetro.png'),
+            height: 80,
+          ),
+          const SizedBox(height: 20),
+          _sidebarItem(Icons.bar_chart, 'Dashboard', 0, expanded),
+          _sidebarItem(Icons.assignment, 'Estoque', 1, expanded),
+          _sidebarItem(Icons.build, 'Ferramentas', 2, expanded),
+          _sidebarItem(Icons.article, 'Relatórios', 3, expanded),
+          const Spacer(),
+          // Item de logout
+          _sidebarItem(Icons.logout, 'Sair', 4, expanded),
+          const SizedBox(height: 16),
+        ],
+      ),
+    );
+  }
+
+  // Item individual da barra lateral
+  Widget _sidebarItem(IconData icon, String label, int index, bool expanded) {
+    final isSelected = _selectedIndex == index;
+    return InkWell(
+      onTap: () async {
+        setState(() {
+          _selectedIndex = index;
+        });
+
+        // Navegação para as diferentes páginas
+        switch (index) {
+          case 0:
+            // Navegar para perfil do usuário
+            break;
+          case 1:
+            Navigator.push(
+              context,
+              MaterialPageRoute(builder: (_) => const EstoqueCategoriasPage()),
+            );
+            break;
+          case 2:
+            Navigator.push(
+              context,
+              MaterialPageRoute(builder: (_) => const ToolPage()),
+            );
+            break;
+          case 3:
+            // Navegar para relatórios
+            break;
+          case 4:
+            // Lógica de logout: limpar sessão e voltar para login
+            try {
+              await AuthService().logout();
+            } catch (_) {}
+            if (!mounted) return;
+            Navigator.pushAndRemoveUntil(
+              context,
+              MaterialPageRoute(builder: (_) => const LoginPage()),
+              (route) => false,
+            );
+            break;
+        }
+      },
+      child: Container(
+        width: double.infinity,
+        padding: EdgeInsets.symmetric(
+          vertical: 16,
+          horizontal: expanded ? 16 : 0,
+        ),
+        decoration: BoxDecoration(
+          color: isSelected
+              ? Colors.white.withOpacity(0.2)
+              : Colors.transparent,
+          border: isSelected
+              ? Border(left: BorderSide(color: Colors.white, width: 3))
+              : null,
+        ),
+        child: expanded
+            // Layout expandido: ícone e texto lado a lado
+            ? Row(
+                children: [
+                  Icon(icon, color: Colors.white, size: 24),
+                  const SizedBox(width: 16),
+                  Expanded(
+                    child: Text(
+                      label,
+                      style: const TextStyle(
+                        color: Colors.white,
+                        fontSize: 14,
+                        fontWeight: FontWeight.w500,
+                      ),
+                    ),
+                  ),
+                ],
+              )
+            // Layout recolhido: apenas ícone com tooltip
+            : Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Tooltip(
+                    message: label,
+                    child: Icon(icon, color: Colors.white, size: 24),
+                  ),
+                ],
+              ),
+      ),
+    );
+  }
+
+  // Conteúdo do Dashboard baseado na imagem de referência
   Widget _buildDashboardContent() {
     final metroBlue = const Color(0xFF001489);
 
