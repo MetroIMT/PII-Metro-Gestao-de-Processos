@@ -55,11 +55,35 @@ class Sidebar extends StatelessWidget {
             height: 80,
           ),
           const SizedBox(height: 20),
+
+          // ÍCONE DE PERFIL
+          Container(
+            margin: const EdgeInsets.only(bottom: 16),
+            child: Column(
+              children: [
+                CircleAvatar(
+                  radius: 25,
+                  backgroundColor: Colors.white.withOpacity(0),
+                  child: const Icon(Icons.person, color: Colors.white, size: 28),
+                ),
+                if (expanded) ...[
+                  const SizedBox(height: 8),
+                  const Text(
+                    'Perfil',
+                    style: TextStyle(color: Colors.white, fontSize: 14),
+                  ),
+                ],
+              ],
+            ),
+          ),
+
+          // Itens do menu
           _sidebarItem(context, Icons.bar_chart, 'Dashboard', 0),
           _sidebarItem(context, Icons.assignment, 'Estoque', 1),
           _sidebarItem(context, Icons.build, 'Ferramentas', 2),
           _sidebarItem(context, Icons.article, 'Relatórios', 3),
           _sidebarItem(context, Icons.person_add, 'Gerenciar usuários', 4),
+
           const Spacer(),
           _sidebarItem(context, Icons.logout, 'Sair', 5),
           const SizedBox(height: 16),
@@ -68,7 +92,6 @@ class Sidebar extends StatelessWidget {
     );
   }
 
-  // Item individual da barra lateral (com navegação embutida)
   Widget _sidebarItem(
     BuildContext context,
     IconData icon,
@@ -79,7 +102,6 @@ class Sidebar extends StatelessWidget {
 
     return InkWell(
       onTap: () async {
-        // Se já estiver na página selecionada, só fecha o drawer (se mobile)
         if (isSelected) {
           if (MediaQuery.of(context).size.width < 600) {
             Navigator.pop(context);
@@ -87,7 +109,6 @@ class Sidebar extends StatelessWidget {
           return;
         }
 
-        // Navegação com pushReplacement
         switch (index) {
           case 0:
             Navigator.pushReplacement(
@@ -120,7 +141,6 @@ class Sidebar extends StatelessWidget {
             );
             break;
           case 5:
-            // Lógica de logout
             try {
               await AuthService().logout();
             } catch (_) {}
@@ -140,15 +160,13 @@ class Sidebar extends StatelessWidget {
           horizontal: expanded ? 16 : 0,
         ),
         decoration: BoxDecoration(
-          color: isSelected
-              ? Colors.white.withOpacity(0.2)
-              : Colors.transparent,
+          color:
+              isSelected ? Colors.white.withOpacity(0.2) : Colors.transparent,
           border: isSelected
               ? const Border(left: BorderSide(color: Colors.white, width: 3))
               : null,
         ),
         child: expanded
-            // Layout expandido
             ? Row(
                 children: [
                   Icon(icon, color: Colors.white, size: 24),
@@ -165,7 +183,6 @@ class Sidebar extends StatelessWidget {
                   ),
                 ],
               )
-            // Layout recolhido
             : Column(
                 mainAxisSize: MainAxisSize.min,
                 children: [

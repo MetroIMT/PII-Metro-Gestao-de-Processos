@@ -143,21 +143,14 @@ class _LoginPageState extends State<LoginPage> {
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
                         const Text(
-                          'Bem-vindo',
+                          'Bem-vindo de volta!',
                           style: TextStyle(
                             fontSize: 36,
                             color: Colors.white,
-                            fontWeight: FontWeight.w300,
-                          ),
-                        ),
-                        const Text(
-                          'de volta!',
-                          style: TextStyle(
-                            fontSize: 36,
                             fontWeight: FontWeight.bold,
-                            color: Colors.white,
                           ),
                         ),
+                      
                         const SizedBox(height: 20),
                         Container(
                           width: 80,
