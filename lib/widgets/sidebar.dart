@@ -6,6 +6,8 @@ import '../screens/home/tool_page.dart';
 import '../screens/home/gerenciar_usuarios.dart';
 import '../screens/home/home_screen.dart';
 import '../screens/home/reports_page.dart';
+import '../screens/home/admin_page.dart';
+
 
 class Sidebar extends StatelessWidget {
   final bool expanded;
@@ -59,23 +61,33 @@ class Sidebar extends StatelessWidget {
           // ÍCONE DE PERFIL
           Container(
             margin: const EdgeInsets.only(bottom: 16),
-            child: Column(
-              children: [
-                CircleAvatar(
-                  radius: 25,
-                  backgroundColor: Colors.white.withOpacity(0),
-                  child: const Icon(Icons.person, color: Colors.white, size: 28),
-                ),
-                if (expanded) ...[
-                  const SizedBox(height: 8),
-                  const Text(
-                    'Perfil',
-                    style: TextStyle(color: Colors.white, fontSize: 14),
+            child: InkWell(
+              onTap: () {
+                Navigator.pushReplacement(
+                  context,
+                  MaterialPageRoute(builder: (_) => AdminPage()),
+                );
+              },
+              borderRadius: BorderRadius.circular(50),
+              child: Column(
+                children: [
+                  CircleAvatar(
+                    radius: 25,
+                    backgroundColor: Colors.white.withOpacity(0),
+                    child: const Icon(Icons.person, color: Colors.white, size: 28),
                   ),
+                  if (expanded) ...[
+                    const SizedBox(height: 8),
+                    const Text(
+                      'Perfil',
+                      style: TextStyle(color: Colors.white, fontSize: 14),
+                    ),
+                  ],
                 ],
-              ],
+              ),
             ),
           ),
+
 
           // Itens do menu
           _sidebarItem(context, Icons.bar_chart, 'Dashboard', 0),
