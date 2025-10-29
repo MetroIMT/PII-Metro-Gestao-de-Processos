@@ -1,13 +1,14 @@
-import 'dart:io';
-import 'package:pdf/pdf.dart';
-import 'package:pdf/widgets.dart' as pw;
+// pdf_service.dart
+import 'dart:io' show File;
+import 'package:flutter/foundation.dart' show kIsWeb;
 import 'package:path_provider/path_provider.dart';
-import 'package:open_file/open_file.dart';
+import 'package:pdf/widgets.dart' as pw;
+import 'package:printing/printing.dart';
 
 class PdfService {
   static Future<void> generateReport({
     required String title,
-    required List<Map<String, dynamic>> data,
+    required List<Map<String, String>> data,
     required DateTime startDate,
     required DateTime endDate,
   }) async {
@@ -15,60 +16,40 @@ class PdfService {
 
     pdf.addPage(
       pw.MultiPage(
-        header: (context) => pw.Header(
-          level: 0,
-          child: pw.Text('Relatório de Movimentação: $title'),
-        ),
         build: (context) => [
-          pw.Header(
-            level: 1,
-            text: 'Período: ${startDate.day}/${startDate.month}/${startDate.year} - ${endDate.day}/${endDate.month}/${endDate.year}',
-          ),
-          pw.Table(
-            border: pw.TableBorder.all(),
-            children: [
-              // Cabeçalho
-              pw.TableRow(
-                decoration: pw.BoxDecoration(color: PdfColors.grey300),
-                children: [
-                  'Data',
-                  'Item',
-                  'Categoria',
-                  'Quantidade',
-                  'Usuário',
-                ].map((header) => pw.Container(
-                  padding: const pw.EdgeInsets.all(8),
-                  child: pw.Text(
-                    header,
-                    style: pw.TextStyle(fontWeight: pw.FontWeight.bold),
-                  ),
-                )).toList(),
-              ),
-              // Dados
-              ...data.map((item) => pw.TableRow(
-                children: [
-                  item['data'].toString(),
-                  item['item'].toString(),
-                  item['categoria'].toString(),
-                  item['quantidade'].toString(),
-                  item['usuario'].toString(),
-                ].map((cell) => pw.Container(
-                  padding: const pw.EdgeInsets.all(8),
-                  child: pw.Text(cell),
-                )).toList(),
-              )).toList(),
-            ],
+          pw.Text(title, style: pw.TextStyle(fontSize: 18)),
+          pw.SizedBox(height: 8),
+          pw.Text('Período: ${startDate.day}/${startDate.month}/${startDate.year} '
+              'a ${endDate.day}/${endDate.month}/${endDate.year}'),
+          pw.SizedBox(height: 16),
+          pw.Table.fromTextArray(
+            headers: ['Data', 'Item', 'Categoria', 'Qntd', 'Usuário'],
+            data: data.map((r) => [
+              r['data'] ?? '',
+              r['item'] ?? '',
+              r['categoria'] ?? '',
+              r['quantidade'] ?? '',
+              r['usuario'] ?? '',
+            ]).toList(),
           ),
         ],
       ),
     );
 
-    // Salvar o arquivo
-    final output = await getTemporaryDirectory();
-    final file = File('${output.path}/relatorio_${DateTime.now().millisecondsSinceEpoch}.pdf');
-    await file.writeAsBytes(await pdf.save());
+    final bytes = await pdf.save();
 
-    // Abrir o arquivo
-    await OpenFile.open(file.path);
+    if (kIsWeb) {
+      // Abre o diálogo de impressão/“salvar como PDF” no navegador
+      await Printing.layoutPdf(onLayout: (format) async => bytes);
+      return;
+    }
+
+    // Android/iOS/desktop
+    final dir = await getTemporaryDirectory();
+    final filePath =
+        '${dir.path}/relatorio_${DateTime.now().millisecondsSinceEpoch}.pdf';
+    final file = File(filePath);
+    await file.writeAsBytes(bytes, flush: true);
+
   }
 }

@@ -76,7 +76,7 @@ class _RelatoriosPageState extends State<RelatoriosPage>
                 },
               ),
               title: const Text(
-                'Relatórios', // <-- TÍTULO ATUALIZADO
+                'Relatórios', 
                 style: TextStyle(
                   color: Color(0xFF001489),
                   fontWeight: FontWeight.bold,
@@ -95,7 +95,7 @@ class _RelatoriosPageState extends State<RelatoriosPage>
           ? Drawer(
               child: Sidebar(
                 expanded: true,
-                selectedIndex: 3, // <-- ÍNDICE ATUALIZADO (3 = Relatórios)
+                selectedIndex: 3, 
               ),
             )
           : null,
@@ -227,6 +227,7 @@ class _RelatoriosPageState extends State<RelatoriosPage>
               ),
               const SizedBox(height: 16),
               const Text('Período'),
+
               TextFormField(
                 
                 controller: TextEditingController(
@@ -251,6 +252,32 @@ class _RelatoriosPageState extends State<RelatoriosPage>
                   }
                 },
               ),
+
+              const SizedBox(height: 16),
+            TextFormField(
+
+              controller: TextEditingController(
+              text: _selectedEndDate == null
+                  ? ''
+                  : "${_selectedEndDate!.day}/${_selectedEndDate!.month}/${_selectedEndDate!.year}",
+            ),
+              readOnly: true,
+              decoration: const InputDecoration(
+              hintText: 'Data final',
+              suffixIcon: Icon(Icons.calendar_today),
+            ),
+              onTap: () async {
+              final date = await showDatePicker(
+                context: context,
+                initialDate: DateTime.now(),
+                firstDate: DateTime(2000),
+                lastDate: DateTime(2100),
+              );
+              if (date != null) {
+                setState(() => _selectedEndDate = date);
+              }
+            },
+          ),
               
               const SizedBox(height: 16),
               const Text('Tipos de Item'),
@@ -343,6 +370,27 @@ class _RelatoriosPageState extends State<RelatoriosPage>
                         'quantidade': '1',
                         'usuario': 'Ana Silva',
                       },
+                      {
+                        'data': '25/10/2025',
+                        'item': 'Parafuso ABC',
+                        'categoria': 'Material',
+                        'quantidade': '-20',
+                        'usuario': 'Carlos Souza',
+                      },
+                      {
+                        'data': '24/10/2025',
+                        'item': 'Chave de Fenda',
+                        'categoria': 'Instrumento',
+                        'quantidade': '2',
+                        'usuario': 'Mariana Lima',
+                      },
+                      {
+                        'data': '23/10/2025',
+                        'item': 'Fita Isolante',
+                        'categoria': 'Material',
+                        'quantidade': '-10',
+                        'usuario': 'Pedro Alves',
+                      },
                     ];
 
                     try {
@@ -396,7 +444,7 @@ class _RelatoriosPageState extends State<RelatoriosPage>
                       // Exemplo de linha, substitua por seus dados
                       DataRow(
                         cells: [
-                          DataCell(Text('27/10/2025')),
+                          DataCell(Text('21/10/2025')),
                           DataCell(Text('Cabo Elétrico')),
                           DataCell(Text('Material')),
                           DataCell(Text('-5')),
@@ -405,11 +453,38 @@ class _RelatoriosPageState extends State<RelatoriosPage>
                       ),
                       DataRow(
                         cells: [
-                          DataCell(Text('26/10/2025')),
+                          DataCell(Text('22/10/2025')),
                           DataCell(Text('Multímetro XYZ')),
                           DataCell(Text('Instrumento')),
                           DataCell(Text('1')),
                           DataCell(Text('Ana Silva')),
+                        ],
+                      ),
+                      DataRow(
+                        cells: [
+                          DataCell(Text('22/10/2025')),
+                          DataCell(Text('Parafuso ABC')),
+                          DataCell(Text('Material')),
+                          DataCell(Text('-20')),
+                          DataCell(Text('Carlos Souza')),
+                        ],
+                      ),
+                      DataRow(
+                        cells: [
+                          DataCell(Text('24/10/2025')),
+                          DataCell(Text('Chave de Fenda')),
+                          DataCell(Text('Instrumento')),
+                          DataCell(Text('2')),
+                          DataCell(Text('Mariana Lima')),
+                        ],
+                      ),
+                      DataRow(
+                        cells: [
+                          DataCell(Text('25/10/2025')),
+                          DataCell(Text('Fita Isolante')),
+                          DataCell(Text('Material')),
+                          DataCell(Text('-10')),
+                          DataCell(Text('Pedro Alves')),
                         ],
                       ),
                     ],
