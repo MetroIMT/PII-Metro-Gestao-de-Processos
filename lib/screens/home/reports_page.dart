@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
-import '../../widgets/sidebar.dart'; // 1. IMPORTAR A SIDEBAR
+import '../../widgets/sidebar.dart'; 
+import '../../services/pdf_service.dart';  
+
 
 class RelatoriosPage extends StatefulWidget {
   const RelatoriosPage({Key? key}) : super(key: key);
@@ -8,12 +10,10 @@ class RelatoriosPage extends StatefulWidget {
   State<RelatoriosPage> createState() => _RelatoriosPageState();
 }
 
-// 2. ADICIONAR O 'SingleTickerProviderStateMixin'
+
 class _RelatoriosPageState extends State<RelatoriosPage>
     with SingleTickerProviderStateMixin {
-  //
-  // --- Início da Lógica de Layout (IDÊNTICA à GerenciarUsuarios) ---
-  //
+
   bool _isRailExtended = false;
   late AnimationController _animationController;
   final GlobalKey<ScaffoldState> _scaffoldKey = GlobalKey<ScaffoldState>();
@@ -43,28 +43,24 @@ class _RelatoriosPageState extends State<RelatoriosPage>
       }
     });
   }
-  //
-  // --- Fim da Lógica de Layout ---
-  //
+
 
   // Variáveis de estado originais da página de Relatórios
   DateTime? _selectedStartDate;
   DateTime? _selectedEndDate;
   String? _selectedItemType;
   String? _selectedBase;
-  final Color backgroundColor = const Color(0xFFF4F5FA); // Fundo cinza
+  final Color backgroundColor = const Color(0xFFF4F5FA); 
 
   @override
   Widget build(BuildContext context) {
-    // 3. Detectar se está em modo mobile
+    
     final isMobile = MediaQuery.of(context).size.width < 600;
 
-    // 4. Usar o Scaffold com a nova estrutura
     return Scaffold(
       key: _scaffoldKey,
       backgroundColor: backgroundColor,
 
-      // 5. AppBar apenas no mobile
       appBar: isMobile
           ? AppBar(
               elevation: 0,
@@ -95,7 +91,6 @@ class _RelatoriosPageState extends State<RelatoriosPage>
             )
           : null,
 
-      // 6. Drawer apenas no mobile
       drawer: isMobile
           ? Drawer(
               child: Sidebar(
@@ -105,10 +100,8 @@ class _RelatoriosPageState extends State<RelatoriosPage>
             )
           : null,
 
-      // 7. Body com Stack para o layout desktop
       body: Stack(
         children: [
-          // 8. Barra lateral fixa em desktop
           if (!isMobile)
             AnimatedPositioned(
               duration: const Duration(milliseconds: 300),
@@ -119,11 +112,10 @@ class _RelatoriosPageState extends State<RelatoriosPage>
               width: _isRailExtended ? 180 : 70,
               child: Sidebar(
                 expanded: _isRailExtended,
-                selectedIndex: 3, // <-- ÍNDICE ATUALIZADO (3 = Relatórios)
+                selectedIndex: 3, 
               ),
             ),
 
-          // 9. Conteúdo principal (com o padding animado)
           AnimatedPadding(
             duration: const Duration(milliseconds: 300),
             padding: EdgeInsets.only(
@@ -132,7 +124,6 @@ class _RelatoriosPageState extends State<RelatoriosPage>
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                // 10. Cabeçalho com título (apenas em desktop)
                 if (!isMobile)
                   Padding(
                     padding: const EdgeInsets.all(16.0),
@@ -150,7 +141,7 @@ class _RelatoriosPageState extends State<RelatoriosPage>
                             ),
                             const SizedBox(width: 12),
                             const Text(
-                              'Relatórios', // <-- TÍTULO ATUALIZADO
+                              'Relatórios',
                               style: TextStyle(
                                 fontSize: 24,
                                 fontWeight: FontWeight.bold,
@@ -164,11 +155,7 @@ class _RelatoriosPageState extends State<RelatoriosPage>
                     ),
                   ),
 
-                //
-                // 11. INÍCIO DO CONTEÚDO ORIGINAL DE RELATÓRIOS
-                //
-
-                // Descrição da página
+                
                 Padding(
                   padding: EdgeInsets.fromLTRB(16, isMobile ? 16 : 0, 16, 16),
                   child: const Text(
@@ -177,18 +164,18 @@ class _RelatoriosPageState extends State<RelatoriosPage>
                   ),
                 ),
 
-                // Conteúdo (Filtros e Resultados)
+                
                 Expanded(
                   child: Padding(
                     padding: const EdgeInsets.fromLTRB(16, 0, 16, 16),
-                    // LayoutBuilder para tornar responsivo (opcional, mas recomendado)
+                    
                     child: LayoutBuilder(
                       builder: (context, constraints) {
-                        // Se a tela for muito estreita, bota um filtro em cima do outro
+                        
                         bool isNarrow = constraints.maxWidth < 700;
 
                         if (isNarrow) {
-                          // Modo Coluna (telas estreitas)
+                          
                           return SingleChildScrollView(
                             child: Column(
                               children: [
@@ -199,7 +186,7 @@ class _RelatoriosPageState extends State<RelatoriosPage>
                             ),
                           );
                         } else {
-                          // Modo Linha (telas largas)
+                          
                           return Row(
                             crossAxisAlignment: CrossAxisAlignment.start,
                             children: [
@@ -213,10 +200,6 @@ class _RelatoriosPageState extends State<RelatoriosPage>
                     ),
                   ),
                 ),
-
-                //
-                // FIM DO CONTEÚDO ORIGINAL
-                //
               ],
             ),
           ),
@@ -225,18 +208,14 @@ class _RelatoriosPageState extends State<RelatoriosPage>
     );
   }
 
-  //
-  // WIDGETS DE CONTEÚDO (Extraídos do seu código original)
-  //
 
-  /// Constrói o Card de Filtros
   Widget _buildFilterCard() {
     return Card(
       elevation: 2,
       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
       child: Padding(
         padding: const EdgeInsets.all(16.0),
-        // Adicionado para evitar overflow em telas menores
+        
         child: SingleChildScrollView(
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
@@ -249,7 +228,7 @@ class _RelatoriosPageState extends State<RelatoriosPage>
               const SizedBox(height: 16),
               const Text('Período'),
               TextFormField(
-                // O controller deve ser usado para exibir a data
+                
                 controller: TextEditingController(
                   text: _selectedStartDate == null
                       ? ''
@@ -272,7 +251,7 @@ class _RelatoriosPageState extends State<RelatoriosPage>
                   }
                 },
               ),
-              // Adicione o TextFormField para _selectedEndDate se necessário
+              
               const SizedBox(height: 16),
               const Text('Tipos de Item'),
               DropdownButtonFormField<String>(
@@ -309,7 +288,7 @@ class _RelatoriosPageState extends State<RelatoriosPage>
                 width: double.infinity,
                 child: ElevatedButton(
                   onPressed: () {
-                    // Implement filter logic
+                    
                   },
                   child: const Text('Aplicar filtro'),
                 ),
@@ -321,7 +300,7 @@ class _RelatoriosPageState extends State<RelatoriosPage>
     );
   }
 
-  /// Constrói o Card de Resultados
+  
   Widget _buildResultsCard() {
     return Card(
       elevation: 2,
@@ -338,18 +317,56 @@ class _RelatoriosPageState extends State<RelatoriosPage>
               alignment: WrapAlignment.end,
               children: [
                 ElevatedButton.icon(
-                  onPressed: () {
-                    // PDF export
+                  onPressed: () async {
+                    if (_selectedStartDate == null || _selectedEndDate == null) {
+                      ScaffoldMessenger.of(context).showSnackBar(
+                        const SnackBar(
+                          content: Text('Selecione um período para gerar o relatório'),
+                        ),
+                      );
+                      return;
+                    }
+
+                    // Exemplo de dados - substitua pelos dados reais da sua tabela
+                    final dados = [
+                      {
+                        'data': '27/10/2025',
+                        'item': 'Cabo Elétrico',
+                        'categoria': 'Material',
+                        'quantidade': '-5',
+                        'usuario': 'João Pereira',
+                      },
+                      {
+                        'data': '26/10/2025',
+                        'item': 'Multímetro XYZ',
+                        'categoria': 'Instrumento',
+                        'quantidade': '1',
+                        'usuario': 'Ana Silva',
+                      },
+                    ];
+
+                    try {
+                      await PdfService.generateReport(
+                        title: 'Movimentação de Itens',
+                        data: dados,
+                        startDate: _selectedStartDate!,
+                        endDate: _selectedEndDate!,
+                      );
+                    } catch (e) {
+                      ScaffoldMessenger.of(context).showSnackBar(
+                        SnackBar(content: Text('Erro ao gerar PDF: ${e.toString()}')),
+                      );
+                    }
                   },
                   icon: const Icon(Icons.picture_as_pdf, size: 18),
                   label: const Text('Exportar PDF'),
                 ),
                 ElevatedButton.icon(
                   onPressed: () {
-                    // EXEL export
+                    // EXCEL export
                   },
                   icon: const Icon(Icons.table_chart, size: 18),
-                  label: const Text('Exportar EXEL'),
+                  label: const Text('Exportar EXCEL'),
                 ),
                 ElevatedButton.icon(
                   onPressed: () {
