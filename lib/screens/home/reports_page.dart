@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
 import '../../widgets/sidebar.dart'; 
 import '../../services/pdf_service.dart';  
+import '../../services/excel_service.dart';
+
 
 
 class RelatoriosPage extends StatefulWidget {
@@ -410,8 +412,68 @@ class _RelatoriosPageState extends State<RelatoriosPage>
                   label: const Text('Exportar PDF'),
                 ),
                 ElevatedButton.icon(
-                  onPressed: () {
-                    // EXCEL export
+                  onPressed: () async {
+                    if (_selectedStartDate == null || _selectedEndDate == null) {
+                      ScaffoldMessenger.of(context).showSnackBar(
+                        const SnackBar(
+                          content: Text('Selecione um período para gerar o relatório'),
+                          ),
+                        );
+                        return;
+                      }
+
+                      final dados = [
+                        {
+                          'data': '27/10/2025',
+                          'item': 'Cabo Elétrico',
+                          'categoria': 'Material',
+                          'quantidade': '-5',
+                          'usuario': 'João Pereira',
+                        },
+                        {
+                          'data': '26/10/2025',
+                          'item': 'Multímetro XYZ',
+                          'categoria': 'Instrumento',
+                          'quantidade': '1',
+                          'usuario': 'Ana Silva',
+                        },
+                        {
+                          'data': '25/10/2025',
+                          'item': 'Parafuso ABC',
+                          'categoria': 'Material',
+                          'quantidade': '-20',
+                          'usuario': 'Carlos Souza',
+                        },
+                        {
+                          'data': '24/10/2025',
+                          'item': 'Chave de Fenda',
+                          'categoria': 'Instrumento',
+                          'quantidade': '2',
+                          'usuario': 'Mariana Lima',
+                        },
+                        {
+                          'data': '23/10/2025',
+                          'item': 'Fita Isolante',
+                          'categoria': 'Material',
+                          'quantidade': '-10',
+                          'usuario': 'Pedro Alves',
+                        },
+                      ];
+
+                      try {
+                        await ExcelService.generateReport(
+                          title: 'Movimentação de Itens',
+                          data: dados,
+                          startDate: _selectedStartDate!,
+                          endDate: _selectedEndDate!,
+                        );
+                      } catch (e) {
+                        ScaffoldMessenger.of(context).showSnackBar(
+                          const SnackBar(
+                            content: Text('Selecione um período para gerar o relatório'),
+                          ),
+                        );
+                      }
                   },
                   icon: const Icon(Icons.table_chart, size: 18),
                   label: const Text('Exportar EXCEL'),
