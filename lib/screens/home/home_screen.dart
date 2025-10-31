@@ -1,15 +1,14 @@
 import 'package:flutter/material.dart';
 import 'dart:math';
-import 'tool_page.dart';
+// import 'tool_page.dart'; // removido: import não utilizado
 import 'estoque_page.dart';
 import 'alerts_page.dart';
 import 'reports_page.dart';
 import 'estoque_categorias_page.dart';
-import '../../services/auth_service.dart';
-import '../login/login_screen.dart';
+// imports removidos: auth_service e login_screen não utilizados nesta tela
 import '../../repositories/alert_repository.dart';
 import 'gerenciar_usuarios.dart';
-import '../../widgets/sidebar.dart'; 
+import '../../widgets/sidebar.dart';
 
 // Classe para desenhar o gráfico de pizza do estoque (Sem alterações)
 class PieChartPainter extends CustomPainter {
@@ -31,8 +30,8 @@ class PieChartPainter extends CustomPainter {
     final center = Offset(size.width / 2, size.height / 2);
     final radius = min(size.width, size.height) / 2;
     final rect = Rect.fromCircle(center: center, radius: radius);
-    final corDisponivelClara = corDisponivel.withOpacity(0.8);
-    final corEmFaltaClara = corEmFalta.withOpacity(0.8);
+    final corDisponivelClara = corDisponivel.withAlpha((0.8 * 255).round());
+    final corEmFaltaClara = corEmFalta.withAlpha((0.8 * 255).round());
     final paintDisponivel = Paint()
       ..style = PaintingStyle.fill
       ..color = corDisponivelClara;
@@ -92,7 +91,6 @@ class HomeScreen extends StatefulWidget {
 
 class _HomeScreenState extends State<HomeScreen>
     with SingleTickerProviderStateMixin {
-  
   // A lógica de estado da sidebar (animação) permanece na página
   bool _isRailExtended = false;
   late AnimationController _animationController;
@@ -116,7 +114,9 @@ class _HomeScreenState extends State<HomeScreen>
   @override
   void dispose() {
     // Remover listener para evitar leaks
-    AlertRepository.instance.countNotifier.removeListener(_onAlertsCountChanged);
+    AlertRepository.instance.countNotifier.removeListener(
+      _onAlertsCountChanged,
+    );
     _animationController.dispose();
     super.dispose();
   }
@@ -173,7 +173,7 @@ class _HomeScreenState extends State<HomeScreen>
               ],
             )
           : null,
-      
+
       // ATUALIZADO: Usa o novo widget Sidebar (CORRETO)
       drawer: isMobile
           ? Drawer(
@@ -183,7 +183,7 @@ class _HomeScreenState extends State<HomeScreen>
               ),
             )
           : null,
-      
+
       body: Stack(
         children: [
           // Barra lateral fixa em desktop (posicionada sobre o conteúdo)
@@ -267,14 +267,14 @@ class _HomeScreenState extends State<HomeScreen>
 
   //
   //
-  // OS MÉTODOS ANTIGOS _buildSidebar E _sidebarItem (QUE ESTAVAM DAQUI PARA BAIXO) 
+  // OS MÉTODOS ANTIGOS _buildSidebar E _sidebarItem (QUE ESTAVAM DAQUI PARA BAIXO)
   // FORAM REMOVIDOS.
   //
   //
 
   // Conteúdo do Dashboard baseado na imagem de referência
   Widget _buildDashboardContent() {
-    final metroBlue = const Color(0xFF001489);
+    // metroBlue usado mais abaixo dentro _buildEstoqueCard; manter definição local lá
 
     return LayoutBuilder(
       builder: (context, constraints) {
@@ -293,7 +293,9 @@ class _HomeScreenState extends State<HomeScreen>
             _buildEstoqueCard(
               () => Navigator.push(
                 context,
-                MaterialPageRoute(builder: (_) => const EstoqueCategoriasPage()),
+                MaterialPageRoute(
+                  builder: (_) => const EstoqueCategoriasPage(),
+                ),
               ),
             ),
 
@@ -331,33 +333,33 @@ class _HomeScreenState extends State<HomeScreen>
               color2: Colors.red.shade200,
             ),
 
-              // Card Gerenciar Usuários
-              _buildDashboardCard(
-                'Gerenciar Usuários',
-                Icons.people,
-                Colors.blue,
-                () {
-                  Navigator.push(
-                    context,
-                    MaterialPageRoute(builder: (_) => const GerenciarUsuarios()),
-                  );
-                },
-                color2: Colors.blue.shade200,
-              ),
+            // Card Gerenciar Usuários
+            _buildDashboardCard(
+              'Gerenciar Usuários',
+              Icons.people,
+              Colors.blue,
+              () {
+                Navigator.push(
+                  context,
+                  MaterialPageRoute(builder: (_) => const GerenciarUsuarios()),
+                );
+              },
+              color2: Colors.blue.shade200,
+            ),
 
-              // Card Relatórios
-              _buildDashboardCard(
-                'Relatórios',
-                Icons.insert_chart,
-                const Color.fromARGB(255, 231, 126, 6),
-                () {
-                  Navigator.push(
-                    context,
-                    MaterialPageRoute(builder: (_) => const RelatoriosPage()),
-                  );
-                },
-                color2: const Color.fromARGB(255, 219, 193, 153),
-              ),
+            // Card Relatórios
+            _buildDashboardCard(
+              'Relatórios',
+              Icons.insert_chart,
+              const Color.fromARGB(255, 231, 126, 6),
+              () {
+                Navigator.push(
+                  context,
+                  MaterialPageRoute(builder: (_) => const RelatoriosPage()),
+                );
+              },
+              color2: const Color.fromARGB(255, 219, 193, 153),
+            ),
           ],
         );
       },
@@ -421,10 +423,12 @@ class _HomeScreenState extends State<HomeScreen>
 
     // Cálculos dos valores baseados nos dados acima
     final int totalMateriais = materiais.length;
-    final int materiaisDisponiveis =
-        materiais.where((m) => m.quantidade > 0).length;
-    final int materiaisEmFalta =
-        materiais.where((m) => m.quantidade <= 0).length;
+    final int materiaisDisponiveis = materiais
+        .where((m) => m.quantidade > 0)
+        .length;
+    final int materiaisEmFalta = materiais
+        .where((m) => m.quantidade <= 0)
+        .length;
     final double porcentagemDisponivel =
         (materiaisDisponiveis / totalMateriais) * 100;
 
@@ -447,7 +451,7 @@ class _HomeScreenState extends State<HomeScreen>
             borderRadius: BorderRadius.circular(12),
             boxShadow: [
               BoxShadow(
-                color: metroBlue.withOpacity(0.1),
+                color: metroBlue.withAlpha((0.1 * 255).round()),
                 blurRadius: 8,
                 offset: const Offset(0, 3),
               ),
@@ -472,7 +476,7 @@ class _HomeScreenState extends State<HomeScreen>
                         borderRadius: BorderRadius.circular(10),
                         boxShadow: [
                           BoxShadow(
-                            color: metroBlue.withOpacity(0.3),
+                            color: metroBlue.withAlpha((0.3 * 255).round()),
                             blurRadius: 4,
                             offset: const Offset(0, 2),
                           ),
@@ -505,8 +509,8 @@ class _HomeScreenState extends State<HomeScreen>
                         color: porcentagemDisponivel > 85
                             ? Colors.green
                             : porcentagemDisponivel > 70
-                                ? Colors.orange
-                                : Colors.red,
+                            ? Colors.orange
+                            : Colors.red,
                         borderRadius: BorderRadius.circular(12),
                       ),
                       child: Text(
@@ -613,7 +617,7 @@ class _HomeScreenState extends State<HomeScreen>
         Container(
           padding: const EdgeInsets.all(8),
           decoration: BoxDecoration(
-            color: color.withOpacity(0.1),
+            color: color.withAlpha((0.1 * 255).round()),
             borderRadius: BorderRadius.circular(8),
           ),
           child: Icon(icon, color: color, size: 20),
@@ -651,7 +655,7 @@ class _HomeScreenState extends State<HomeScreen>
     Color? color2,
     int? alertCount, // novo parâmetro opcional
   }) {
-    final gradientColor = color2 ?? color.withOpacity(0.6);
+    final gradientColor = color2 ?? color.withAlpha((0.6 * 255).round());
 
     return Material(
       elevation: 4,
@@ -669,7 +673,7 @@ class _HomeScreenState extends State<HomeScreen>
             borderRadius: BorderRadius.circular(12),
             boxShadow: [
               BoxShadow(
-                color: color.withOpacity(0.1),
+                color: color.withAlpha((0.1 * 255).round()),
                 blurRadius: 8,
                 offset: const Offset(0, 3),
               ),
@@ -693,7 +697,7 @@ class _HomeScreenState extends State<HomeScreen>
                         borderRadius: BorderRadius.circular(10),
                         boxShadow: [
                           BoxShadow(
-                            color: color.withOpacity(0.3),
+                            color: color.withAlpha((0.3 * 255).round()),
                             blurRadius: 4,
                             offset: const Offset(0, 2),
                           ),
@@ -723,7 +727,7 @@ class _HomeScreenState extends State<HomeScreen>
                           borderRadius: BorderRadius.circular(20),
                           boxShadow: [
                             BoxShadow(
-                              color: Colors.red.withOpacity(0.3),
+                              color: Colors.red.withAlpha((0.3 * 255).round()),
                               blurRadius: 4,
                               offset: const Offset(0, 2),
                             ),
@@ -777,8 +781,8 @@ class CardActionButton extends StatefulWidget {
     required this.label,
     required this.borderColor,
     required this.onPressed,
-    Key? key,
-  }) : super(key: key);
+    super.key,
+  });
 
   @override
   State<CardActionButton> createState() => _CardActionButtonState();
@@ -829,8 +833,11 @@ class _CardActionButtonState extends State<CardActionButton> {
                 children: [
                   AnimatedContainer(
                     duration: _duration,
-                    transform:
-                        Matrix4.translationValues(_isHover ? 5.0 : 0.0, 0.0, 0.0),
+                    transform: Matrix4.translationValues(
+                      _isHover ? 5.0 : 0.0,
+                      0.0,
+                      0.0,
+                    ),
                     child: Icon(
                       Icons.arrow_forward,
                       size: 16,

@@ -8,8 +8,7 @@ import '../screens/home/home_screen.dart';
 import '../screens/home/reports_page.dart';
 import '../screens/home/admin_page.dart';
 
-
-class Sidebar extends StatelessWidget {
+class Sidebar extends StatefulWidget {
   final bool expanded;
   final int selectedIndex;
 
@@ -20,9 +19,33 @@ class Sidebar extends StatelessWidget {
   });
 
   @override
+  State<Sidebar> createState() => _SidebarState();
+}
+
+class _SidebarState extends State<Sidebar> {
+  String? _role;
+
+  @override
+  void initState() {
+    super.initState();
+    _loadRole();
+  }
+
+  Future<void> _loadRole() async {
+    try {
+      final r = await AuthService().role;
+      if (mounted) setState(() => _role = r);
+    } catch (_) {
+      // ignore
+    }
+  }
+
+  @override
   Widget build(BuildContext context) {
     final metroBlue = const Color(0xFF001489);
     final metroLightBlue = const Color(0xFF001489);
+    final expanded = widget.expanded;
+    final selectedIndex = widget.selectedIndex;
 
     return Container(
       width: expanded ? 180 : 70,
@@ -30,11 +53,11 @@ class Sidebar extends StatelessWidget {
         gradient: LinearGradient(
           begin: Alignment.topCenter,
           end: Alignment.bottomCenter,
-          colors: [metroBlue, metroLightBlue.withOpacity(0.9)],
+          colors: [metroBlue, metroLightBlue.withAlpha((0.9 * 255).round())],
         ),
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withOpacity(0.2),
+            color: Colors.black.withAlpha((0.2 * 255).round()),
             blurRadius: 8,
             offset: const Offset(2, 0),
           ),
@@ -48,13 +71,13 @@ class Sidebar extends StatelessWidget {
             decoration: BoxDecoration(
               border: Border(
                 bottom: BorderSide(
-                  color: Colors.white.withOpacity(0.2),
+                  color: Colors.white.withAlpha((0.2 * 255).round()),
                   width: 1,
                 ),
               ),
             ),
-            child: Image.asset('assets/LogoMetro.png'),
             height: 80,
+            child: Image.asset('assets/LogoMetro.png'),
           ),
           const SizedBox(height: 20),
 
@@ -73,8 +96,12 @@ class Sidebar extends StatelessWidget {
                 children: [
                   CircleAvatar(
                     radius: 25,
-                    backgroundColor: Colors.white.withOpacity(0),
-                    child: const Icon(Icons.person, color: Colors.white, size: 28),
+                    backgroundColor: Colors.white.withAlpha((0 * 255).round()),
+                    child: const Icon(
+                      Icons.person,
+                      color: Colors.white,
+                      size: 28,
+                    ),
                   ),
                   if (expanded) ...[
                     const SizedBox(height: 8),
@@ -88,16 +115,58 @@ class Sidebar extends StatelessWidget {
             ),
           ),
 
-
           // Itens do menu
-          _sidebarItem(context, Icons.bar_chart, 'Dashboard', 0),
-          _sidebarItem(context, Icons.assignment, 'Estoque', 1),
-          _sidebarItem(context, Icons.build, 'Ferramentas', 2),
-          _sidebarItem(context, Icons.article, 'Relatórios', 3),
-          _sidebarItem(context, Icons.person_add, 'Gerenciar usuários', 4),
+          _sidebarItem(
+            context,
+            Icons.bar_chart,
+            'Dashboard',
+            0,
+            expanded,
+            selectedIndex,
+          ),
+          _sidebarItem(
+            context,
+            Icons.assignment,
+            'Estoque',
+            1,
+            expanded,
+            selectedIndex,
+          ),
+          _sidebarItem(
+            context,
+            Icons.build,
+            'Ferramentas',
+            2,
+            expanded,
+            selectedIndex,
+          ),
+          _sidebarItem(
+            context,
+            Icons.article,
+            'Relatórios',
+            3,
+            expanded,
+            selectedIndex,
+          ),
+          if ((_role ?? '') == 'admin')
+            _sidebarItem(
+              context,
+              Icons.person_add,
+              'Gerenciar usuários',
+              4,
+              expanded,
+              selectedIndex,
+            ),
 
           const Spacer(),
-          _sidebarItem(context, Icons.logout, 'Sair', 5),
+          _sidebarItem(
+            context,
+            Icons.logout,
+            'Sair',
+            5,
+            expanded,
+            selectedIndex,
+          ),
           const SizedBox(height: 16),
         ],
       ),
@@ -109,6 +178,8 @@ class Sidebar extends StatelessWidget {
     IconData icon,
     String label,
     int index,
+    bool expanded,
+    int selectedIndex,
   ) {
     final isSelected = selectedIndex == index;
 
@@ -172,8 +243,9 @@ class Sidebar extends StatelessWidget {
           horizontal: expanded ? 16 : 0,
         ),
         decoration: BoxDecoration(
-          color:
-              isSelected ? Colors.white.withOpacity(0.2) : Colors.transparent,
+          color: isSelected
+              ? Colors.white.withAlpha((0.2 * 255).round())
+              : Colors.transparent,
           border: isSelected
               ? const Border(left: BorderSide(color: Colors.white, width: 3))
               : null,

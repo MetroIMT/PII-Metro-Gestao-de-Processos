@@ -4,18 +4,18 @@ import '../../services/pdf_service.dart';
 import '../../services/excel_service.dart';
 
 
+import '../../widgets/sidebar.dart';
+import '../../services/pdf_service.dart';
 
 class RelatoriosPage extends StatefulWidget {
-  const RelatoriosPage({Key? key}) : super(key: key);
+  const RelatoriosPage({super.key});
 
   @override
   State<RelatoriosPage> createState() => _RelatoriosPageState();
 }
 
-
 class _RelatoriosPageState extends State<RelatoriosPage>
     with SingleTickerProviderStateMixin {
-
   bool _isRailExtended = false;
   late AnimationController _animationController;
   final GlobalKey<ScaffoldState> _scaffoldKey = GlobalKey<ScaffoldState>();
@@ -46,17 +46,15 @@ class _RelatoriosPageState extends State<RelatoriosPage>
     });
   }
 
-
   // Variáveis de estado originais da página de Relatórios
   DateTime? _selectedStartDate;
   DateTime? _selectedEndDate;
   String? _selectedItemType;
   String? _selectedBase;
-  final Color backgroundColor = const Color(0xFFF4F5FA); 
+  final Color backgroundColor = const Color(0xFFF4F5FA);
 
   @override
   Widget build(BuildContext context) {
-    
     final isMobile = MediaQuery.of(context).size.width < 600;
 
     return Scaffold(
@@ -78,7 +76,7 @@ class _RelatoriosPageState extends State<RelatoriosPage>
                 },
               ),
               title: const Text(
-                'Relatórios', 
+                'Relatórios',
                 style: TextStyle(
                   color: Color(0xFF001489),
                   fontWeight: FontWeight.bold,
@@ -94,12 +92,7 @@ class _RelatoriosPageState extends State<RelatoriosPage>
           : null,
 
       drawer: isMobile
-          ? Drawer(
-              child: Sidebar(
-                expanded: true,
-                selectedIndex: 3, 
-              ),
-            )
+          ? Drawer(child: Sidebar(expanded: true, selectedIndex: 3))
           : null,
 
       body: Stack(
@@ -112,10 +105,7 @@ class _RelatoriosPageState extends State<RelatoriosPage>
               top: 0,
               bottom: 0,
               width: _isRailExtended ? 180 : 70,
-              child: Sidebar(
-                expanded: _isRailExtended,
-                selectedIndex: 3, 
-              ),
+              child: Sidebar(expanded: _isRailExtended, selectedIndex: 3),
             ),
 
           AnimatedPadding(
@@ -157,7 +147,6 @@ class _RelatoriosPageState extends State<RelatoriosPage>
                     ),
                   ),
 
-                
                 Padding(
                   padding: EdgeInsets.fromLTRB(16, isMobile ? 16 : 0, 16, 16),
                   child: const Text(
@@ -166,14 +155,12 @@ class _RelatoriosPageState extends State<RelatoriosPage>
                   ),
                 ),
 
-                
                 Expanded(
                   child: Padding(
                     padding: const EdgeInsets.fromLTRB(16, 0, 16, 16),
-                    
+
                     child: LayoutBuilder(
                       builder: (context, constraints) {
-                        
                         bool isNarrow = constraints.maxWidth < 700;
 
                         if (isNarrow) {
@@ -208,14 +195,13 @@ class _RelatoriosPageState extends State<RelatoriosPage>
     );
   }
 
-
   Widget _buildFilterCard() {
     return Card(
       elevation: 2,
       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
       child: Padding(
         padding: const EdgeInsets.all(16.0),
-        
+
         child: SingleChildScrollView(
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
@@ -229,12 +215,9 @@ class _RelatoriosPageState extends State<RelatoriosPage>
               const Text('Período'),
 
               TextFormField(
-                
-                controller: TextEditingController(
-                  text: _selectedStartDate == null
-                      ? ''
-                      : "${_selectedStartDate!.day}/${_selectedStartDate!.month}/${_selectedStartDate!.year}",
-                ),
+                initialValue: _selectedStartDate == null
+                    ? ''
+                    : "${_selectedStartDate!.day}/${_selectedStartDate!.month}/${_selectedStartDate!.year}",
                 readOnly: true,
                 decoration: const InputDecoration(
                   hintText: 'Data inicial',
@@ -254,37 +237,34 @@ class _RelatoriosPageState extends State<RelatoriosPage>
               ),
 
               const SizedBox(height: 16),
-            TextFormField(
+              TextFormField(
+                initialValue: _selectedEndDate == null
+                    ? ''
+                    : "${_selectedEndDate!.day}/${_selectedEndDate!.month}/${_selectedEndDate!.year}",
+                readOnly: true,
+                decoration: const InputDecoration(
+                  hintText: 'Data final',
+                  suffixIcon: Icon(Icons.calendar_today),
+                ),
+                onTap: () async {
+                  final date = await showDatePicker(
+                    context: context,
+                    initialDate: DateTime.now(),
+                    firstDate: DateTime(2000),
+                    lastDate: DateTime(2100),
+                  );
+                  if (date != null) {
+                    setState(() => _selectedEndDate = date);
+                  }
+                },
+              ),
 
-              controller: TextEditingController(
-              text: _selectedEndDate == null
-                  ? ''
-                  : "${_selectedEndDate!.day}/${_selectedEndDate!.month}/${_selectedEndDate!.year}",
-            ),
-              readOnly: true,
-              decoration: const InputDecoration(
-              hintText: 'Data final',
-              suffixIcon: Icon(Icons.calendar_today),
-            ),
-              onTap: () async {
-              final date = await showDatePicker(
-                context: context,
-                initialDate: DateTime.now(),
-                firstDate: DateTime(2000),
-                lastDate: DateTime(2100),
-              );
-              if (date != null) {
-                setState(() => _selectedEndDate = date);
-              }
-            },
-          ),
-              
               const SizedBox(height: 16),
               const Text('Tipos de Item'),
               DropdownButtonFormField<String>(
                 decoration: const InputDecoration(border: OutlineInputBorder()),
                 hint: const Text('Selecione o tipo'),
-                value: _selectedItemType,
+                initialValue: _selectedItemType,
                 items: const [
                   DropdownMenuItem(value: 'material', child: Text('Material')),
                   DropdownMenuItem(
@@ -301,7 +281,7 @@ class _RelatoriosPageState extends State<RelatoriosPage>
               DropdownButtonFormField<String>(
                 decoration: const InputDecoration(border: OutlineInputBorder()),
                 hint: const Text('Selecione a base'),
-                value: _selectedBase,
+                initialValue: _selectedBase,
                 items: const [
                   DropdownMenuItem(value: 'base1', child: Text('Base 1')),
                   DropdownMenuItem(value: 'base2', child: Text('Base 2')),
@@ -314,9 +294,7 @@ class _RelatoriosPageState extends State<RelatoriosPage>
               SizedBox(
                 width: double.infinity,
                 child: ElevatedButton(
-                  onPressed: () {
-                    
-                  },
+                  onPressed: () {},
                   child: const Text('Aplicar filtro'),
                 ),
               ),
@@ -393,6 +371,35 @@ Widget _buildResultsCard({required bool hasBoundedHeight}) {
                     );
                     return;
                   }
+
+  Widget _buildResultsCard() {
+    return Card(
+      elevation: 2,
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+      child: Padding(
+        padding: const EdgeInsets.all(16.0),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            // Botões de Ação
+            Wrap(
+              spacing: 8,
+              runSpacing: 8,
+              alignment: WrapAlignment.end,
+              children: [
+                ElevatedButton.icon(
+                  onPressed: () async {
+                    if (_selectedStartDate == null ||
+                        _selectedEndDate == null) {
+                      ScaffoldMessenger.of(context).showSnackBar(
+                        const SnackBar(
+                          content: Text(
+                            'Selecione um período para gerar o relatório',
+                          ),
+                        ),
+                      );
+                      return;
+                    }
 
                   // Exemplo: PDF
                   final dados = [
@@ -476,5 +483,112 @@ Widget _buildResultsCard({required bool hasBoundedHeight}) {
     ),
   );
 }
+                    try {
+                      await PdfService.generateReport(
+                        title: 'Movimentação de Itens',
+                        data: dados,
+                        startDate: _selectedStartDate!,
+                        endDate: _selectedEndDate!,
+                      );
+                    } catch (e) {
+                      if (!mounted) return;
+                      ScaffoldMessenger.of(context).showSnackBar(
+                        SnackBar(
+                          content: Text('Erro ao gerar PDF: ${e.toString()}'),
+                        ),
+                      );
+                    }
+                  },
+                  icon: const Icon(Icons.picture_as_pdf, size: 18),
+                  label: const Text('Exportar PDF'),
+                ),
+                ElevatedButton.icon(
+                  onPressed: () {
+                    // EXCEL export
+                  },
+                  icon: const Icon(Icons.table_chart, size: 18),
+                  label: const Text('Exportar EXCEL'),
+                ),
+                ElevatedButton.icon(
+                  onPressed: () {
+                    // Imprimir
+                  },
+                  icon: const Icon(Icons.print, size: 18),
+                  label: const Text('Imprimir'),
+                ),
+              ],
+            ),
+            const SizedBox(height: 16),
+            // Tabela de Dados
+            Expanded(
+              child: SingleChildScrollView(
+                scrollDirection: Axis.vertical,
+                child: SingleChildScrollView(
+                  scrollDirection: Axis.horizontal,
+                  child: DataTable(
+                    columns: const [
+                      DataColumn(label: Text('Data')),
+                      DataColumn(label: Text('Item')),
+                      DataColumn(label: Text('Categoria')),
+                      DataColumn(label: Text('Qntd')),
+                      DataColumn(label: Text('Usuário')),
+                    ],
+                    rows: const [
+                      // Exemplo de linha, substitua por seus dados
+                      DataRow(
+                        cells: [
+                          DataCell(Text('21/10/2025')),
+                          DataCell(Text('Cabo Elétrico')),
+                          DataCell(Text('Material')),
+                          DataCell(Text('-5')),
+                          DataCell(Text('João Pereira')),
+                        ],
+                      ),
+                      DataRow(
+                        cells: [
+                          DataCell(Text('22/10/2025')),
+                          DataCell(Text('Multímetro XYZ')),
+                          DataCell(Text('Instrumento')),
+                          DataCell(Text('1')),
+                          DataCell(Text('Ana Silva')),
+                        ],
+                      ),
+                      DataRow(
+                        cells: [
+                          DataCell(Text('22/10/2025')),
+                          DataCell(Text('Parafuso ABC')),
+                          DataCell(Text('Material')),
+                          DataCell(Text('-20')),
+                          DataCell(Text('Carlos Souza')),
+                        ],
+                      ),
+                      DataRow(
+                        cells: [
+                          DataCell(Text('24/10/2025')),
+                          DataCell(Text('Chave de Fenda')),
+                          DataCell(Text('Instrumento')),
+                          DataCell(Text('2')),
+                          DataCell(Text('Mariana Lima')),
+                        ],
+                      ),
+                      DataRow(
+                        cells: [
+                          DataCell(Text('25/10/2025')),
+                          DataCell(Text('Fita Isolante')),
+                          DataCell(Text('Material')),
+                          DataCell(Text('-10')),
+                          DataCell(Text('Pedro Alves')),
+                        ],
+                      ),
+                    ],
+                  ),
+                ),
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
 }
 

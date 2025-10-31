@@ -2,7 +2,7 @@ import { Router } from "express";
 import { ObjectId } from "mongodb";
 import bcrypt from "bcryptjs";
 import { getDB } from "../db.js";
-import { auth, requireRole } from "../middlewares/auth.js";
+import { auth, requireRole, requireAdmin } from "../middlewares/auth.js";
 
 const router = Router();
 
@@ -31,19 +31,21 @@ router.get("/", auth(), requireRole("gestor", "admin"), async (req, res) => {
 });
 
 // Criar usuário (apenas admin)
-router.post("/", auth(), requireRole("admin"), async (req, res) => {
+router.post("/", auth(), requireAdmin, async (req, res) => {
   try {
     const {
       nome,
       email,
       senha,
+      cpf,
+      telefone,
       role = "tecnico",
       ativo = true,
     } = req.body || {};
-    if (!nome || !email || !senha) {
+    if (!nome || !email || !senha || !cpf || !telefone) {
       return res
         .status(400)
-        .json({ error: "nome, email e senha são obrigatórios" });
+        .json({ error: "nome, email, senha, cpf e telefone são obrigatórios" });
     }
     const emailNorm = String(email).trim().toLowerCase();
     if (!ROLES.includes(role))
@@ -60,15 +62,25 @@ router.post("/", auth(), requireRole("admin"), async (req, res) => {
       nome,
       email: emailNorm,
       senhaHash,
+      cpf,
+      telefone,
       role,
       ativo: !!ativo,
       criadoEm: new Date(),
       atualizadoEm: new Date(),
     };
     const { insertedId } = await db.collection("usuarios").insertOne(doc);
-    res
-      .status(201)
-      .json({ _id: insertedId, nome, email: emailNorm, role, ativo });
+    res.status(201).json({
+      _id: insertedId,
+      nome,
+      email: emailNorm,
+      cpf,
+      telefone,
+      role,
+      ativo,
+      criadoEm: doc.criadoEm,
+      atualizadoEm: doc.atualizadoEm,
+    });
   } catch (error) {
     console.error("Erro ao criar usuário:", error);
     res.status(500).json({ error: "Falha ao criar usuário" });
@@ -86,13 +98,15 @@ router.patch(
       if (!ObjectId.isValid(id))
         return res.status(400).json({ error: "ID inválido" });
 
-      const { nome, email, senha, role, ativo } = req.body || {};
+      const { nome, email, senha, cpf, telefone, role, ativo } = req.body || {};
       const update = { atualizadoEm: new Date() };
       if (nome !== undefined) update.nome = nome;
       if (email !== undefined)
         update.email = String(email).trim().toLowerCase();
       if (senha !== undefined)
         update.senhaHash = await bcrypt.hash(String(senha), 10);
+      if (cpf !== undefined) update.cpf = cpf;
+      if (telefone !== undefined) update.telefone = telefone;
       if (role !== undefined) {
         if (!ROLES.includes(role))
           return res.status(400).json({ error: "role inválido" });
@@ -105,7 +119,6 @@ router.patch(
       if (ativo !== undefined) update.ativo = !!ativo;
 
       const db = getDB();
-      // Evitar duplicidade de email
       if (update.email) {
         const exists = await db
           .collection("usuarios")
@@ -120,7 +133,13 @@ router.patch(
 
       if (!matchedCount)
         return res.status(404).json({ error: "Usuário não encontrado" });
-      res.json({ ok: true });
+
+      // ✅ BUSCAR E RETORNAR O USUÁRIO ATUALIZADO
+      const updatedUser = await db
+        .collection("usuarios")
+        .findOne({ _id: new ObjectId(id) }, { projection: { senhaHash: 0 } });
+
+      res.json(updatedUser);
     } catch (error) {
       console.error("Erro ao atualizar usuário:", error);
       res.status(500).json({ error: "Falha ao atualizar usuário" });
@@ -129,7 +148,7 @@ router.patch(
 );
 
 // Remover usuário (apenas admin)
-router.delete("/:id", auth(), requireRole("admin"), async (req, res) => {
+router.delete("/:id", auth(), requireAdmin, async (req, res) => {
   try {
     const { id } = req.params;
     if (!ObjectId.isValid(id))

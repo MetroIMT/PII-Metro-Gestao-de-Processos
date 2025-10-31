@@ -10,7 +10,7 @@ Future<void> showEsqueciSenhaPopup(BuildContext context) {
     context: context,
     barrierDismissible: true,
     barrierLabel: 'Esqueci a Senha',
-    barrierColor: Colors.black.withOpacity(0.36),
+    barrierColor: Colors.black.withAlpha((0.36 * 255).round()),
     transitionDuration: const Duration(milliseconds: 260),
     pageBuilder: (ctx, anim1, anim2) {
       return BackdropFilter(
@@ -25,11 +25,11 @@ Future<void> showEsqueciSenhaPopup(BuildContext context) {
                   constraints: const BoxConstraints(maxWidth: 520),
                   padding: const EdgeInsets.all(24),
                   decoration: BoxDecoration(
-                    color: Colors.white.withOpacity(0.98),
+                    color: Colors.white.withAlpha((0.98 * 255).round()),
                     borderRadius: BorderRadius.circular(16),
                     boxShadow: [
                       BoxShadow(
-                        color: Colors.black.withOpacity(0.12),
+                        color: Colors.black.withAlpha((0.12 * 255).round()),
                         blurRadius: 20,
                         offset: Offset(0, 10),
                       ),
@@ -50,10 +50,7 @@ Future<void> showEsqueciSenhaPopup(BuildContext context) {
       final curved = Curves.easeOut.transform(animation.value);
       return Opacity(
         opacity: animation.value,
-        child: Transform.scale(
-          scale: 0.98 + (0.02 * curved),
-          child: child,
-        ),
+        child: Transform.scale(scale: 0.98 + (0.02 * curved), child: child),
       );
     },
   );
@@ -66,8 +63,7 @@ class _EsqueciSenhaContent extends StatefulWidget {
   const _EsqueciSenhaContent({
     required this.metroBlue,
     required this.metroLightBlue,
-    Key? key,
-  }) : super(key: key);
+  });
 
   @override
   State<_EsqueciSenhaContent> createState() => _EsqueciSenhaContentState();
@@ -79,11 +75,11 @@ class _EsqueciSenhaContentState extends State<_EsqueciSenhaContent> {
   bool _sending = false;
 
   final AuthService _authService = AuthService();
-  static final RegExp _metroEmailRegex =
-      RegExp(r'^[a-z0-9._%+-]+@metrosp\.com\.br$');
+  static final RegExp _metroEmailRegex = RegExp(
+    r'^[a-z0-9._%+-]+@metrosp\.com\.br$',
+  );
 
   bool _isHover = false;
-  bool _isPressed = false;
   bool _isHoverCancel = false;
 
   @override
@@ -140,8 +136,9 @@ class _EsqueciSenhaContentState extends State<_EsqueciSenhaContent> {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
-            content:
-                Text('Erro: ${e.toString().replaceAll("Exception: ", "")}'),
+            content: Text(
+              'Erro: ${e.toString().replaceAll("Exception: ", "")}',
+            ),
             backgroundColor: Colors.red,
           ),
         );
@@ -171,9 +168,7 @@ class _EsqueciSenhaContentState extends State<_EsqueciSenhaContent> {
       onEnter: (_) => setState(() => _isHover = true),
       onExit: (_) => setState(() => _isHover = false),
       child: GestureDetector(
-        onTapDown: (_) => setState(() => _isPressed = true),
-        onTapUp: (_) => setState(() => _isPressed = false),
-        onTapCancel: () => setState(() => _isPressed = false),
+        // Não mantemos estado de pressed aqui para evitar campo não usado
         onTap: isDisabled ? null : _send,
         child: AnimatedContainer(
           duration: duration,
@@ -196,7 +191,10 @@ class _EsqueciSenhaContentState extends State<_EsqueciSenhaContent> {
                     AnimatedContainer(
                       duration: duration,
                       transform: Matrix4.translationValues(
-                          _isHover && !isDisabled ? 5.0 : 0.0, 0.0, 0.0),
+                        _isHover && !isDisabled ? 5.0 : 0.0,
+                        0.0,
+                        0.0,
+                      ),
                       child: Icon(
                         Icons.arrow_forward,
                         size: 20,
@@ -220,8 +218,9 @@ class _EsqueciSenhaContentState extends State<_EsqueciSenhaContent> {
                   width: 18,
                   child: CircularProgressIndicator(
                     strokeWidth: 2,
-                    valueColor:
-                        AlwaysStoppedAnimation<Color>(Colors.grey.shade600),
+                    valueColor: AlwaysStoppedAnimation<Color>(
+                      Colors.grey.shade600,
+                    ),
                   ),
                 ),
             ],
@@ -236,8 +235,9 @@ class _EsqueciSenhaContentState extends State<_EsqueciSenhaContent> {
     final borderRadius = BorderRadius.circular(11);
     final duration = const Duration(milliseconds: 220);
 
-    final backgroundColor =
-        _isHoverCancel ? widget.metroBlue.withOpacity(0.08) : Colors.transparent;
+    final backgroundColor = _isHoverCancel
+        ? widget.metroBlue.withAlpha((0.08 * 255).round())
+        : Colors.transparent;
 
     return MouseRegion(
       onEnter: (_) => setState(() => _isHoverCancel = true),
@@ -251,7 +251,9 @@ class _EsqueciSenhaContentState extends State<_EsqueciSenhaContent> {
           decoration: BoxDecoration(
             color: _sending ? Colors.grey.shade200 : backgroundColor,
             border: Border.all(
-                color: _sending ? Colors.grey.shade400 : borderColor, width: 2),
+              color: _sending ? Colors.grey.shade400 : borderColor,
+              width: 2,
+            ),
             borderRadius: borderRadius,
           ),
           alignment: Alignment.center,
@@ -323,13 +325,9 @@ class _EsqueciSenhaContentState extends State<_EsqueciSenhaContent> {
         const SizedBox(height: 20),
         Row(
           children: [
-            Expanded(
-              child: _buildCancelButton(),
-            ),
+            Expanded(child: _buildCancelButton()),
             const SizedBox(width: 12),
-            Expanded(
-              child: _buildSendButton(),
-            ),
+            Expanded(child: _buildSendButton()),
           ],
         ),
       ],

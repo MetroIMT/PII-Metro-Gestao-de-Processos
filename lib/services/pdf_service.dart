@@ -19,18 +19,24 @@ class PdfService {
         build: (context) => [
           pw.Text(title, style: pw.TextStyle(fontSize: 18)),
           pw.SizedBox(height: 8),
-          pw.Text('Período: ${startDate.day}/${startDate.month}/${startDate.year} '
-              'a ${endDate.day}/${endDate.month}/${endDate.year}'),
+          pw.Text(
+            'Período: ${startDate.day}/${startDate.month}/${startDate.year} '
+            'a ${endDate.day}/${endDate.month}/${endDate.year}',
+          ),
           pw.SizedBox(height: 16),
-          pw.Table.fromTextArray(
+          pw.TableHelper.fromTextArray(
             headers: ['Data', 'Item', 'Categoria', 'Qntd', 'Usuário'],
-            data: data.map((r) => [
-              r['data'] ?? '',
-              r['item'] ?? '',
-              r['categoria'] ?? '',
-              r['quantidade'] ?? '',
-              r['usuario'] ?? '',
-            ]).toList(),
+            data: data
+                .map(
+                  (r) => [
+                    r['data'] ?? '',
+                    r['item'] ?? '',
+                    r['categoria'] ?? '',
+                    r['quantidade'] ?? '',
+                    r['usuario'] ?? '',
+                  ],
+                )
+                .toList(),
           ),
         ],
       ),
@@ -50,6 +56,5 @@ class PdfService {
         '${dir.path}/relatorio_${DateTime.now().millisecondsSinceEpoch}.pdf';
     final file = File(filePath);
     await file.writeAsBytes(bytes, flush: true);
-
   }
 }

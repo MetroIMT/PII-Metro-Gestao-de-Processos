@@ -31,3 +31,11 @@ export function requireRole(...roles) {
     next();
   };
 }
+
+// Middleware helper to require admin specifically
+export function requireAdmin(req, res, next) {
+  if (!req.user) return res.status(401).json({ error: "Não autorizado" });
+  if (req.user.role !== "admin")
+    return res.status(403).json({ error: "Acesso negado" });
+  next();
+}

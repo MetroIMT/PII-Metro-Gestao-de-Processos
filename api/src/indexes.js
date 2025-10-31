@@ -20,4 +20,7 @@ export async function ensureIndexes(db) {
   await db.collection("usuarios").createIndex({ email: 1 }, { unique: true });
   await db.collection("usuarios").createIndex({ role: 1 });
   await db.collection("usuarios").createIndex({ ativo: 1 });
+  // Índices adicionais para busca por CPF e telefone
+  await db.collection("usuarios").createIndex({ cpf: 1 });
+  await db.collection("usuarios").createIndex({ telefone: 1 });
 }
