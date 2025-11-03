@@ -1,11 +1,7 @@
 import 'package:flutter/material.dart';
-import '../../widgets/sidebar.dart'; 
-import '../../services/pdf_service.dart';  
-import '../../services/excel_service.dart';
-
-
 import '../../widgets/sidebar.dart';
 import '../../services/pdf_service.dart';
+import '../../services/excel_service.dart';
 
 class RelatoriosPage extends StatefulWidget {
   const RelatoriosPage({super.key});
@@ -305,74 +301,47 @@ class _RelatoriosPageState extends State<RelatoriosPage>
     );
   }
 
-  
-Widget _buildResultsCard({required bool hasBoundedHeight}) {
-  // Tabela de dados
-  final tabela = SingleChildScrollView(
-    scrollDirection: Axis.vertical,
-    child: SingleChildScrollView(
-      scrollDirection: Axis.horizontal,
-      child: DataTable(
-        columns: const [
-          DataColumn(label: Text('Data')),
-          DataColumn(label: Text('Item')),
-          DataColumn(label: Text('Categoria')),
-          DataColumn(label: Text('Qntd')),
-          DataColumn(label: Text('Usuário')),
-        ],
-        rows: const [
-          DataRow(cells: [
-            DataCell(Text('21/10/2025')),
-            DataCell(Text('Cabo Elétrico')),
-            DataCell(Text('Material')),
-            DataCell(Text('-5')),
-            DataCell(Text('João Pereira')),
-          ]),
-          DataRow(cells: [
-            DataCell(Text('22/10/2025')),
-            DataCell(Text('Multímetro XYZ')),
-            DataCell(Text('Instrumento')),
-            DataCell(Text('1')),
-            DataCell(Text('Ana Silva')),
-          ]),
-          DataRow(cells: [
-            DataCell(Text('23/10/2025')),
-            DataCell(Text('Parafuso ABC')),
-            DataCell(Text('Material')),
-            DataCell(Text('-20')),
-            DataCell(Text('Carlos Souza')),
-          ]),
-        ],
+  Widget _buildResultsCard({required bool hasBoundedHeight}) {
+    // Tabela de dados
+    final tabela = SingleChildScrollView(
+      scrollDirection: Axis.vertical,
+      child: SingleChildScrollView(
+        scrollDirection: Axis.horizontal,
+        child: DataTable(
+          columns: const [
+            DataColumn(label: Text('Data')),
+            DataColumn(label: Text('Item')),
+            DataColumn(label: Text('Categoria')),
+            DataColumn(label: Text('Qntd')),
+            DataColumn(label: Text('Usuário')),
+          ],
+          rows: const [
+            DataRow(cells: [
+              DataCell(Text('21/10/2025')),
+              DataCell(Text('Cabo Elétrico')),
+              DataCell(Text('Material')),
+              DataCell(Text('-5')),
+              DataCell(Text('João Pereira')),
+            ]),
+            DataRow(cells: [
+              DataCell(Text('22/10/2025')),
+              DataCell(Text('Multímetro XYZ')),
+              DataCell(Text('Instrumento')),
+              DataCell(Text('1')),
+              DataCell(Text('Ana Silva')),
+            ]),
+            DataRow(cells: [
+              DataCell(Text('23/10/2025')),
+              DataCell(Text('Parafuso ABC')),
+              DataCell(Text('Material')),
+              DataCell(Text('-20')),
+              DataCell(Text('Carlos Souza')),
+            ]),
+          ],
+        ),
       ),
-    ),
-  );
+    );
 
-  return Card(
-    elevation: 2,
-    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-    child: Padding(
-      padding: const EdgeInsets.all(16.0),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          // Botões de ação
-          Wrap(
-            spacing: 8,
-            runSpacing: 8,
-            alignment: WrapAlignment.end,
-            children: [
-              ElevatedButton.icon(
-                onPressed: () async {
-                  if (_selectedStartDate == null || _selectedEndDate == null) {
-                    ScaffoldMessenger.of(context).showSnackBar(
-                      const SnackBar(
-                        content: Text('Selecione um período para gerar o relatório'),
-                      ),
-                    );
-                    return;
-                  }
-
-  Widget _buildResultsCard() {
     return Card(
       elevation: 2,
       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
@@ -381,7 +350,7 @@ Widget _buildResultsCard({required bool hasBoundedHeight}) {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            // Botões de Ação
+            // Botões de ação
             Wrap(
               spacing: 8,
               runSpacing: 8,
@@ -389,100 +358,27 @@ Widget _buildResultsCard({required bool hasBoundedHeight}) {
               children: [
                 ElevatedButton.icon(
                   onPressed: () async {
-                    if (_selectedStartDate == null ||
-                        _selectedEndDate == null) {
+                    if (_selectedStartDate == null || _selectedEndDate == null) {
                       ScaffoldMessenger.of(context).showSnackBar(
                         const SnackBar(
-                          content: Text(
-                            'Selecione um período para gerar o relatório',
-                          ),
+                          content: Text('Selecione um período para gerar o relatório'),
                         ),
                       );
                       return;
                     }
 
-                  // Exemplo: PDF
-                  final dados = [
-                    {
-                      'data': '27/10/2025',
-                      'item': 'Cabo Elétrico',
-                      'categoria': 'Material',
-                      'quantidade': '-5',
-                      'usuario': 'João Pereira',
-                    },
-                  ];
+                    // Defina os dados localmente antes de usar
+                    final dados = [
+                      {
+                        'data': '27/10/2025',
+                        'item': 'Cabo Elétrico',
+                        'categoria': 'Material',
+                        'quantidade': '-5',
+                        'usuario': 'João Pereira',
+                      },
+                      // ... você pode mapear seus dados reais aqui ...
+                    ];
 
-                  try {
-                    await PdfService.generateReport(
-                      title: 'Movimentação de Itens',
-                      data: dados,
-                      startDate: _selectedStartDate!,
-                      endDate: _selectedEndDate!,
-                    );
-                  } catch (e) {
-                    ScaffoldMessenger.of(context).showSnackBar(
-                      SnackBar(content: Text('Erro ao gerar PDF: ${e.toString()}')),
-                    );
-                  }
-                },
-                icon: const Icon(Icons.picture_as_pdf, size: 18),
-                label: const Text('Exportar PDF'),
-              ),
-              ElevatedButton.icon(
-                onPressed: () async {
-                  if (_selectedStartDate == null || _selectedEndDate == null) {
-                    ScaffoldMessenger.of(context).showSnackBar(
-                      const SnackBar(
-                        content: Text('Selecione um período para gerar o relatório'),
-                      ),
-                    );
-                    return;
-                  }
-
-                  final dados = [
-                    {
-                      'data': '27/10/2025',
-                      'item': 'Cabo Elétrico',
-                      'categoria': 'Material',
-                      'quantidade': '-5',
-                      'usuario': 'João Pereira',
-                    },
-                  ];
-
-                  try {
-                    await ExcelService.generateReport(
-                      title: 'Movimentação de Itens',
-                      data: dados,
-                      startDate: _selectedStartDate!,
-                      endDate: _selectedEndDate!,
-                    );
-                  } catch (e) {
-                    ScaffoldMessenger.of(context).showSnackBar(
-                      SnackBar(content: Text('Erro ao gerar Excel: ${e.toString()}')),
-                    );
-                  }
-                },
-                icon: const Icon(Icons.table_chart, size: 18),
-                label: const Text('Exportar EXCEL'),
-              ),
-              ElevatedButton.icon(
-                onPressed: () {},
-                icon: const Icon(Icons.print, size: 18),
-                label: const Text('Imprimir'),
-              ),
-            ],
-          ),
-          const SizedBox(height: 16),
-
-          if (hasBoundedHeight)
-            Expanded(child: tabela) // telas grandes (com altura fixa)
-          else
-            tabela, // telas pequenas (scroll infinito)
-        ],
-      ),
-    ),
-  );
-}
                     try {
                       await PdfService.generateReport(
                         title: 'Movimentação de Itens',
@@ -493,9 +389,7 @@ Widget _buildResultsCard({required bool hasBoundedHeight}) {
                     } catch (e) {
                       if (!mounted) return;
                       ScaffoldMessenger.of(context).showSnackBar(
-                        SnackBar(
-                          content: Text('Erro ao gerar PDF: ${e.toString()}'),
-                        ),
+                        SnackBar(content: Text('Erro ao gerar PDF: ${e.toString()}')),
                       );
                     }
                   },
@@ -503,15 +397,47 @@ Widget _buildResultsCard({required bool hasBoundedHeight}) {
                   label: const Text('Exportar PDF'),
                 ),
                 ElevatedButton.icon(
-                  onPressed: () {
-                    // EXCEL export
+                  onPressed: () async {
+                    if (_selectedStartDate == null || _selectedEndDate == null) {
+                      ScaffoldMessenger.of(context).showSnackBar(
+                        const SnackBar(
+                          content: Text('Selecione um período para gerar o relatório'),
+                        ),
+                      );
+                      return;
+                    }
+
+                    final dados = [
+                      {
+                        'data': '27/10/2025',
+                        'item': 'Cabo Elétrico',
+                        'categoria': 'Material',
+                        'quantidade': '-5',
+                        'usuario': 'João Pereira',
+                      },
+                      // ... dados reais ...
+                    ];
+
+                    try {
+                      await ExcelService.generateReport(
+                        title: 'Movimentação de Itens',
+                        data: dados,
+                        startDate: _selectedStartDate!,
+                        endDate: _selectedEndDate!,
+                      );
+                    } catch (e) {
+                      if (!mounted) return;
+                      ScaffoldMessenger.of(context).showSnackBar(
+                        SnackBar(content: Text('Erro ao gerar Excel: ${e.toString()}')),
+                      );
+                    }
                   },
                   icon: const Icon(Icons.table_chart, size: 18),
                   label: const Text('Exportar EXCEL'),
                 ),
                 ElevatedButton.icon(
                   onPressed: () {
-                    // Imprimir
+                    // Imprimir - implementar conforme necessidade
                   },
                   icon: const Icon(Icons.print, size: 18),
                   label: const Text('Imprimir'),
@@ -519,72 +445,11 @@ Widget _buildResultsCard({required bool hasBoundedHeight}) {
               ],
             ),
             const SizedBox(height: 16),
-            // Tabela de Dados
-            Expanded(
-              child: SingleChildScrollView(
-                scrollDirection: Axis.vertical,
-                child: SingleChildScrollView(
-                  scrollDirection: Axis.horizontal,
-                  child: DataTable(
-                    columns: const [
-                      DataColumn(label: Text('Data')),
-                      DataColumn(label: Text('Item')),
-                      DataColumn(label: Text('Categoria')),
-                      DataColumn(label: Text('Qntd')),
-                      DataColumn(label: Text('Usuário')),
-                    ],
-                    rows: const [
-                      // Exemplo de linha, substitua por seus dados
-                      DataRow(
-                        cells: [
-                          DataCell(Text('21/10/2025')),
-                          DataCell(Text('Cabo Elétrico')),
-                          DataCell(Text('Material')),
-                          DataCell(Text('-5')),
-                          DataCell(Text('João Pereira')),
-                        ],
-                      ),
-                      DataRow(
-                        cells: [
-                          DataCell(Text('22/10/2025')),
-                          DataCell(Text('Multímetro XYZ')),
-                          DataCell(Text('Instrumento')),
-                          DataCell(Text('1')),
-                          DataCell(Text('Ana Silva')),
-                        ],
-                      ),
-                      DataRow(
-                        cells: [
-                          DataCell(Text('22/10/2025')),
-                          DataCell(Text('Parafuso ABC')),
-                          DataCell(Text('Material')),
-                          DataCell(Text('-20')),
-                          DataCell(Text('Carlos Souza')),
-                        ],
-                      ),
-                      DataRow(
-                        cells: [
-                          DataCell(Text('24/10/2025')),
-                          DataCell(Text('Chave de Fenda')),
-                          DataCell(Text('Instrumento')),
-                          DataCell(Text('2')),
-                          DataCell(Text('Mariana Lima')),
-                        ],
-                      ),
-                      DataRow(
-                        cells: [
-                          DataCell(Text('25/10/2025')),
-                          DataCell(Text('Fita Isolante')),
-                          DataCell(Text('Material')),
-                          DataCell(Text('-10')),
-                          DataCell(Text('Pedro Alves')),
-                        ],
-                      ),
-                    ],
-                  ),
-                ),
-              ),
-            ),
+
+            if (hasBoundedHeight)
+              Expanded(child: tabela) // telas grandes (com altura fixa)
+            else
+              tabela, // telas pequenas (scroll infinito)
           ],
         ),
       ),

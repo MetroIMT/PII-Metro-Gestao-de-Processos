@@ -48,7 +48,7 @@ dependencies:
   # Para gerar EXCEL
   
   excel: ^4.0.2          
-  file_saver: ^0.2.10    
+  file_saver: ^0.3.1    
   open_filex: ^4.4.0     
 
 
@@ -61,7 +61,7 @@ dev_dependencies:
   # activated in the `analysis_options.yaml` file located at the root of your
   # package. See that file for information about deactivating specific lint
   # rules and activating additional ones.
-  flutter_lints: ^5.0.0
+  flutter_lints: ^6.0.0
   build_runner: ^2.9.0
   json_serializable: ^6.11.1
   mockito: ^5.4.4
