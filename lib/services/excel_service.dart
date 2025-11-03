@@ -59,7 +59,6 @@ class ExcelService {
       await FileSaver.instance.saveFile(
         name: fileName,
         bytes: uint8,
-        ext: 'xlsx',
         mimeType: MimeType.microsoftExcel,
       );
       return;
