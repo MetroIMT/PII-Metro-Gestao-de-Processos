@@ -1,11 +1,9 @@
 import 'package:flutter/material.dart';
 import 'dart:math';
-// import 'tool_page.dart'; // removido: import não utilizado
 import 'estoque_page.dart';
 import 'alerts_page.dart';
 import 'reports_page.dart';
 import 'estoque_categorias_page.dart';
-// imports removidos: auth_service e login_screen não utilizados nesta tela
 import '../../repositories/alert_repository.dart';
 import 'gerenciar_usuarios.dart';
 import '../../widgets/sidebar.dart';
@@ -159,7 +157,7 @@ class _HomeScreenState extends State<HomeScreen>
                 },
               ),
               title: const Text(
-                'Dashboard',
+                'Home',
                 style: TextStyle(
                   color: Color(0xFF001489),
                   fontWeight: FontWeight.bold,
@@ -230,7 +228,7 @@ class _HomeScreenState extends State<HomeScreen>
                             ),
                             const SizedBox(width: 12),
                             const Text(
-                              'Dashboard',
+                              'Home',
                               style: TextStyle(
                                 fontSize: 24,
                                 fontWeight: FontWeight.bold,
@@ -265,16 +263,7 @@ class _HomeScreenState extends State<HomeScreen>
     );
   }
 
-  //
-  //
-  // OS MÉTODOS ANTIGOS _buildSidebar E _sidebarItem (QUE ESTAVAM DAQUI PARA BAIXO)
-  // FORAM REMOVIDOS.
-  //
-  //
-
-  // Conteúdo do Dashboard baseado na imagem de referência
   Widget _buildDashboardContent() {
-    // metroBlue usado mais abaixo dentro _buildEstoqueCard; manter definição local lá
 
     return LayoutBuilder(
       builder: (context, constraints) {

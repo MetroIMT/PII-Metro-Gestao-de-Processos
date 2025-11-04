@@ -13,7 +13,7 @@ class RelatoriosPage extends StatefulWidget {
 class _RelatoriosPageState extends State<RelatoriosPage>
     with SingleTickerProviderStateMixin {
       
-  // --- Lógica da Sidebar (sem alterações) ---
+  // --- Sidebar ---
   bool _isRailExtended = false;
   late AnimationController _animationController;
   final GlobalKey<ScaffoldState> _scaffoldKey = GlobalKey<ScaffoldState>();
@@ -25,7 +25,7 @@ class _RelatoriosPageState extends State<RelatoriosPage>
       vsync: this,
       duration: const Duration(milliseconds: 300),
     );
-    _filteredData = _allData; // Carrega todos os dados ao iniciar
+    _filteredData = _allData; // Começa exibindo todos os dados
   }
 
   @override
@@ -46,9 +46,8 @@ class _RelatoriosPageState extends State<RelatoriosPage>
       }
     });
   }
-  // --- Fim da Lógica da Sidebar ---
 
-  // --- Estado da Página de Relatórios ---
+  // --- Estado da Página ---
   DateTime? _selectedStartDate;
   DateTime? _selectedEndDate;
   String? _selectedCategory; 
@@ -61,9 +60,7 @@ class _RelatoriosPageState extends State<RelatoriosPage>
   final Color backgroundColor = const Color(0xFFF4F5FA);
   final Color metroBlue = const Color(0xFF001489);
 
-  // --- LÓGICA DE FILTRO ---
-  
-  // ATUALIZADO: Mock data com novas categorias, sub-categorias e bases
+  // Mock data para simulação
   final List<Map<String, dynamic>> _allData = [
     {
       'data': DateTime(2025, 10, 21),
@@ -107,14 +104,14 @@ class _RelatoriosPageState extends State<RelatoriosPage>
     },
   ];
 
-  // Lista que será exibida na tela
+  // Lista final que será exibida na tabela.
   List<Map<String, dynamic>> _filteredData = [];
 
-  /// ATUALIZADO: Aplica todos os filtros
+
+  /// Aplica todos os filtros e atualiza a `_filteredData`.
   void _applyFilters() {
     List<Map<String, dynamic>> tempResults = _allData;
 
-    // 1. Filtro de Data (CORRIGIDO)
     if (_selectedStartDate != null) {
       tempResults = tempResults.where((row) {
         DateTime rowDate = row['data'];
@@ -124,17 +121,17 @@ class _RelatoriosPageState extends State<RelatoriosPage>
     if (_selectedEndDate != null) {
       tempResults = tempResults.where((row) {
         DateTime rowDate = row['data'];
+        // Adiciona 1 dia para garantir que o dia final seja incluído
         return rowDate.isBefore(_selectedEndDate!.add(const Duration(days: 1)));
       }).toList();
     }
 
-    // 2. Filtro de Categoria
     if (_selectedCategory != null) {
       tempResults = tempResults.where((row) {
         return row['categoria_id'] == _selectedCategory;
       }).toList();
 
-      // 3. Filtro de Sub-categoria (CONDICIONAL)
+      // A sub-categoria só é filtrada se a categoria "pai" for patrimoniado
       if (_selectedCategory == 'patrimoniado' && _selectedSubCategory != null) {
         tempResults = tempResults.where((row) {
           return row['sub_categoria_id'] == _selectedSubCategory;
@@ -142,7 +139,6 @@ class _RelatoriosPageState extends State<RelatoriosPage>
       }
     }
     
-    // 4. Filtro de Base
     if (_selectedBase != null) {
       tempResults = tempResults.where((row) {
         return row['base_id'] == _selectedBase;
@@ -154,7 +150,7 @@ class _RelatoriosPageState extends State<RelatoriosPage>
     });
   }
 
-  /// ATUALIZADO: Limpa todos os filtros
+  /// Limpa todos os filtros e reseta a lista para os dados originais.
   void _clearFilters() {
     setState(() {
       _selectedStartDate = null;
@@ -164,12 +160,11 @@ class _RelatoriosPageState extends State<RelatoriosPage>
       _selectedBase = null;
       _startDateController.clear();
       _endDateController.clear();
-      
-      _filteredData = _allData; // Reseta a lista
+      _filteredData = _allData;
     });
   }
 
-  /// Helper para mostrar snackbar de erro
+  /// Exibe uma SnackBar de erro.
   void _showErrorSnackBar(String message) {
     ScaffoldMessenger.of(context).showSnackBar(
       SnackBar(
@@ -179,7 +174,7 @@ class _RelatoriosPageState extends State<RelatoriosPage>
     );
   }
 
-  /// Valida se a lista de dados filtrada não está vazia
+  /// Valida se a lista de dados não está vazia antes de gerar um relatório.
   bool _canGenerateReport() {
     if (_filteredData.isEmpty) {
       _showErrorSnackBar('Não há dados para gerar o relatório');
@@ -188,7 +183,7 @@ class _RelatoriosPageState extends State<RelatoriosPage>
     return true;
   }
   
-  // CORREÇÃO: Funções de Data seguras (à prova de lista vazia)
+  // Busca as datas do relatório (de forma segura, mesmo se os filtros estiverem nulos)
   DateTime _getStartDate() {
     return _selectedStartDate ?? (_filteredData.isNotEmpty ? _filteredData.first['data'] : DateTime.now());
   }
@@ -197,7 +192,7 @@ class _RelatoriosPageState extends State<RelatoriosPage>
   }
 
 
-  /// Ação de exportar PDF (corrigida)
+  /// Ação de exportar PDF
   Future<void> _exportPdf() async {
     if (!_canGenerateReport()) return;
 
@@ -224,7 +219,7 @@ class _RelatoriosPageState extends State<RelatoriosPage>
     }
   }
 
-  /// Ação de exportar Excel (corrigida)
+  /// Ação de exportar Excel
   Future<void> _exportExcel() async {
     if (!_canGenerateReport()) return;
     
@@ -258,6 +253,7 @@ class _RelatoriosPageState extends State<RelatoriosPage>
     return Scaffold(
       key: _scaffoldKey,
       backgroundColor: backgroundColor,
+      // AppBar e Drawer só existem no layout mobile
       appBar: isMobile
           ? AppBar(
               elevation: 0,
@@ -292,6 +288,7 @@ class _RelatoriosPageState extends State<RelatoriosPage>
           : null,
       body: Stack(
         children: [
+          // Sidebar animada (só existe no desktop)
           if (!isMobile)
             AnimatedPositioned(
               duration: const Duration(milliseconds: 300),
@@ -302,6 +299,8 @@ class _RelatoriosPageState extends State<RelatoriosPage>
               width: _isRailExtended ? 180 : 70,
               child: Sidebar(expanded: _isRailExtended, selectedIndex: 3),
             ),
+          
+          // Conteúdo principal da página
           AnimatedPadding(
             duration: const Duration(milliseconds: 300),
             padding: EdgeInsets.only(
@@ -310,6 +309,7 @@ class _RelatoriosPageState extends State<RelatoriosPage>
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
+                // Header (só existe no desktop)
                 if (!isMobile)
                   Padding(
                     padding: const EdgeInsets.all(16.0),
@@ -349,6 +349,8 @@ class _RelatoriosPageState extends State<RelatoriosPage>
                     style: TextStyle(fontSize: 16, color: Colors.black54),
                   ),
                 ),
+
+                // Esta é a parte principal que cuida da responsividade
                 Expanded(
                   child: Padding(
                     padding: const EdgeInsets.fromLTRB(16, 0, 16, 16),
@@ -357,24 +359,24 @@ class _RelatoriosPageState extends State<RelatoriosPage>
                         bool isNarrow = constraints.maxWidth < 700;
 
                         if (isNarrow) {
-                          // MOBILE: Um SingleChildScrollView para a página inteira
+                          // Layout Mobile: Uma coluna única que rola inteira.
                           return SingleChildScrollView(
                             child: Column(
                               children: [
                                 _buildFilterCard(),
                                 const SizedBox(height: 16),
-                                _buildResultsCard(hasBoundedHeight: false), // Mobile
+                                _buildResultsCard(hasBoundedHeight: false),
                               ],
                             ),
                           );
                         } else {
-                          // DESKTOP: Uma Row com Filtros (rolável) e Resultados (fixo)
+                          // Layout Desktop: Filtros (rolável) e Resultados (fixo).
                           return Row(
                             crossAxisAlignment: CrossAxisAlignment.start,
                             children: [
                               Expanded(
                                 flex: 1, 
-                                // Permite que os filtros rolem se a tela for muito baixa
+                                // Permite que os filtros rolem em telas baixas
                                 child: SingleChildScrollView( 
                                   child: _buildFilterCard()
                                 )
@@ -382,7 +384,7 @@ class _RelatoriosPageState extends State<RelatoriosPage>
                               const SizedBox(width: 16),
                               Expanded(
                                 flex: 2, 
-                                child: _buildResultsCard(hasBoundedHeight: true) // Desktop
+                                child: _buildResultsCard(hasBoundedHeight: true)
                               ),
                             ],
                           );
@@ -399,17 +401,18 @@ class _RelatoriosPageState extends State<RelatoriosPage>
     );
   }
 
-  /// Card de Filtros (ATUALIZADO E CORRIGIDO)
+  /// O card de filtros.
   Widget _buildFilterCard() {
     return Card(
       elevation: 2,
-      color: Colors.white, // Fundo branco
+      color: Colors.white,
       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
       child: Padding(
         padding: const EdgeInsets.all(16.0),
-        child: Column( // Removido o SingleChildScrollView daqui
+        child: Column( 
             crossAxisAlignment: CrossAxisAlignment.start,
-            mainAxisSize: MainAxisSize.min, // Importante para o scroll do desktop
+            // Importante para o scroll do desktop funcionar
+            mainAxisSize: MainAxisSize.min, 
             children: [
               ListTile(
                 contentPadding: EdgeInsets.zero,
@@ -421,7 +424,6 @@ class _RelatoriosPageState extends State<RelatoriosPage>
               ),
               const SizedBox(height: 16),
 
-              // Data Inicial
               const Text('Data Inicial'),
               const SizedBox(height: 8),
               TextFormField(
@@ -437,7 +439,7 @@ class _RelatoriosPageState extends State<RelatoriosPage>
                     context: context,
                     initialDate: _selectedStartDate ?? DateTime.now(),
                     firstDate: DateTime(2000),
-                    // CORREÇÃO 1.1: Limita a data inicial pela data final
+                    // Trava o calendário para não ir além da data final
                     lastDate: _selectedEndDate ?? DateTime(2100),
                   );
                   if (date != null) {
@@ -450,7 +452,6 @@ class _RelatoriosPageState extends State<RelatoriosPage>
               ),
               const SizedBox(height: 16),
 
-              // Data Final
               const Text('Data Final'),
               const SizedBox(height: 8),
               TextFormField(
@@ -462,19 +463,19 @@ class _RelatoriosPageState extends State<RelatoriosPage>
                   prefixIcon: Icon(Icons.calendar_today_outlined),
                 ),
                 onTap: () async {
-                  // CORREÇÃO 1.2: Garante que o seletor não abra em data inválida
+                  // Trava o calendário para não começar antes da data inicial
                   final DateTime firstDate = _selectedStartDate ?? DateTime(2000);
                   DateTime initialDate = _selectedEndDate ?? DateTime.now();
                   
-                  // Se a data inicial do picker for anterior à data mínima, ajusta ela
+                  // Garante que o calendário não abra num dia inválido
                   if (initialDate.isBefore(firstDate)) {
                     initialDate = firstDate;
                   }
 
                   final date = await showDatePicker(
                     context: context,
-                    initialDate: initialDate, // <-- CORRIGIDO
-                    firstDate: firstDate,     // <-- CORRIGIDO
+                    initialDate: initialDate, 
+                    firstDate: firstDate,     
                     lastDate: DateTime(2100),
                   );
                   if (date != null) {
@@ -488,11 +489,10 @@ class _RelatoriosPageState extends State<RelatoriosPage>
               
               const SizedBox(height: 16),
 
-              // ATUALIZADO: Filtro de Categoria
               const Text('Categoria'),
               const SizedBox(height: 8),
               DropdownButtonFormField<String>(
-                dropdownColor: Colors.white, // <-- CORREÇÃO 2: Fundo branco
+                dropdownColor: Colors.white, 
                 decoration: const InputDecoration(
                   border: OutlineInputBorder(),
                   hintText: 'Selecione a categoria',
@@ -507,18 +507,18 @@ class _RelatoriosPageState extends State<RelatoriosPage>
                 onChanged: (value) {
                   setState(() {
                     _selectedCategory = value;
-                    _selectedSubCategory = null; 
+                    _selectedSubCategory = null; // Limpa a sub-categoria
                   });
                 },
               ),
               
-              // NOVO: Filtro Condicional de Sub-Categoria
+              // Filtro condicional de Sub-Categoria
               if (_selectedCategory == 'patrimoniado') ...[
                 const SizedBox(height: 16),
                 const Text('Sub-categoria (Patrimoniado)'),
                 const SizedBox(height: 8),
                 DropdownButtonFormField<String>(
-                  dropdownColor: Colors.white, // <-- CORREÇÃO 2: Fundo branco
+                  dropdownColor: Colors.white, 
                   decoration: const InputDecoration(
                     border: OutlineInputBorder(),
                     hintText: 'Selecione a sub-categoria',
@@ -537,11 +537,10 @@ class _RelatoriosPageState extends State<RelatoriosPage>
               
               const SizedBox(height: 16),
 
-              // ATUALIZADO: Filtro de Base
               const Text('Base de manutenção'),
               const SizedBox(height: 8),
               DropdownButtonFormField<String>(
-                dropdownColor: Colors.white, // <-- CORREÇÃO 2: Fundo branco
+                dropdownColor: Colors.white, 
                 decoration: const InputDecoration(
                   border: OutlineInputBorder(),
                   hintText: 'Selecione a base',
@@ -614,10 +613,10 @@ class _RelatoriosPageState extends State<RelatoriosPage>
     );
   }
 
-  /// Card de Resultados (FUNCIONAL e CORRIGIDO)
+  /// O card de resultados.
   Widget _buildResultsCard({required bool hasBoundedHeight}) {
     
-    // Helper para construir as linhas da tabela dinamicamente
+    /// Constrói as linhas da tabela a partir dos dados filtrados
     List<DataRow> _buildDataRows() {
       if (_filteredData.isEmpty) return [];
       
@@ -646,7 +645,7 @@ class _RelatoriosPageState extends State<RelatoriosPage>
       }).toList();
     }
 
-    // O widget da tabela
+    // O widget da tabela (com scroll horizontal e vertical)
     Widget tabelaWidget = SingleChildScrollView(
       scrollDirection: Axis.vertical,
       child: SingleChildScrollView(
@@ -668,7 +667,7 @@ class _RelatoriosPageState extends State<RelatoriosPage>
       ),
     );
     
-    // Widget de "Nenhum resultado"
+    // Mensagem para quando a busca não retorna nada
     Widget noResultsWidget = const Center(
       child: Padding(
         padding: EdgeInsets.all(32.0),
@@ -682,7 +681,7 @@ class _RelatoriosPageState extends State<RelatoriosPage>
 
     return Card(
       elevation: 2,
-      color: Colors.white, // Fundo branco
+      color: Colors.white,
       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
       clipBehavior: Clip.antiAlias,
       child: Padding(
@@ -714,7 +713,7 @@ class _RelatoriosPageState extends State<RelatoriosPage>
                     onPressed: _exportExcel,
                     icon: const Icon(Icons.table_chart_outlined, size: 18),
                     label: const Text('Excel'),
-                     style: OutlinedButton.styleFrom(
+                    style: OutlinedButton.styleFrom(
                       foregroundColor: Colors.green.shade800,
                       side: BorderSide(color: Colors.green.shade300),
                     ),
@@ -724,14 +723,14 @@ class _RelatoriosPageState extends State<RelatoriosPage>
             ),
             const SizedBox(height: 16),
             
-            // CORREÇÃO: Esta é a lógica de layout que corrige o erro
+            // Lógica de layout (Mobile vs Desktop)
             if (hasBoundedHeight)
-              // Desktop: A tabela deve expandir para preencher o card
+              // Desktop: A tabela expande para preencher o card
               Expanded(
                 child: _filteredData.isEmpty ? noResultsWidget : tabelaWidget,
               )
             else
-              // Mobile: A tabela não expande (deixa o SingleChildScrollView da página rolar)
+              // Mobile: A tabela tem altura própria (deixa a página rolar)
               _filteredData.isEmpty ? noResultsWidget : tabelaWidget,
 
           ],

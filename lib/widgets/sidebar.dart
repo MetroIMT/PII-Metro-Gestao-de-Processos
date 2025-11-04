@@ -118,8 +118,8 @@ class _SidebarState extends State<Sidebar> {
           // Itens do menu
           _sidebarItem(
             context,
-            Icons.bar_chart,
-            'Dashboard',
+            Icons.grid_view_outlined,
+            'Home',
             0,
             expanded,
             selectedIndex,
