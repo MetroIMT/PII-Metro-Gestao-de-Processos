@@ -5,10 +5,15 @@ import 'alerts_page.dart';
 import 'reports_page.dart';
 import 'estoque_categorias_page.dart';
 import '../../repositories/alert_repository.dart';
+import '../../repositories/movimentacao_repository.dart';
+import '../../models/movimentacao.dart';
+import 'package:intl/intl.dart';
 import 'gerenciar_usuarios.dart';
 import '../../widgets/sidebar.dart';
 
-// Classe para desenhar o gráfico de pizza do estoque (Sem alterações)
+// Classe PieChartPainter (Sem alterações)
+// ... (seu código do PieChartPainter)
+// Classe PieChartPainter (Sem alterações)
 class PieChartPainter extends CustomPainter {
   final double disponivel;
   final double emFalta;
@@ -24,7 +29,6 @@ class PieChartPainter extends CustomPainter {
 
   @override
   void paint(Canvas canvas, Size size) {
-    // ... (Seu código original do paint)
     final center = Offset(size.width / 2, size.height / 2);
     final radius = min(size.width, size.height) / 2;
     final rect = Rect.fromCircle(center: center, radius: radius);
@@ -63,7 +67,6 @@ class PieChartPainter extends CustomPainter {
     );
     final textPainter = TextPainter(
       text: textSpan,
-      textDirection: TextDirection.ltr,
       textAlign: TextAlign.center,
     );
     textPainter.layout();
@@ -80,6 +83,7 @@ class PieChartPainter extends CustomPainter {
   bool shouldRepaint(covariant CustomPainter oldDelegate) => true;
 }
 
+
 class HomeScreen extends StatefulWidget {
   const HomeScreen({super.key});
 
@@ -89,7 +93,10 @@ class HomeScreen extends StatefulWidget {
 
 class _HomeScreenState extends State<HomeScreen>
     with SingleTickerProviderStateMixin {
-  // A lógica de estado da sidebar (animação) permanece na página
+  
+  static const Color metroBlue = Color(0xFF001489);
+
+  // --- Lógica da Sidebar ---
   bool _isRailExtended = false;
   late AnimationController _animationController;
   final GlobalKey<ScaffoldState> _scaffoldKey = GlobalKey<ScaffoldState>();
@@ -101,8 +108,10 @@ class _HomeScreenState extends State<HomeScreen>
       vsync: this,
       duration: const Duration(milliseconds: 300),
     );
-    // Escutar mudanças na contagem de alertas para atualizar o dashboard
     AlertRepository.instance.countNotifier.addListener(_onAlertsCountChanged);
+    
+    // Adicionar listener para o novo repositório
+    MovimentacaoRepository.instance.movimentacoesNotifier.addListener(_onAlertsCountChanged);
   }
 
   void _onAlertsCountChanged() {
@@ -111,15 +120,17 @@ class _HomeScreenState extends State<HomeScreen>
 
   @override
   void dispose() {
-    // Remover listener para evitar leaks
     AlertRepository.instance.countNotifier.removeListener(
+      _onAlertsCountChanged,
+    );
+    // Remover o listener
+    MovimentacaoRepository.instance.movimentacoesNotifier.removeListener(
       _onAlertsCountChanged,
     );
     _animationController.dispose();
     super.dispose();
   }
 
-  // Função que controla a animação e estado da sidebar
   void _toggleRail() {
     setState(() {
       _isRailExtended = !_isRailExtended;
@@ -130,36 +141,116 @@ class _HomeScreenState extends State<HomeScreen>
       }
     });
   }
+  // --- Fim da Lógica da Sidebar ---
+
+  // Dados de exemplo (Sem alterações)
+  final List<EstoqueMaterial> materiaisGiro = [
+    EstoqueMaterial(
+      codigo: 'G001',
+      nome: 'Rolamento 6203',
+      quantidade: 50,
+      local: 'Almoxarifado A',
+      vencimento: DateTime(2025, 12, 31),
+    ),
+    EstoqueMaterial(
+      codigo: 'G002',
+      nome: 'Correia em V AX-45',
+      quantidade: 20,
+      local: 'Almoxarifado B',
+    ),
+    EstoqueMaterial(
+      codigo: 'G003',
+      nome: 'Filtro de Ar Motor X',
+      quantidade: 0,
+      local: 'Almoxarifado A',
+    ),
+    EstoqueMaterial(
+      codigo: 'G004',
+      nome: 'Selo Mecânico 1.5"',
+      quantidade: 5,
+      local: 'Oficina Mecânica',
+    ),
+    EstoqueMaterial(
+      codigo: 'G005',
+      nome: 'Óleo Hidráulico',
+      quantidade: 10,
+      local: 'Oficina Mecânica',
+      vencimento: DateTime.now().add(const Duration(days: 15)), // Vence em 15 dias
+    ),
+  ];
+  final List<EstoqueMaterial> materiaisConsumo = [
+    EstoqueMaterial(
+      codigo: 'C001',
+      nome: 'Óleo Lubrificante XPTO',
+      quantidade: 15,
+      local: 'Oficina 1',
+    ),
+    EstoqueMaterial(
+      codigo: 'C002',
+      nome: 'Graxa de Lítio',
+      quantidade: 5,
+      local: 'Oficina 2',
+      vencimento: DateTime(2024, 8, 1), // Já venceu
+    ),
+    EstoqueMaterial(
+      codigo: 'C003',
+      nome: 'Estopa (pacote)',
+      quantidade: 100,
+      local: 'Oficina 1',
+    ),
+    EstoqueMaterial(
+      codigo: 'C004',
+      nome: 'Lixa para Ferro',
+      quantidade: 0,
+      local: 'Almoxarifado C',
+    ),
+  ];
+  final List<EstoqueMaterial> materiaisPatrimoniado = [
+    EstoqueMaterial(
+      codigo: 'P001',
+      nome: 'Furadeira de Impacto Bosch',
+      quantidade: 1,
+      local: 'Ferramentaria',
+    ),
+    EstoqueMaterial(
+      codigo: 'P002',
+      nome: 'Multímetro Digital Fluke',
+      quantidade: 1,
+      local: 'Laboratório de Eletrônica',
+    ),
+    EstoqueMaterial(
+      codigo: 'P003',
+      nome: 'Notebook Dell Vostro',
+      quantidade: 0,
+      local: 'Sala da Supervisão',
+    ),
+  ];
 
   @override
   Widget build(BuildContext context) {
-    // Detectar se está em modo mobile
     final isMobile = MediaQuery.of(context).size.width < 600;
 
     return Scaffold(
       key: _scaffoldKey,
-      backgroundColor: Colors.white,
-      // AppBar apenas no mobile (para o menu hamburguer)
+      backgroundColor: const Color(0xFFF4F5FA),
       appBar: isMobile
           ? AppBar(
               elevation: 0,
-              backgroundColor: Colors.white,
-              // No mobile: botão abre drawer
+              backgroundColor: Colors.white, 
               leading: IconButton(
                 icon: AnimatedIcon(
                   icon: AnimatedIcons.menu_close,
                   progress: _animationController,
-                  color: const Color(0xFF001489),
+                  color: metroBlue, 
                 ),
                 onPressed: () {
-                  // Usar o _scaffoldKey para abrir o drawer
                   _scaffoldKey.currentState?.openDrawer();
                 },
               ),
               title: const Text(
                 'Home',
                 style: TextStyle(
-                  color: Color(0xFF001489),
+                  color: metroBlue,
                   fontWeight: FontWeight.bold,
                 ),
               ),
@@ -171,20 +262,17 @@ class _HomeScreenState extends State<HomeScreen>
               ],
             )
           : null,
-
-      // ATUALIZADO: Usa o novo widget Sidebar (CORRETO)
       drawer: isMobile
           ? Drawer(
               child: Sidebar(
-                expanded: true, // No drawer, está sempre expandida
-                selectedIndex: 0, // 0 = Dashboard
+                expanded: true, 
+                selectedIndex: 0, 
               ),
             )
           : null,
-
       body: Stack(
         children: [
-          // Barra lateral fixa em desktop (posicionada sobre o conteúdo)
+          // Sidebar (Desktop)
           if (!isMobile)
             AnimatedPositioned(
               duration: const Duration(milliseconds: 300),
@@ -193,69 +281,66 @@ class _HomeScreenState extends State<HomeScreen>
               top: 0,
               bottom: 0,
               width: _isRailExtended ? 180 : 70,
-              // ATUALIZADO: Usa o novo widget Sidebar (CORRETO)
               child: Sidebar(
                 expanded: _isRailExtended,
-                selectedIndex: 0, // 0 = Dashboard
+                selectedIndex: 0,
               ),
             ),
 
-          // Conteúdo principal (com padding à esquerda apenas em desktop)
+          // Conteúdo principal
           AnimatedPadding(
             duration: const Duration(milliseconds: 300),
             padding: EdgeInsets.only(
               left: !isMobile ? (_isRailExtended ? 180 : 70) : 0,
             ),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                // Cabeçalho com título e logo (apenas em desktop)
-                if (!isMobile)
-                  Padding(
-                    padding: const EdgeInsets.all(16.0),
-                    child: Row(
-                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                      children: [
-                        Row(
-                          children: [
-                            IconButton(
-                              icon: Icon(
-                                _isRailExtended ? Icons.menu_open : Icons.menu,
-                                color: const Color(0xFF001489),
+            // Padding geral de 40.0
+            child: Padding(
+              padding: const EdgeInsets.all(40.0),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  // Header (Desktop)
+                  if (!isMobile)
+                    Padding(
+                      padding: const EdgeInsets.only(bottom: 40.0),
+                      child: Row(
+                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                        children: [
+                          Row(
+                            children: [
+                              IconButton(
+                                icon: Icon(
+                                  _isRailExtended ? Icons.menu_open : Icons.menu,
+                                  color: metroBlue,
+                                ),
+                                onPressed: _toggleRail,
                               ),
-                              // ATUALIZADO: Chama a função de toggle
-                              onPressed: _toggleRail,
-                            ),
-                            const SizedBox(width: 12),
-                            const Text(
-                              'Home',
-                              style: TextStyle(
-                                fontSize: 24,
-                                fontWeight: FontWeight.bold,
-                                color: Color(0xFF001489),
-                              ),
-                            ),
-                          ],
-                        ),
-                        Hero(
-                          tag: 'logo',
-                          child: Image.asset(
-                            'assets/LogoMetro.png',
-                            height: 40, // Altura ajustada
+                              const SizedBox(width: 12),
+                            ],
                           ),
-                        ),
-                      ],
+                          Hero(
+                            tag: 'logo',
+                            child: Image.asset(
+                              'assets/LogoMetro.png',
+                              height: 40, 
+                            ),
+                          ),
+                        ],
+                      ),
                     ),
-                  ),
+                  
+                  // Header de "Cara de Home"
+                  _buildWelcomeHeader(isMobile),
 
-                // Dashboard Cards
-                Expanded(
-                  child: Padding(
-                    padding: const EdgeInsets.all(16.0),
-                    child: _buildDashboardContent(), // Método de conteúdo
+                  // Ações Rápidas
+                  _buildQuickActions(isMobile),
+
+                  // Grid de Cards
+                  Expanded(
+                    child: _buildHomeGrid(), 
                   ),
-                ),
-              ],
+                ],
+              ),
             ),
           ),
         ],
@@ -263,22 +348,139 @@ class _HomeScreenState extends State<HomeScreen>
     );
   }
 
-  Widget _buildDashboardContent() {
+  /// Cabeçalho de Boas Vindas
+  Widget _buildWelcomeHeader(bool isMobile) {
+    return Padding(
+      padding: const EdgeInsets.only(bottom: 40.0),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text(
+            'Bem-vindo de volta, Usuário!', // TODO: Trocar por nome real
+            style: TextStyle(
+              fontSize: isMobile ? 22 : 28,
+              fontWeight: FontWeight.bold,
+              color: metroBlue,
+            ),
+          ),
+          const SizedBox(height: 4),
+          Text(
+            'Aqui está um resumo da sua operação hoje.',
+            style: TextStyle(
+              fontSize: isMobile ? 14 : 16,
+              color: Colors.black54,
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  /// Seção de Ações Rápidas
+  Widget _buildQuickActions(bool isMobile) {
+    return Padding(
+      padding: const EdgeInsets.only(bottom: 40.0),
+      child: Wrap(
+        spacing: 12.0, 
+        runSpacing: 12.0, 
+        children: [
+          _buildActionButton(
+            context,
+            icon: Icons.search,
+            label: 'Buscar Material',
+            onPressed: () {
+              // TODO: Implementar navegação para busca
+            },
+          ),
+          _buildActionButton(
+            context,
+            icon: Icons.add_shopping_cart,
+            label: 'Registrar Entrada',
+            onPressed: () {
+              // TODO: Implementar navegação
+            },
+          ),
+          _buildActionButton(
+            context,
+            icon: Icons.shopping_cart_checkout,
+            label: 'Registrar Saída',
+            onPressed: () {
+              // TODO: Implementar navegação
+            },
+          ),
+        ],
+      ),
+    );
+  }
+
+  /// Helper para os botões de ação
+  Widget _buildActionButton(
+    BuildContext context, {
+    required IconData icon,
+    required String label,
+    required VoidCallback onPressed,
+    bool isPrimary = false,
+  }) {
+    if (isPrimary) {
+      return ElevatedButton.icon(
+        icon: Icon(icon, size: 18),
+        label: Text(label),
+        onPressed: onPressed,
+        style: ElevatedButton.styleFrom(
+          backgroundColor: metroBlue,
+          foregroundColor: Colors.white,
+          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(10),
+          ),
+        ),
+      );
+    }
+
+    return OutlinedButton.icon(
+      icon: Icon(icon, size: 18, color: metroBlue),
+      label: Text(
+        label,
+        style: const TextStyle(color: metroBlue),
+      ),
+      onPressed: onPressed,
+      style: OutlinedButton.styleFrom(
+        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+        side: const BorderSide(color: metroBlue),
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(10),
+        ),
+      ),
+    );
+  }
+
+
+  /// O Grid de cards, agora mais responsivo e preenchido
+  Widget _buildHomeGrid() {
 
     return LayoutBuilder(
       builder: (context, constraints) {
-        // Decidir se é 1 ou 2 colunas com base na largura disponível
-        final crossAxisCount = constraints.maxWidth < 700 ? 1 : 2;
+        final int crossAxisCount;
+        if (constraints.maxWidth < 650) {
+          crossAxisCount = 1;
+        } else if (constraints.maxWidth < 1100) {
+          crossAxisCount = 2;
+        } else {
+          crossAxisCount = 3;
+        }
+
+        final double childAspectRatio = crossAxisCount == 1 ? 1.7 : 1.4;
 
         return GridView(
+          padding: EdgeInsets.zero, 
           gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
             crossAxisCount: crossAxisCount,
             crossAxisSpacing: 16,
             mainAxisSpacing: 16,
-            childAspectRatio: 1.5, // Cards mais largos que altos
+            childAspectRatio: childAspectRatio,
           ),
           children: [
-            // Card de Estoque Atual
+            // Card de Estoque Atual (Funcional)
             _buildEstoqueCard(
               () => Navigator.push(
                 context,
@@ -288,25 +490,7 @@ class _HomeScreenState extends State<HomeScreen>
               ),
             ),
 
-            // Card de Instrumentos Próximos da Calibração
-            _buildDashboardCard(
-              'Instrumentos próximos da calibração',
-              Icons.timer,
-              Colors.orange,
-              () {},
-              color2: Colors.orange.shade200,
-            ),
-
-            // Card de Movimentações Recentes
-            _buildDashboardCard(
-              'Movimentações recentes',
-              Icons.swap_horiz,
-              Colors.green,
-              () {},
-              color2: Colors.green.shade200,
-            ),
-
-            // Card de Alertas (estoque baixo / vencimento) - usa contagem do repositório
+            // Card de Alertas (prioridade alta)
             _buildDashboardCard(
               'Alertas (estoque baixo / vencimento)',
               Icons.warning_amber,
@@ -317,9 +501,64 @@ class _HomeScreenState extends State<HomeScreen>
                   MaterialPageRoute(builder: (_) => const AlertsPage()),
                 );
               },
+              color2: Colors.red.shade200,
               hasAlert: AlertRepository.instance.countNotifier.value > 0,
               alertCount: AlertRepository.instance.countNotifier.value,
-              color2: Colors.red.shade200,
+              content: _buildStatContent(
+                AlertRepository.instance.countNotifier.value.toString(),
+                "Alertas ativos",
+                Colors.red.shade700
+              ),
+            ),
+
+            // Card de Instrumentos
+            _buildDashboardCard(
+              'Instrumentos próximos da calibração',
+              Icons.timer,
+              Colors.orange,
+              () {},
+              color2: Colors.orange.shade200,
+              content: _buildStatContent(
+                "3", 
+                "Precisam de atenção",
+                Colors.orange.shade800
+              ),
+            ),
+
+            // AJUSTE: Card de Movimentações Recentes
+            _buildDashboardCard(
+              'Movimentações recentes',
+              Icons.swap_horiz,
+              Colors.green,
+              () {
+                // TODO: Navegar para uma tela de "Todas as Movimentações"?
+              },
+              
+              // AQUI É A MÁGICA:
+              // Trocamos o _buildStatContent por um widget que ouve o repositório
+              content: ValueListenableBuilder<List<Movimentacao>>(
+                valueListenable: MovimentacaoRepository.instance.movimentacoesNotifier,
+                builder: (context, listaMovimentacoes, child) {
+                  
+                  if (listaMovimentacoes.isEmpty) {
+                    return const Center(
+                      child: Text(
+                        'Nenhuma movimentação recente.',
+                        style: TextStyle(color: Colors.black54),
+                      ),
+                    );
+                  }
+                  
+                  // Se tiver itens, constrói a lista
+                  return ListView.builder(
+                    padding: const EdgeInsets.only(top: 8.0),
+                    itemCount: listaMovimentacoes.length,
+                    itemBuilder: (context, index) {
+                      return _buildMovimentacaoRow(listaMovimentacoes[index]);
+                    },
+                  );
+                },
+              ),
             ),
 
             // Card Gerenciar Usuários
@@ -334,6 +573,11 @@ class _HomeScreenState extends State<HomeScreen>
                 );
               },
               color2: Colors.blue.shade200,
+              content: _buildStatContent(
+                "8", 
+                "Usuários ativos",
+                Colors.blue.shade800
+              ),
             ),
 
             // Card Relatórios
@@ -348,6 +592,11 @@ class _HomeScreenState extends State<HomeScreen>
                 );
               },
               color2: const Color.fromARGB(255, 219, 193, 153),
+              content: _buildStatContent(
+                "5", 
+                "Relatórios salvos",
+                const Color.fromARGB(255, 184, 99, 0)
+              ),
             ),
           ],
         );
@@ -355,73 +604,86 @@ class _HomeScreenState extends State<HomeScreen>
     );
   }
 
-  // Card de Estoque com gráfico e estatísticas (Sem alterações)
+  /// Helper para criar o conteúdo de estatística dos cards
+  Widget _buildStatContent(String value, String label, Color color) {
+    return Center(
+      child: RichText(
+        textAlign: TextAlign.center,
+        text: TextSpan(
+          style: const TextStyle(color: Colors.black87),
+          children: [
+            TextSpan(
+              text: value,
+              style: TextStyle(
+                fontSize: 48,
+                fontWeight: FontWeight.bold,
+                color: color,
+              ),
+            ),
+            TextSpan(
+              text: '\n$label',
+              style: const TextStyle(
+                fontSize: 16,
+                color: Colors.black54,
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  // NOVO: Helper para mostrar uma linha da movimentação
+  Widget _buildMovimentacaoRow(Movimentacao mov) {
+    // Formata a hora, ex: "14:32"
+    final String horaFormatada = DateFormat('HH:mm').format(mov.timestamp);
+
+    return Padding(
+      padding: const EdgeInsets.symmetric(vertical: 6.0, horizontal: 4.0),
+      child: Row(
+        children: [
+          Icon(mov.icon, color: Colors.grey.shade700, size: 20),
+          const SizedBox(width: 12),
+          Expanded(
+            child: Text(
+              mov.descricao,
+              style: const TextStyle(color: Colors.black87, fontSize: 14),
+              overflow: TextOverflow.ellipsis, // Evita quebra de linha
+              maxLines: 1,
+            ),
+          ),
+          const SizedBox(width: 8),
+          Text(
+            horaFormatada,
+            style: TextStyle(color: Colors.grey.shade500, fontSize: 12),
+          ),
+        ],
+      ),
+    );
+  }
+
+
+  // Card de Estoque com gráfico e estatísticas (FUNCIONAL)
   Widget _buildEstoqueCard(VoidCallback onTap) {
-    // Dados do estoque obtidos da mesma fonte de estoque_page
-    // Estes valores deveriam idealmente vir de um serviço ou provider compartilhado
-    final List<EstoqueMaterial> materiais = [
-      EstoqueMaterial(
-        codigo: 'M001',
-        nome: 'Cabo Elétrico 2.5mm',
-        quantidade: 150,
-        local: 'Base A',
-      ),
-      EstoqueMaterial(
-        codigo: 'M002',
-        nome: 'Disjuntor 20A',
-        quantidade: 45,
-        local: 'Base B',
-      ),
-      EstoqueMaterial(
-        codigo: 'M003',
-        nome: 'Conduíte Flexível 20mm',
-        quantidade: 0,
-        local: 'Base A',
-      ),
-      EstoqueMaterial(
-        codigo: 'M004',
-        nome: 'Terminal Elétrico',
-        quantidade: 230,
-        local: 'Base C',
-      ),
-      EstoqueMaterial(
-        codigo: 'M005',
-        nome: 'Fusível 10A',
-        quantidade: 0,
-        local: 'Base B',
-      ),
-      EstoqueMaterial(
-        codigo: 'M006',
-        nome: 'Luva de Emenda 25mm',
-        quantidade: 75,
-        local: 'Base D',
-      ),
-      EstoqueMaterial(
-        codigo: 'M007',
-        nome: 'Relé de Proteção',
-        quantidade: 18,
-        local: 'Base A',
-      ),
-      EstoqueMaterial(
-        codigo: 'M008',
-        nome: 'Chave Seccionadora',
-        quantidade: 5,
-        local: 'Base C',
-      ),
+    
+    final List<EstoqueMaterial> todosMateriais = [
+      ...materiaisGiro,
+      ...materiaisConsumo,
+      ...materiaisPatrimoniado,
     ];
 
-    // Cálculos dos valores baseados nos dados acima
-    final int totalMateriais = materiais.length;
-    final int materiaisDisponiveis = materiais
+    final int totalMateriais = todosMateriais.length;
+    final int materiaisDisponiveis = todosMateriais
         .where((m) => m.quantidade > 0)
         .length;
-    final int materiaisEmFalta = materiais
+    final int materiaisEmFalta = todosMateriais
         .where((m) => m.quantidade <= 0)
         .length;
-    final double porcentagemDisponivel =
-        (materiaisDisponiveis / totalMateriais) * 100;
+    
+    final double porcentagemDisponivel = totalMateriais > 0
+        ? (materiaisDisponiveis / totalMateriais) * 100
+        : 0.0;
 
-    final metroBlue = const Color(0xFF001489);
     final metroLightBlue = const Color.fromARGB(255, 5, 59, 158);
 
     return Material(
@@ -480,7 +742,7 @@ class _HomeScreenState extends State<HomeScreen>
                     const SizedBox(width: 12),
                     Expanded(
                       child: Text(
-                        'Estoque atual',
+                        'Estoque Total', // Título alterado
                         style: TextStyle(
                           fontWeight: FontWeight.bold,
                           color: Colors.grey.shade800,
@@ -488,7 +750,7 @@ class _HomeScreenState extends State<HomeScreen>
                         ),
                       ),
                     ),
-                    // Indicador de porcentagem de disponibilidade
+                    // Indicador de porcentagem
                     Container(
                       padding: const EdgeInsets.symmetric(
                         horizontal: 8,
@@ -520,14 +782,13 @@ class _HomeScreenState extends State<HomeScreen>
                 Expanded(
                   child: Row(
                     children: [
-                      // Estatísticas à esquerda
+                      // Estatísticas
                       Expanded(
                         flex: 3,
                         child: Column(
                           crossAxisAlignment: CrossAxisAlignment.start,
                           mainAxisAlignment: MainAxisAlignment.center,
                           children: [
-                            // Total de materiais
                             _buildEstoqueStat(
                               'Total de materiais',
                               '$totalMateriais',
@@ -535,8 +796,6 @@ class _HomeScreenState extends State<HomeScreen>
                               metroBlue,
                             ),
                             const SizedBox(height: 12),
-
-                            // Materiais disponíveis
                             _buildEstoqueStat(
                               'Disponíveis',
                               '$materiaisDisponiveis',
@@ -544,8 +803,6 @@ class _HomeScreenState extends State<HomeScreen>
                               Colors.green,
                             ),
                             const SizedBox(height: 12),
-
-                            // Materiais em falta
                             _buildEstoqueStat(
                               'Em falta',
                               '$materiaisEmFalta',
@@ -556,7 +813,7 @@ class _HomeScreenState extends State<HomeScreen>
                         ),
                       ),
 
-                      // Gráfico de pizza à direita
+                      // Gráfico de pizza
                       Expanded(
                         flex: 2,
                         child: Container(
@@ -564,10 +821,14 @@ class _HomeScreenState extends State<HomeScreen>
                           padding: const EdgeInsets.all(8.0),
                           child: CustomPaint(
                             painter: PieChartPainter(
-                              disponivel: materiaisDisponiveis / totalMateriais,
-                              emFalta: materiaisEmFalta / totalMateriais,
-                              corDisponivel:
-                                  Colors.green, // Usando verde para o gráfico
+                              // Prevenção de divisão por zero
+                              disponivel: totalMateriais > 0 
+                                  ? materiaisDisponiveis / totalMateriais
+                                  : 0,
+                              emFalta: totalMateriais > 0
+                                  ? materiaisEmFalta / totalMateriais
+                                  : 0,
+                              corDisponivel: Colors.green,
                             ),
                             size: const Size(100, 100),
                           ),
@@ -581,7 +842,7 @@ class _HomeScreenState extends State<HomeScreen>
                 Align(
                   alignment: Alignment.bottomRight,
                   child: CardActionButton(
-                    label: 'Ver estoque',
+                    label: 'Ver categorias', // Label alterado
                     borderColor: metroBlue,
                     onPressed: onTap,
                   ),
@@ -594,7 +855,7 @@ class _HomeScreenState extends State<HomeScreen>
     );
   }
 
-  // Widget para mostrar uma estatística no card de estoque (Sem alterações)
+  // Widget para mostrar uma estatística no card de estoque
   Widget _buildEstoqueStat(
     String label,
     String value,
@@ -634,7 +895,7 @@ class _HomeScreenState extends State<HomeScreen>
     );
   }
 
-  // Card individual do Dashboard (Sem alterações)
+  /// Card individual do Dashboard
   Widget _buildDashboardCard(
     String title,
     IconData icon,
@@ -642,7 +903,8 @@ class _HomeScreenState extends State<HomeScreen>
     VoidCallback onTap, {
     bool hasAlert = false,
     Color? color2,
-    int? alertCount, // novo parâmetro opcional
+    int? alertCount, 
+    Widget? content,
   }) {
     final gradientColor = color2 ?? color.withAlpha((0.6 * 255).round());
 
@@ -734,15 +996,17 @@ class _HomeScreenState extends State<HomeScreen>
                   ],
                 ),
                 const SizedBox(height: 16),
-                const Expanded(
-                  child: Center(
+                
+                Expanded(
+                  // O 'content' agora é dinâmico
+                  child: content ?? const Center(
                     child: Text(
                       'Dados do card vão aqui',
                       style: TextStyle(color: Colors.black54),
                     ),
                   ),
                 ),
-                // Botão de ação
+                
                 Align(
                   alignment: Alignment.bottomRight,
                   child: CardActionButton(
@@ -760,7 +1024,7 @@ class _HomeScreenState extends State<HomeScreen>
   }
 }
 
-// Novo widget: botão estilizado replicando comportamento do exemplo HTML/CSS (Sem alterações)
+// Botão de Ação do Card (Sem alterações)
 class CardActionButton extends StatefulWidget {
   final String label;
   final Color borderColor;
@@ -816,7 +1080,6 @@ class _CardActionButtonState extends State<CardActionButton> {
           child: Stack(
             alignment: Alignment.center,
             children: [
-              // Texto + ícone (icone se desloca ao hover)
               Row(
                 mainAxisSize: MainAxisSize.min,
                 children: [
