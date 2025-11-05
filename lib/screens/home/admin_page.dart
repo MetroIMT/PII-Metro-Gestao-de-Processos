@@ -268,7 +268,7 @@ class _AdminPageState extends State<AdminPage>
           : null,
       // Drawer (menu) só existe no mobile
       drawer: isMobile
-          ? Drawer(child: Sidebar(expanded: true, selectedIndex: 0))
+          ? Drawer(child: Sidebar(expanded: true, selectedIndex: -1))
           : null,
       body: Stack(
         children: [
@@ -281,7 +281,7 @@ class _AdminPageState extends State<AdminPage>
               top: 0,
               bottom: 0,
               width: _isRailExtended ? 180 : 70,
-              child: Sidebar(expanded: _isRailExtended, selectedIndex: 0),
+              child: Sidebar(expanded: _isRailExtended, selectedIndex: -1),
             ),
 
           // Conteúdo principal da página
@@ -372,16 +372,6 @@ class _AdminPageState extends State<AdminPage>
               children: [
                 _avatarSection(),
                 const SizedBox(width: 16),
-                const Expanded(
-                  child: Text(
-                    'Informações Pessoais',
-                    style: TextStyle(
-                      fontSize: 20,
-                      fontWeight: FontWeight.bold,
-                      color: metroBlue,
-                    ),
-                  ),
-                ),
               ],
             ),
 
