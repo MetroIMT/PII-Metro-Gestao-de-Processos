@@ -82,39 +82,8 @@ class _SidebarState extends State<Sidebar> {
           ),
           const SizedBox(height: 20),
 
-          // ÍCONE DE PERFIL
-          Container(
-            margin: const EdgeInsets.only(bottom: 16),
-            child: InkWell(
-              onTap: () {
-                Navigator.pushReplacement(
-                  context,
-                  MaterialPageRoute(builder: (_) => AdminPage()),
-                );
-              },
-              borderRadius: BorderRadius.circular(50),
-              child: Column(
-                children: [
-                  CircleAvatar(
-                    radius: 25,
-                    backgroundColor: Colors.white.withAlpha((0 * 255).round()),
-                    child: const Icon(
-                      Icons.person,
-                      color: Colors.white,
-                      size: 28,
-                    ),
-                  ),
-                  if (expanded) ...[
-                    const SizedBox(height: 8),
-                    const Text(
-                      'Perfil',
-                      style: TextStyle(color: Colors.white, fontSize: 14),
-                    ),
-                  ],
-                ],
-              ),
-            ),
-          ),
+          // PERFIL - usando o mesmo helper que os outros itens
+          _sidebarItem(context, Icons.person, 'Perfil', -1, expanded, selectedIndex),
 
           // Itens do menu
           _sidebarItem(
@@ -202,6 +171,12 @@ class _SidebarState extends State<Sidebar> {
         }
 
         switch (index) {
+          case -1:
+            Navigator.pushReplacement(
+              context,
+              MaterialPageRoute(builder: (_) => const AdminPage()),
+            );
+            break;
           case 0:
             Navigator.pushReplacement(
               context,

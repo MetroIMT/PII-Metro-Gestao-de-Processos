@@ -502,7 +502,6 @@ class _HomeScreenState extends State<HomeScreen>
                   MaterialPageRoute(builder: (_) => const AlertsPage()),
                 );
               },
-              color2: Colors.red.shade200,
               hasAlert: AlertRepository.instance.countNotifier.value > 0,
               alertCount: AlertRepository.instance.countNotifier.value,
               content: _buildStatContent(
@@ -518,7 +517,6 @@ class _HomeScreenState extends State<HomeScreen>
               Icons.timer,
               Colors.orange,
               () {},
-              color2: Colors.orange.shade200,
               content: _buildStatContent(
                 "3", 
                 "Precisam de atenção",
@@ -700,11 +698,8 @@ class _HomeScreenState extends State<HomeScreen>
         borderRadius: BorderRadius.circular(12),
         child: Container(
           decoration: BoxDecoration(
-            gradient: LinearGradient(
-              begin: Alignment.topLeft,
-              end: Alignment.bottomRight,
-              colors: [Colors.white, Colors.grey.shade50],
-            ),
+            // Gradiente removido -> cor sólida
+            color: Colors.white,
             borderRadius: BorderRadius.circular(12),
             boxShadow: [
               BoxShadow(
@@ -725,11 +720,8 @@ class _HomeScreenState extends State<HomeScreen>
                     Container(
                       padding: const EdgeInsets.all(10),
                       decoration: BoxDecoration(
-                        gradient: LinearGradient(
-                          colors: [metroBlue, metroLightBlue],
-                          begin: Alignment.topLeft,
-                          end: Alignment.bottomRight,
-                        ),
+                        // Gradiente removido -> cor sólida
+                        color: metroBlue,
                         borderRadius: BorderRadius.circular(10),
                         boxShadow: [
                           BoxShadow(
@@ -922,11 +914,8 @@ class _HomeScreenState extends State<HomeScreen>
         borderRadius: BorderRadius.circular(12),
         child: Container(
           decoration: BoxDecoration(
-            gradient: LinearGradient(
-              colors: [Colors.white, Colors.grey.shade50],
-              begin: Alignment.topCenter,
-              end: Alignment.bottomCenter,
-            ),
+            // Gradiente removido -> cor sólida
+            color: Colors.white,
             borderRadius: BorderRadius.circular(12),
             boxShadow: [
               BoxShadow(
@@ -946,11 +935,8 @@ class _HomeScreenState extends State<HomeScreen>
                     Container(
                       padding: const EdgeInsets.all(10),
                       decoration: BoxDecoration(
-                        gradient: LinearGradient(
-                          colors: [color, gradientColor],
-                          begin: Alignment.topLeft,
-                          end: Alignment.bottomRight,
-                        ),
+                        // Gradiente removido -> cor sólida
+                        color: color,
                         borderRadius: BorderRadius.circular(10),
                         boxShadow: [
                           BoxShadow(

@@ -31,6 +31,12 @@
             android:name="flutterEmbedding"
             android:value="2" />
     </application>
+    <!-- Permissões básicas -->
+    <uses-permission android:name="android.permission.CAMERA" />
+    <uses-permission android:name="android.permission.READ_EXTERNAL_STORAGE" />
+    <!-- para Android 13+: -->
+    <uses-permission android:name="android.permission.READ_MEDIA_IMAGES" />
+
     <!-- Required to query activities that can process text, see:
          https://developer.android.com/training/package-visibility and
          https://developer.android.com/reference/android/content/Intent#ACTION_PROCESS_TEXT.
