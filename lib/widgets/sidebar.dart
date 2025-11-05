@@ -4,6 +4,7 @@ import '../screens/login/login_screen.dart';
 import '../screens/home/estoque_categorias_page.dart';
 import '../screens/home/tool_page.dart';
 import '../screens/home/gerenciar_usuarios.dart';
+import '../screens/home/movimentacoes_page.dart';
 import '../screens/home/home_screen.dart';
 import '../screens/home/reports_page.dart';
 import '../screens/home/admin_page.dart';
@@ -103,9 +104,17 @@ class _SidebarState extends State<Sidebar> {
           ),
           _sidebarItem(
             context,
+            Icons.swap_horiz,
+            'Movimentações',
+            2,
+            expanded,
+            selectedIndex,
+          ),
+          _sidebarItem(
+            context,
             Icons.build,
             'Ferramentas',
-            2,
+            3,
             expanded,
             selectedIndex,
           ),
@@ -113,7 +122,7 @@ class _SidebarState extends State<Sidebar> {
             context,
             Icons.article,
             'Relatórios',
-            3,
+            4,
             expanded,
             selectedIndex,
           ),
@@ -122,7 +131,7 @@ class _SidebarState extends State<Sidebar> {
               context,
               Icons.person_add,
               'Gerenciar usuários',
-              4,
+              5,
               expanded,
               selectedIndex,
             ),
@@ -132,7 +141,7 @@ class _SidebarState extends State<Sidebar> {
             context,
             Icons.logout,
             'Sair',
-            5,
+            6,
             expanded,
             selectedIndex,
           ),
@@ -183,22 +192,28 @@ class _SidebarState extends State<Sidebar> {
           case 2:
             Navigator.pushReplacement(
               context,
-              MaterialPageRoute(builder: (_) => const ToolPage()),
+              MaterialPageRoute(builder: (_) => const MovimentacoesPage()),
             );
             break;
           case 3:
             Navigator.pushReplacement(
               context,
-              MaterialPageRoute(builder: (_) => const RelatoriosPage()),
+              MaterialPageRoute(builder: (_) => const ToolPage()),
             );
             break;
           case 4:
             Navigator.pushReplacement(
               context,
-              MaterialPageRoute(builder: (_) => const GerenciarUsuarios()),
+              MaterialPageRoute(builder: (_) => const RelatoriosPage()),
             );
             break;
           case 5:
+            Navigator.pushReplacement(
+              context,
+              MaterialPageRoute(builder: (_) => const GerenciarUsuarios()),
+            );
+            break;
+          case 6:
             try {
               await AuthService().logout();
             } catch (_) {}

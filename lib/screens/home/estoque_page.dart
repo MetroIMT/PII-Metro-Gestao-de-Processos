@@ -357,8 +357,12 @@ class _EstoquePageState extends State<EstoquePage> {
 
                       // NOVO: Adicionar a movimentação ao repositório
                       MovimentacaoRepository.instance.addMovimentacao(
-                        "Adicionado: ${novoMaterial.nome}",
-                        Icons.add_box_rounded,
+                        codigoMaterial: novoMaterial.codigo,
+                        descricao: "Adicionado: ${novoMaterial.nome}",
+                        quantidade: novoMaterial.quantidade,
+                        tipo: 'adicao',
+                        usuario: 'Sistema',
+                        local: novoMaterial.local,
                       );
 
                       // Fechar o diálogo

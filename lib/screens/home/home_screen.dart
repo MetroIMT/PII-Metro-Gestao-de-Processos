@@ -4,6 +4,7 @@ import 'estoque_page.dart';
 import 'alerts_page.dart';
 import 'reports_page.dart';
 import 'estoque_categorias_page.dart';
+import 'movimentacoes_page.dart'; // Importar a nova página
 import '../../repositories/alert_repository.dart';
 import '../../repositories/movimentacao_repository.dart';
 import '../../models/movimentacao.dart';
@@ -529,19 +530,24 @@ class _HomeScreenState extends State<HomeScreen>
               Icons.swap_horiz,
               Colors.green,
               () {
-                // TODO: Navegar para uma tela de "Todas as Movimentações"?
+                Navigator.push(
+                  context,
+                  MaterialPageRoute(builder: (_) => const MovimentacoesPage()),
+                );
               },
               
               // AQUI É A MÁGICA:
               // Trocamos o _buildStatContent por um widget que ouve o repositório
               content: ValueListenableBuilder<List<Movimentacao>>(
                 valueListenable: MovimentacaoRepository.instance.movimentacoesNotifier,
-                builder: (context, listaMovimentacoes, child) {
-                  
+                builder: (context, _, child) { // O _ indica que não vamos usar a lista diretamente aqui
+                  final listaMovimentacoes = MovimentacaoRepository.instance.getMovimentacoesParaDashboard();
+
                   if (listaMovimentacoes.isEmpty) {
                     return const Center(
                       child: Text(
-                        'Nenhuma movimentação recente.',
+                        'Nenhuma movimentação registrada ainda.',
+                        textAlign: TextAlign.center,
                         style: TextStyle(color: Colors.black54),
                       ),
                     );
@@ -843,8 +849,8 @@ class _HomeScreenState extends State<HomeScreen>
             ),
           ),
         ),
-      ),
-    );
+      ));
+    }
   }
 
   // Widget para mostrar uma estatística no card de estoque
@@ -1005,10 +1011,10 @@ class _HomeScreenState extends State<HomeScreen>
             ),
           ),
         ),
-      ),
-    );
-  }
-}
+      ));
+    }
+  
+
 
 // Botão de Ação do Card (Sem alterações)
 class CardActionButton extends StatefulWidget {
