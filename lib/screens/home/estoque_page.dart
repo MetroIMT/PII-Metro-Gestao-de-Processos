@@ -1,11 +1,15 @@
+// lib/pages/estoque/estoque_page.dart (ou onde o seu estiver)
+
 import 'package:flutter/material.dart';
+// NOVO: Importar o repositório que acabamos de criar
+import '../../repositories/movimentacao_repository.dart'; 
 
 class EstoqueMaterial {
   final String codigo;
+  // ... (resto da sua classe EstoqueMaterial sem alterações)
   final String nome;
   final int quantidade;
   final String local;
-  // Novo campo: vencimento opcional
   final DateTime? vencimento;
 
   EstoqueMaterial({
@@ -20,6 +24,7 @@ class EstoqueMaterial {
 }
 
 class EstoquePage extends StatefulWidget {
+  // ... (resto do seu EstoquePage e _EstoquePageState sem alterações)
   final String title;
   final List<EstoqueMaterial> materiais;
 
@@ -44,21 +49,8 @@ class _EstoquePageState extends State<EstoquePage> {
     _materiais = List.from(widget.materiais);
   }
 
-  // Lista de exemplo de materiais
-  /*
-  final List<EstoqueMaterial> _materiais = [
-    EstoqueMaterial(codigo: 'M001', nome: 'Cabo Elétrico 2.5mm', quantidade: 150, local: 'Base A'),
-    EstoqueMaterial(codigo: 'M002', nome: 'Disjuntor 20A', quantidade: 45, local: 'Base B'),
-    EstoqueMaterial(codigo: 'M003', nome: 'Conduíte Flexível 20mm', quantidade: 0, local: 'Base A'),
-    EstoqueMaterial(codigo: 'M004', nome: 'Terminal Elétrico', quantidade: 230, local: 'Base C'),
-    EstoqueMaterial(codigo: 'M005', nome: 'Fusível 10A', quantidade: 0, local: 'Base B'),
-    EstoqueMaterial(codigo: 'M006', nome: 'Luva de Emenda 25mm', quantidade: 75, local: 'Base D'),
-    EstoqueMaterial(codigo: 'M007', nome: 'Relé de Proteção', quantidade: 18, local: 'Base A'),
-    EstoqueMaterial(codigo: 'M008', nome: 'Chave Seccionadora', quantidade: 5, local: 'Base C'),
-  ];
-  */
-
   List<EstoqueMaterial> get _filteredMateriais {
+  // ... (sem alterações)
     if (_searchQuery.isEmpty) {
       return _materiais;
     }
@@ -74,12 +66,13 @@ class _EstoquePageState extends State<EstoquePage> {
 
   @override
   void dispose() {
+  // ... (sem alterações)
     _searchController.dispose();
     super.dispose();
   }
 
-  // Helper para criar linhas de informação
   Widget _buildInfoRow(String label, String value) {
+  // ... (sem alterações)
     return Row(
       children: [
         Text(
@@ -95,14 +88,15 @@ class _EstoquePageState extends State<EstoquePage> {
     );
   }
 
-  // Helper para formatar a data (dd/MM/yyyy) — retorna '-' se nulo
   String _formatDate(DateTime? d) {
+  // ... (sem alterações)
     if (d == null) return '-';
     return '${d.day.toString().padLeft(2, '0')}/${d.month.toString().padLeft(2, '0')}/${d.year}';
   }
 
   // Método para mostrar o diálogo de adicionar material
   void _showAddMaterialDialog(BuildContext context) {
+    // ... (controllers e decorações sem alterações)
     final codigoController = TextEditingController();
     final nomeController = TextEditingController();
     final quantidadeController = TextEditingController();
@@ -110,11 +104,9 @@ class _EstoquePageState extends State<EstoquePage> {
     DateTime? selectedVencimento;
     final vencimentoController = TextEditingController();
 
-    // Definir cores e estilos para o diálogo
-    final primaryColor = const Color(0xFF253250); // Cor azul escuro do Metrô
+    final primaryColor = const Color(0xFF253250); 
     final secondaryColor = Colors.blue.shade700;
 
-    // Estilo padrão para inputs
     InputDecoration inputDecoration(String label, String hint, IconData icon) {
       return InputDecoration(
         labelText: label,
@@ -145,6 +137,7 @@ class _EstoquePageState extends State<EstoquePage> {
     showDialog(
       context: context,
       builder: (context) => Dialog(
+        // ... (layout do diálogo sem alterações)
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
         elevation: 8,
         child: Container(
@@ -156,6 +149,7 @@ class _EstoquePageState extends State<EstoquePage> {
             children: [
               // Header
               Row(
+              // ... (sem alterações)
                 children: [
                   Container(
                     padding: const EdgeInsets.all(10),
@@ -201,6 +195,7 @@ class _EstoquePageState extends State<EstoquePage> {
 
               // Form fields
               TextField(
+              // ... (sem alterações)
                 controller: codigoController,
                 decoration: inputDecoration(
                   'Código',
@@ -212,6 +207,7 @@ class _EstoquePageState extends State<EstoquePage> {
               const SizedBox(height: 16),
 
               TextField(
+              // ... (sem alterações)
                 controller: nomeController,
                 decoration: inputDecoration(
                   'Nome',
@@ -223,6 +219,7 @@ class _EstoquePageState extends State<EstoquePage> {
               const SizedBox(height: 16),
 
               TextField(
+              // ... (sem alterações)
                 controller: quantidadeController,
                 decoration: inputDecoration(
                   'Quantidade',
@@ -235,6 +232,7 @@ class _EstoquePageState extends State<EstoquePage> {
               const SizedBox(height: 16),
 
               TextField(
+              // ... (sem alterações)
                 controller: localController,
                 decoration: inputDecoration(
                   'Local',
@@ -246,6 +244,7 @@ class _EstoquePageState extends State<EstoquePage> {
               const SizedBox(height: 16),
               // Campo opcional de vencimento (abre date picker)
               TextField(
+              // ... (sem alterações)
                 controller: vencimentoController,
                 readOnly: true,
                 decoration: inputDecoration(
@@ -279,6 +278,7 @@ class _EstoquePageState extends State<EstoquePage> {
                 mainAxisAlignment: MainAxisAlignment.end,
                 children: [
                   OutlinedButton(
+                  // ... (botão cancelar sem alterações)
                     onPressed: () => Navigator.pop(context),
                     style: OutlinedButton.styleFrom(
                       foregroundColor: primaryColor,
@@ -316,7 +316,7 @@ class _EstoquePageState extends State<EstoquePage> {
                           nomeController.text.isEmpty ||
                           quantidadeController.text.isEmpty ||
                           localController.text.isEmpty) {
-                        // Mostrar erro
+                        // ... (lógica de erro sem alterações)
                         ScaffoldMessenger.of(context).showSnackBar(
                           const SnackBar(
                             content: Text('Preencha todos os campos'),
@@ -331,6 +331,7 @@ class _EstoquePageState extends State<EstoquePage> {
                       try {
                         quantidade = int.parse(quantidadeController.text);
                       } catch (e) {
+                        // ... (lógica de erro sem alterações)
                         ScaffoldMessenger.of(context).showSnackBar(
                           const SnackBar(
                             content: Text('Quantidade deve ser um número'),
@@ -339,25 +340,33 @@ class _EstoquePageState extends State<EstoquePage> {
                         );
                         return;
                       }
+                      
+                      // Criar o novo material
+                      final novoMaterial = EstoqueMaterial(
+                        codigo: codigoController.text,
+                        nome: nomeController.text,
+                        quantidade: quantidade,
+                        local: localController.text,
+                        vencimento: selectedVencimento,
+                      );
 
                       // Adicionar o novo material à lista
                       setState(() {
-                        _materiais.add(
-                          EstoqueMaterial(
-                            codigo: codigoController.text,
-                            nome: nomeController.text,
-                            quantidade: quantidade,
-                            local: localController.text,
-                            vencimento: selectedVencimento,
-                          ),
-                        );
+                        _materiais.add(novoMaterial);
                       });
+
+                      // NOVO: Adicionar a movimentação ao repositório
+                      MovimentacaoRepository.instance.addMovimentacao(
+                        "Adicionado: ${novoMaterial.nome}",
+                        Icons.add_box_rounded,
+                      );
 
                       // Fechar o diálogo
                       Navigator.pop(context);
 
                       // Mostrar confirmação
                       ScaffoldMessenger.of(context).showSnackBar(
+                      // ... (lógica do snackbar sem alterações)
                         SnackBar(
                           content: Row(
                             children: [
@@ -384,6 +393,7 @@ class _EstoquePageState extends State<EstoquePage> {
                       );
                     },
                     child: Row(
+                    // ... (botão adicionar sem alterações)
                       mainAxisSize: MainAxisSize.min,
                       children: const [
                         Icon(Icons.add),
@@ -409,7 +419,21 @@ class _EstoquePageState extends State<EstoquePage> {
 
   @override
   Widget build(BuildContext context) {
-    final metroBlue = const Color(0xFF001489); // Cor principal do Metrô
+    // ... (O resto do seu método build continua aqui, sem alterações)
+    // Eu adicionei a lógica no `onPressed` do botão "Adicionar"
+    // dentro do diálogo `_showAddMaterialDialog`.
+    
+    // Você deve fazer o mesmo para "Editar" e "Movimentar":
+    // 1. Encontre o onPressed do botão "Editar" (na linha 600 ou 759)
+    //    e adicione:
+    //    MovimentacaoRepository.instance.addMovimentacao("Editado: ${material.nome}", Icons.edit);
+    //
+    // 2. Encontre o onPressed do botão "Movimentar" (na linha 616 ou 776)
+    //    e adicione:
+    //    MovimentacaoRepository.instance.addMovimentacao("Retirado: ${material.nome}", Icons.remove_circle);
+    //    (ou adicione um diálogo que pergunta a quantidade e decide o ícone)
+    
+    final metroBlue = const Color(0xFF001489); 
 
     return Scaffold(
       appBar: AppBar(
@@ -736,22 +760,22 @@ class _EstoquePageState extends State<EstoquePage> {
                               child: DataTable(
                                 headingRowColor:
                                     WidgetStateProperty.resolveWith<Color>(
-                                      (Set<WidgetState> states) =>
-                                          const Color(0xFFF5F7FA),
-                                    ),
+                                  (Set<WidgetState> states) =>
+                                      const Color(0xFFF5F7FA),
+                                ),
                                 dataRowColor:
                                     WidgetStateProperty.resolveWith<Color>((
-                                      Set<WidgetState> states,
-                                    ) {
-                                      if (states.contains(
-                                        WidgetState.selected,
-                                      )) {
-                                        return Colors.blue.withAlpha(
-                                          (0.1 * 255).round(),
-                                        );
-                                      }
-                                      return Colors.white;
-                                    }),
+                                  Set<WidgetState> states,
+                                ) {
+                                  if (states.contains(
+                                    WidgetState.selected,
+                                  )) {
+                                    return Colors.blue.withAlpha(
+                                      (0.1 * 255).round(),
+                                    );
+                                  }
+                                  return Colors.white;
+                                }),
                                 columnSpacing: 24,
                                 horizontalMargin: 24,
                                 dataRowMinHeight: 64,
@@ -890,8 +914,8 @@ class _EstoquePageState extends State<EstoquePage> {
                                               style: TextStyle(
                                                 color:
                                                     material.vencimento == null
-                                                    ? Colors.grey
-                                                    : Colors.black87,
+                                                        ? Colors.grey
+                                                        : Colors.black87,
                                               ),
                                             ),
                                           ),
