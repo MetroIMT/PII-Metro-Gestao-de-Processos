@@ -73,7 +73,8 @@ class _ToolPageState extends State<ToolPage>
           ? AppBar(
               backgroundColor: Colors.white,
               elevation: 0.5,
-              leading: IconButton(
+              leading: Builder(
+              builder: (context) => IconButton(
                 icon: AnimatedIcon(
                   icon: AnimatedIcons.menu_close,
                   progress: _animationController,
@@ -81,6 +82,8 @@ class _ToolPageState extends State<ToolPage>
                 ),
                 onPressed: () => Scaffold.of(context).openDrawer(),
               ),
+            ),
+
               title: const Text(
                 'Materiais',
                 style: TextStyle(
@@ -130,7 +133,7 @@ class _ToolPageState extends State<ToolPage>
                             onPressed: _toggleRail,
                           ),
                           const Text(
-                            'Materiais',
+                            'Categorias de Estoque',
                             style: TextStyle(
                               fontSize: 26,
                               fontWeight: FontWeight.bold,
@@ -150,17 +153,20 @@ class _ToolPageState extends State<ToolPage>
                 Expanded(
                   child: LayoutBuilder(
                     builder: (context, constraints) {
-                      final crossAxisCount =
-                          constraints.maxWidth < 900 ? 2 : 3;
+                      final crossAxisCount = constraints.maxWidth < 600
+                      ? 1 // telas pequenas: 1 card por linha
+                      : (constraints.maxWidth < 900 ? 2 : 3);
+
 
                       return GridView.builder(
                         gridDelegate:
                             SliverGridDelegateWithFixedCrossAxisCount(
-                          crossAxisCount: crossAxisCount,
-                          mainAxisSpacing: 20,
-                          crossAxisSpacing: 20,
-                          childAspectRatio: 1.7, // mais retangular e elegante
-                        ),
+                            crossAxisCount: crossAxisCount,
+                            mainAxisSpacing: 20,
+                            crossAxisSpacing: 20,
+                            childAspectRatio: 1.7, // mais retangular e elegante
+                          ),
+
                         itemCount: categorias.length,
                         itemBuilder: (context, index) {
                           final cat = categorias[index];
