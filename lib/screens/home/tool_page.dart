@@ -1,5 +1,8 @@
 import 'package:flutter/material.dart';
 import '../../widgets/sidebar.dart';
+import 'material_giro_page.dart';
+import 'material_consumo_page.dart';
+import 'material_patrimoniado_page.dart';
 
 class ToolPage extends StatefulWidget {
   const ToolPage({super.key});
@@ -12,19 +15,23 @@ class _ToolPageState extends State<ToolPage>
     with SingleTickerProviderStateMixin {
   bool _isRailExtended = false;
   late AnimationController _animationController;
+  final GlobalKey<ScaffoldState> _scaffoldKey = GlobalKey<ScaffoldState>();
 
   final List<Map<String, dynamic>> categorias = [
     {
       'titulo': 'Material de Giro',
       'icone': Icons.sync_alt,
+      'pagina': () => const MaterialGiroPage(),
     },
     {
       'titulo': 'Material de Consumo',
       'icone': Icons.shopping_cart,
+      'pagina': () => const MaterialConsumoPage(),
     },
     {
       'titulo': 'Material Patrimoniado',
       'icone': Icons.work,
+      'pagina': () => const MaterialPatrimoniadoPage(),
     },
   ];
 
@@ -60,6 +67,7 @@ class _ToolPageState extends State<ToolPage>
     const metroBlue = Color(0xFF001489);
 
     return Scaffold(
+      key: _scaffoldKey, // Adiciona a key ao Scaffold
       backgroundColor: Colors.white,
       drawer: isMobile
           ? Drawer(
@@ -73,17 +81,16 @@ class _ToolPageState extends State<ToolPage>
           ? AppBar(
               backgroundColor: Colors.white,
               elevation: 0.5,
-              leading: Builder(
-              builder: (context) => IconButton(
+              leading: IconButton(
                 icon: AnimatedIcon(
                   icon: AnimatedIcons.menu_close,
                   progress: _animationController,
                   color: metroBlue,
                 ),
-                onPressed: () => Scaffold.of(context).openDrawer(),
+                onPressed: () {
+                  _scaffoldKey.currentState?.openDrawer();
+                },
               ),
-            ),
-
               title: const Text(
                 'Materiais',
                 style: TextStyle(
@@ -174,7 +181,14 @@ class _ToolPageState extends State<ToolPage>
                             titulo: cat['titulo'],
                             icone: cat['icone'],
                             cor: metroBlue,
-                            onTap: () {},
+                            onTap: () {
+                              Navigator.push(
+                                context,
+                                MaterialPageRoute(
+                                  builder: (_) => cat['pagina'](),
+                                ),
+                              );
+                            },
                           );
                         },
                       );
