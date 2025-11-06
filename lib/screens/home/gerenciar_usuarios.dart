@@ -27,6 +27,7 @@ class _GerenciarUsuariosState extends State<GerenciarUsuarios>
   bool _isLoading = false;
   String? _errorMessage;
   String? _currentUserId;
+  String? _currentRole; 
   final Set<String> _processingIds = <String>{};
 
   final Color metroBlue = const Color(0xFF001489);
@@ -44,28 +45,20 @@ class _GerenciarUsuariosState extends State<GerenciarUsuarios>
   }
 
   Future<void> _checkAdminAndLoad() async {
-    // Ensure only admins can access this screen. If not admin, redirect.
     try {
       final role = await AuthService().role;
-      if (role != 'admin') {
-        // Delay navigation to after first frame to avoid calling Navigator in initState
-        WidgetsBinding.instance.addPostFrameCallback((_) {
-          if (!mounted) return;
-          Navigator.pushReplacementNamed(context, '/');
-        });
-        return;
-      }
+      setState(() => _currentRole = role); // salva o cargo atual
+
+      // se não for admin, ainda permite ver a lista, mas sem adicionar
+      await _loadMembers();
     } catch (_) {
-      // if error reading role, treat as unauthorized and redirect
       WidgetsBinding.instance.addPostFrameCallback((_) {
         if (!mounted) return;
         Navigator.pushReplacementNamed(context, '/');
       });
-      return;
     }
-
-    await _loadMembers();
   }
+
 
   Future<void> _loadCurrentUserId() async {
     try {
@@ -564,7 +557,7 @@ class _GerenciarUsuariosState extends State<GerenciarUsuarios>
             )
           : null,
       drawer: isMobile
-          ? Drawer(child: Sidebar(expanded: true, selectedIndex: 4))
+          ? Drawer(child: Sidebar(expanded: true, selectedIndex: 5))
           : null,
       body: Stack(
         children: [
@@ -576,7 +569,7 @@ class _GerenciarUsuariosState extends State<GerenciarUsuarios>
               top: 0,
               bottom: 0,
               width: _isRailExtended ? 180 : 70,
-              child: Sidebar(expanded: _isRailExtended, selectedIndex: 4),
+              child: Sidebar(expanded: _isRailExtended, selectedIndex: 5),
             ),
           AnimatedPadding(
             duration: const Duration(milliseconds: 300),
@@ -637,20 +630,22 @@ class _GerenciarUsuariosState extends State<GerenciarUsuarios>
                               color: Colors.grey.shade800,
                             ),
                           ),
-                          ElevatedButton.icon(
-                            style: ElevatedButton.styleFrom(
-                              backgroundColor: metroBlue,
-                              foregroundColor: Colors.white,
-                              shape: RoundedRectangleBorder(
-                                borderRadius: BorderRadius.circular(8),
+                          if (_currentRole == 'admin') // 👈 só mostra se for admin
+                            ElevatedButton.icon(
+                              style: ElevatedButton.styleFrom(
+                                backgroundColor: metroBlue,
+                                foregroundColor: Colors.white,
+                                shape: RoundedRectangleBorder(
+                                  borderRadius: BorderRadius.circular(8),
+                                ),
                               ),
+                              onPressed: _showAddDialog,
+                              icon: const Icon(Icons.person_add, size: 18),
+                              label: const Text('Adicionar'),
                             ),
-                            onPressed: _showAddDialog,
-                            icon: const Icon(Icons.person_add, size: 18),
-                            label: const Text('Adicionar'),
-                          ),
                         ],
                       ),
+
                     ),
                   ),
                 ),
