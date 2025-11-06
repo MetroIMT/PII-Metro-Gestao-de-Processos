@@ -214,15 +214,44 @@ class _SidebarState extends State<Sidebar> {
             );
             break;
           case 6:
-            try {
-              await AuthService().logout();
-            } catch (_) {}
-            if (!context.mounted) return;
-            Navigator.pushAndRemoveUntil(
-              context,
-              MaterialPageRoute(builder: (_) => const LoginPage()),
-              (route) => false,
+            final shouldLogout = await showDialog<bool>(
+              context: context,
+              builder: (context) {
+                return AlertDialog(
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(12),
+                  ),
+                  title: const Text('Confirmar saída'),
+                  content: const Text('Você realmente deseja sair da conta?'),
+                  actions: [
+                    TextButton(
+                      onPressed: () => Navigator.pop(context, false),
+                      child: const Text('Cancelar'),
+                    ),
+                    ElevatedButton(
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: Colors.redAccent,
+                        foregroundColor: Colors.white,
+                      ),
+                      onPressed: () => Navigator.pop(context, true),
+                      child: const Text('Sair'),
+                    ),
+                  ],
+                );
+              },
             );
+
+            if (shouldLogout == true) {
+              try {
+                await AuthService().logout();
+              } catch (_) {}
+              if (!context.mounted) return;
+              Navigator.pushAndRemoveUntil(
+                context,
+                MaterialPageRoute(builder: (_) => const LoginPage()),
+                (route) => false,
+              );
+            }
             break;
         }
       },

@@ -31,7 +31,7 @@ class _GerenciarUsuariosState extends State<GerenciarUsuarios>
   final Set<String> _processingIds = <String>{};
 
   final Color metroBlue = const Color(0xFF001489);
-  final Color backgroundColor = const Color(0xFFF4F5FA);
+  final Color backgroundColor = const Color.fromARGB(255, 255, 255, 255);
 
   @override
   void initState() {
@@ -620,31 +620,31 @@ class _GerenciarUsuariosState extends State<GerenciarUsuarios>
                     child: Padding(
                       padding: const EdgeInsets.all(16.0),
                       child: Row(
-                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                        children: [
-                          Text(
-                            'Membros da equipe',
-                            style: TextStyle(
-                              fontSize: 18,
-                              fontWeight: FontWeight.bold,
-                              color: Colors.grey.shade800,
+                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                    children: [
+                      Text(
+                        'Membros da equipe',
+                        style: TextStyle(
+                          fontSize: 18,
+                          fontWeight: FontWeight.bold,
+                          color: Colors.grey.shade800,
+                        ),
+                      ),
+                      if (_currentRole == 'admin') // 👈 só mostra se for admin
+                        ElevatedButton.icon(
+                          style: ElevatedButton.styleFrom(
+                            backgroundColor: metroBlue,
+                            foregroundColor: Colors.white,
+                            shape: RoundedRectangleBorder(
+                              borderRadius: BorderRadius.circular(8),
                             ),
                           ),
-                          if (_currentRole == 'admin') // 👈 só mostra se for admin
-                            ElevatedButton.icon(
-                              style: ElevatedButton.styleFrom(
-                                backgroundColor: metroBlue,
-                                foregroundColor: Colors.white,
-                                shape: RoundedRectangleBorder(
-                                  borderRadius: BorderRadius.circular(8),
-                                ),
-                              ),
-                              onPressed: _showAddDialog,
-                              icon: const Icon(Icons.person_add, size: 18),
-                              label: const Text('Adicionar'),
-                            ),
-                        ],
-                      ),
+                          onPressed: _showAddDialog,
+                          icon: const Icon(Icons.person_add, size: 18),
+                          label: const Text('Adicionar'),
+                        ),
+                    ],
+                  ),
 
                     ),
                   ),
@@ -704,13 +704,15 @@ class _GerenciarUsuariosState extends State<GerenciarUsuarios>
                                       Colors.grey.shade100,
                                     ),
                                     columns: const [
-                                      DataColumn(label: Text('Nome')),
-                                      DataColumn(label: Text('Email')),
-                                      DataColumn(label: Text('CPF')),
-                                      DataColumn(label: Text('Telefone')),
-                                      DataColumn(label: Text('Cargo')),
-                                      DataColumn(label: Text('Ações')),
+                                      DataColumn(label: Text('Nome', style: TextStyle(fontWeight: FontWeight.bold))),
+                                      DataColumn(label: Text('Email', style: TextStyle(fontWeight: FontWeight.bold))),
+                                      DataColumn(label: Text('CPF', style: TextStyle(fontWeight: FontWeight.bold))),
+                                      DataColumn(label: Text('Telefone', style: TextStyle(fontWeight: FontWeight.bold))),
+                                      DataColumn(label: Text('Cargo', style: TextStyle(fontWeight: FontWeight.bold))),
+                                      DataColumn(label: Text('Ações', style: TextStyle(fontWeight: FontWeight.bold))),
                                     ],
+
+
                                     rows: _members.map((user) {
                                       return DataRow(
                                         cells: [
