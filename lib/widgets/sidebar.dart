@@ -1,13 +1,13 @@
 import 'package:flutter/material.dart';
 import '../../services/auth_service.dart';
 import '../screens/login/login_screen.dart';
-import '../screens/home/estoque_categorias_page.dart';
 import '../screens/home/tool_page.dart';
 import '../screens/home/gerenciar_usuarios.dart';
 import '../screens/home/movimentacoes_page.dart';
 import '../screens/home/home_screen.dart';
 import '../screens/home/reports_page.dart';
 import '../screens/home/admin_page.dart';
+import '../screens/home/alerts_page.dart';
 
 class Sidebar extends StatefulWidget {
   final bool expanded;
@@ -112,8 +112,8 @@ class _SidebarState extends State<Sidebar> {
           ),
           _sidebarItem(
             context,
-            Icons.build,
-            'Ferramentas',
+            Icons.warning_amber_rounded,
+            'Alertas',
             3,
             expanded,
             selectedIndex,
@@ -186,7 +186,7 @@ class _SidebarState extends State<Sidebar> {
           case 1:
             Navigator.pushReplacement(
               context,
-              MaterialPageRoute(builder: (_) => const EstoqueCategoriasPage()),
+              MaterialPageRoute(builder: (_) => const ToolPage()),
             );
             break;
           case 2:
@@ -198,7 +198,7 @@ class _SidebarState extends State<Sidebar> {
           case 3:
             Navigator.pushReplacement(
               context,
-              MaterialPageRoute(builder: (_) => const ToolPage()),
+              MaterialPageRoute(builder: (_) => const AlertsPage()),
             );
             break;
           case 4:

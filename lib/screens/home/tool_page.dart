@@ -73,7 +73,7 @@ class _ToolPageState extends State<ToolPage>
           ? Drawer(
               child: Sidebar(
                 expanded: true,
-                selectedIndex: 3,
+                selectedIndex: 1, // 1 = Estoque
               ),
             )
           : null,
@@ -112,7 +112,7 @@ class _ToolPageState extends State<ToolPage>
               width: _isRailExtended ? 180 : 70,
               child: Sidebar(
                 expanded: _isRailExtended,
-                selectedIndex: 3,
+                selectedIndex: 1, // 1 = Estoque
               ),
             ),
           AnimatedPadding(
