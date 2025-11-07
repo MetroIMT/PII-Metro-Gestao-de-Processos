@@ -231,8 +231,9 @@ class _HomeScreenState extends State<HomeScreen>
   Widget build(BuildContext context) {
     final isMobile = MediaQuery.of(context).size.width < 600;
 
-    final EdgeInsets contentPadding =
-        isMobile ? const EdgeInsets.all(16) : const EdgeInsets.all(40);
+    final EdgeInsets contentPadding = isMobile
+        ? const EdgeInsets.all(16)
+        : const EdgeInsets.fromLTRB(24, 24, 24, 40);
 
     return Scaffold(
       key: _scaffoldKey,
@@ -304,7 +305,7 @@ class _HomeScreenState extends State<HomeScreen>
                 children: [
                   if (!isMobile)
                     Padding(
-                      padding: const EdgeInsets.only(bottom: 40.0),
+                      padding: const EdgeInsets.only(bottom: 24.0),
                       child: Row(
                         mainAxisAlignment: MainAxisAlignment.spaceBetween,
                         children: [
