@@ -63,6 +63,7 @@ class _RelatoriosPageState extends State<RelatoriosPage>
   // Mock data para simulação
   final List<Map<String, dynamic>> _allData = [
     {
+      'codigo': 'ITM-00123',
       'data': DateTime(2025, 10, 21),
       'item': 'Cabo Elétrico',
       'categoria_id': 'consumo',
@@ -73,6 +74,7 @@ class _RelatoriosPageState extends State<RelatoriosPage>
       'base_id': 'WJA' // WJA - Jabaquara
     },
     {
+      'codigo': 'ITM-00234',
       'data': DateTime(2025, 10, 22),
       'item': 'Multímetro XYZ',
       'categoria_id': 'patrimoniado',
@@ -83,6 +85,7 @@ class _RelatoriosPageState extends State<RelatoriosPage>
       'base_id': 'PSO' // PSO - Paraiso
     },
     {
+      'codigo': 'ITM-00345',
       'data': DateTime(2025, 10, 23),
       'item': 'Rolamento 6203',
       'categoria_id': 'giro',
@@ -93,6 +96,7 @@ class _RelatoriosPageState extends State<RelatoriosPage>
       'base_id': 'WJA' // WJA - Jabaquara
     },
     {
+      'codigo': 'ITM-00456',
       'data': DateTime(2025, 10, 24),
       'item': 'Furadeira 220V',
       'categoria_id': 'patrimoniado',
@@ -198,6 +202,8 @@ class _RelatoriosPageState extends State<RelatoriosPage>
 
     final List<Map<String, String>> exportData = _filteredData.map((row) {
       return {
+
+        'codigo': row['codigo']?.toString() ?? '—',
         'data': "${row['data'].day}/${row['data'].month}/${row['data'].year}",
         'item': row['item'].toString(),
         'categoria': row['categoria'].toString(),
@@ -627,6 +633,7 @@ class _RelatoriosPageState extends State<RelatoriosPage>
 
         return DataRow(
           cells: [
+            DataCell(Text(row['codigo'] ?? '—')),
             DataCell(Text(dataFormatada)),
             DataCell(Text(row['item'])),
             DataCell(Text(row['categoria'])),
@@ -655,10 +662,11 @@ class _RelatoriosPageState extends State<RelatoriosPage>
           child: DataTable(
             headingRowColor: MaterialStateProperty.all(Colors.grey.shade100),
             columns: const [
+              DataColumn(label: Text('Código')),
               DataColumn(label: Text('Data')),
               DataColumn(label: Text('Item')),
               DataColumn(label: Text('Categoria')),
-              DataColumn(label: Text('Qntd')),
+              DataColumn(label: Text('Quantidade')),
               DataColumn(label: Text('Usuário')),
             ],
             rows: _buildDataRows(), 
