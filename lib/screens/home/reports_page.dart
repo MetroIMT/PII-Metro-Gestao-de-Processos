@@ -4,6 +4,9 @@ import 'package:flutter/material.dart';
 import '../../widgets/sidebar.dart';
 import '../../services/pdf_service.dart';
 import '../../services/excel_service.dart';
+import 'package:flutter_map/flutter_map.dart';
+import 'package:latlong2/latlong.dart';
+
 
 /// Página de Relatórios — versão atualizada do layout de filtro.
 /// Desta vez o filtro abre como um diálogo compacto (desktop) ou bottom sheet (mobile),
@@ -63,7 +66,7 @@ class _RelatoriosPageState extends State<RelatoriosPage>
   final TextEditingController _startDateController = TextEditingController();
   final TextEditingController _endDateController = TextEditingController();
 
-  final Color backgroundColor = const Color.fromARGB(255, 255, 255, 255);
+  final Color backgroundColor = const Color(0xFFFFFFFF); // branco em hex
   final Color metroBlue = const Color(0xFF001489);
 
   // Mock data para simulação
@@ -697,6 +700,7 @@ class _RelatoriosPageState extends State<RelatoriosPage>
 
     return Card(
       elevation: 2,
+      color: Colors.white,
       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
       child: Padding(
         padding: const EdgeInsets.all(16.0),
@@ -811,7 +815,7 @@ class _RelatoriosPageState extends State<RelatoriosPage>
                                       child: const Text(
                                         'Nenhum resultado encontrado.\nAjuste os filtros e tente novamente.',
                                         textAlign: TextAlign.center,
-                                        style: TextStyle(fontSize: 16, color: Colors.grey),
+                                        style: TextStyle(fontSize: 16, color: Color.fromARGB(255, 255, 255, 255)),
                                       ),
                                     ),
                                   );
@@ -841,114 +845,96 @@ class _RelatoriosPageState extends State<RelatoriosPage>
   }
 
   /// Card do mapa com fallback para asset ausente.
+  /// Card do mapa interativo (usando OpenStreetMap via flutter_map)
   Widget _buildMapCard() {
-    final Map<String, Offset> basePositions = {
-      'WJA': const Offset(0.45, 0.73),
-      'PSO': const Offset(0.50, 0.61),
-      'TUC': const Offset(0.48, 0.20),
-      'TRD': const Offset(0.22, 0.55),
-      'BFU': const Offset(0.35, 0.33),
-    };
+  final Map<String, LatLng> baseCoordinates = {
+    'WJA': LatLng(-23.6434, -46.6415), // Jabaquara
+    'PSO': LatLng(-23.5733, -46.6401), // Paraiso
+    'TUC': LatLng(-23.4851, -46.6126), // Tucuruvi
+    'TRD': LatLng(-23.5505, -46.6333), // Tiradentes (centro)
+    'BFU': LatLng(-23.5261, -46.6672), // Barra Funda
+  };
 
-    final usedBases = _allData.map((e) => e['base_id'] as String).toSet();
+  final usedBases = _allData.map((e) => e['base_id'] as String).toSet();
 
-    return Card(
-      elevation: 2,
-      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-      clipBehavior: Clip.antiAlias,
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Padding(
-            padding: const EdgeInsets.all(16.0),
-            child: Row(
-              children: [
-                Icon(Icons.map, color: metroBlue),
-                const SizedBox(width: 8),
-                const Text('Mapa de Desempenho — São Paulo', style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
-                const Spacer(),
-                TextButton.icon(
-                  onPressed: () {
-                    _showErrorSnackBar('Abrir mapa em tela cheia (não implementado)');
-                  },
-                  icon: const Icon(Icons.open_in_full),
-                  label: const Text('Tela cheia'),
-                )
-              ],
-            ),
+  return Card(
+    elevation: 2,
+    color: Colors.white, 
+    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+    clipBehavior: Clip.antiAlias,
+    child: Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Padding(
+          padding: const EdgeInsets.all(16.0),
+          child: Row(
+            children: [
+              const Icon(Icons.map, color: Colors.blue),
+              const SizedBox(width: 8),
+              const Text(
+                'Mapa de Desempenho — São Paulo',
+                style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+              ),
+              const Spacer(),
+              TextButton.icon(
+                onPressed: () {
+                  _showErrorSnackBar('Abrir mapa em tela cheia (não implementado)');
+                },
+                icon: const Icon(Icons.open_in_full),
+                label: const Text('Tela cheia'),
+              )
+            ],
           ),
-          Expanded(
-            child: LayoutBuilder(builder: (context, constraints) {
-              final mapWidth = constraints.maxWidth;
-              final mapHeight = constraints.maxHeight;
+        ),
 
-              return InteractiveViewer(
-                panEnabled: true,
-                minScale: 1,
-                maxScale: 4,
-                child: Stack(
-                  children: [
-                    // Imagem do mapa com fallback
-                    Positioned.fill(
-                      child: Image.asset(
-                        'assets/map_sao_paulo.png',
-                        fit: BoxFit.cover,
-                        errorBuilder: (context, error, stackTrace) {
-                          return Container(
-                            color: const Color.fromARGB(255, 255, 255, 255),
-                            child: Center(
-                              child: Column(
-                                mainAxisSize: MainAxisSize.min,
-                                children: [
-                                  Icon(Icons.map_outlined, size: 48, color: Colors.grey.shade400),
-                                  const SizedBox(height: 8),
-                                  const Text('Mapa indisponível Verifique assets/map_sao_paulo.png', textAlign: TextAlign.center),
-                                ],
-                              ),
-                            ),
-                          );
-                        },
-                      ),
-                    ),
-
-                    // Marcadores posicionados relativamente
-                    for (var base in usedBases)
-                      Builder(builder: (ctx) {
-                        final pos = basePositions[base] ?? const Offset(0.5, 0.5);
-                        final left = pos.dx * mapWidth - 14; // marker half width
-                        final top = pos.dy * mapHeight - 28; // marker height offset
-
-                        return Positioned(
-                          left: left.clamp(0.0, mapWidth - 28),
-                          top: top.clamp(0.0, mapHeight - 28),
-                          child: GestureDetector(
-                            onTap: () => _showBaseDetails(base),
-                            child: Column(
-                              children: [
-                                Icon(Icons.location_on, size: 28, color: Colors.red.shade700),
-                                Container(
-                                  padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
-                                  decoration: BoxDecoration(
-                                    color: Colors.white.withOpacity(0.9),
-                                    borderRadius: BorderRadius.circular(6),
-                                    boxShadow: [BoxShadow(color: Colors.black12, blurRadius: 4)],
-                                  ),
-                                  child: Text(base, style: const TextStyle(fontSize: 12)),
-                                ),
+        // --- Mapa interativo ---
+        Expanded(
+          child: FlutterMap(
+            options: const MapOptions(
+              initialCenter: LatLng(-23.55, -46.63), // novo nome
+              initialZoom: 11.0, // novo nome
+            ),
+            children: [
+              TileLayer(
+                urlTemplate: 'https://tile.openstreetmap.org/{z}/{x}/{y}.png',
+                userAgentPackageName: 'com.example.app',
+              ),
+              MarkerLayer(
+                markers: usedBases.map((base) {
+                  final coord = baseCoordinates[base] ?? const LatLng(-23.55, -46.63);
+                  return Marker(
+                    point: coord,
+                    width: 80,
+                    height: 80,
+                    child: GestureDetector(
+                      onTap: () => _showBaseDetails(base),
+                      child: Column(
+                        children: [
+                          const Icon(Icons.location_on, size: 36, color: Colors.red),
+                          Container(
+                            padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                            decoration: BoxDecoration(
+                              color: Colors.white.withOpacity(0.9),
+                              borderRadius: BorderRadius.circular(6),
+                              boxShadow: [
+                                BoxShadow(color: Colors.black12, blurRadius: 4),
                               ],
                             ),
+                            child: Text(base, style: const TextStyle(fontSize: 12)),
                           ),
-                        );
-                      }),
-                  ],
-                ),
-              );
-            }),
+                        ],
+                      ),
+                    ),
+                  );
+                }).toList().cast<Marker>(),
+              ),
+            ],
           ),
-        ],
-      ),
-    );
-  }
+        ),
+      ],
+    ),
+  );
+}
 
   void _showBaseDetails(String base) {
     showDialog(
