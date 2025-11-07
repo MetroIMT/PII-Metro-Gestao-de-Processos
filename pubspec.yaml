@@ -31,7 +31,7 @@ dependencies:
   # Image picker
   image_picker: any
 
-  flutter_map: ^7.0.0
+  flutter_map: ^8.2.2
   latlong2: ^0.9.0
 
 dev_dependencies:
