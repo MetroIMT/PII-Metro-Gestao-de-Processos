@@ -13,6 +13,7 @@ class MovimentacoesPage extends StatefulWidget {
 
 class _MovimentacoesPageState extends State<MovimentacoesPage> with SingleTickerProviderStateMixin {
   // --- Sidebar ---
+  String? _filterTipo;
   bool _isRailExtended = false;
   late AnimationController _animationController;
   final GlobalKey<ScaffoldState> _scaffoldKey = GlobalKey<ScaffoldState>();
@@ -22,7 +23,7 @@ class _MovimentacoesPageState extends State<MovimentacoesPage> with SingleTicker
   String _searchTerm = '';
   final TextEditingController _searchController = TextEditingController();
 
-  final Color backgroundColor = const Color(0xFFF4F5FA);
+  final Color backgroundColor = const Color.fromARGB(255, 255, 255, 255);
   final Color metroBlue = const Color(0xFF001489);
 
   @override
@@ -75,19 +76,22 @@ class _MovimentacoesPageState extends State<MovimentacoesPage> with SingleTicker
   }
 
   void _filterMovimentacoes() {
-    if (_searchTerm.isEmpty) {
-      _filteredMovimentacoes = _movimentacoes;
-    } else {
-      _filteredMovimentacoes = _movimentacoes.where((mov) {
-        final term = _searchTerm.toLowerCase();
-        return mov.descricao.toLowerCase().contains(term) ||
-               mov.codigoMaterial.toLowerCase().contains(term) ||
-               mov.tipo.toLowerCase().contains(term) ||
-               mov.usuario.toLowerCase().contains(term) ||
-               mov.local.toLowerCase().contains(term);
-      }).toList();
-    }
+    _filteredMovimentacoes = _movimentacoes.where((mov) {
+      final term = _searchTerm.toLowerCase();
+
+      final matchesSearch = term.isEmpty ||
+          mov.descricao.toLowerCase().contains(term) ||
+          mov.codigoMaterial.toLowerCase().contains(term) ||
+          mov.tipo.toLowerCase().contains(term) ||
+          mov.usuario.toLowerCase().contains(term) ||
+          mov.local.toLowerCase().contains(term);
+
+      final matchesTipo = _filterTipo == null || mov.tipo == _filterTipo;
+
+      return matchesSearch && matchesTipo;
+    }).toList();
   }
+
 
   @override
   Widget build(BuildContext context) {
@@ -95,7 +99,6 @@ class _MovimentacoesPageState extends State<MovimentacoesPage> with SingleTicker
 
     return Scaffold(
       key: _scaffoldKey,
-      backgroundColor: backgroundColor,
       appBar: isMobile
           ? AppBar(
               elevation: 0,
@@ -199,9 +202,11 @@ class _MovimentacoesPageState extends State<MovimentacoesPage> with SingleTicker
     );
   }
 
+
   Widget _buildMovimentacoesCard() {
     return Card(
       elevation: 2,
+      color: Colors.white,
       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
       clipBehavior: Clip.antiAlias,
       child: Padding(
@@ -216,10 +221,83 @@ class _MovimentacoesPageState extends State<MovimentacoesPage> with SingleTicker
                 prefixIcon: const Icon(Icons.search),
                 border: OutlineInputBorder(
                   borderRadius: BorderRadius.circular(12),
+                  borderSide: BorderSide.none,
                 ),
+                filled: true,
+                fillColor: Colors.grey.shade100,
               ),
+              onChanged: (v) => setState(() {
+                _searchTerm = v;
+                _filterMovimentacoes();
+              }),
             ),
+
+            const SizedBox(height: 12),
+
+            // 🔹 FILTRO DE ENTRADA / SAÍDA / TODOS
+            // 🔹 FILTRO DE ENTRADA / SAÍDA / TODOS (estilo refinado)
+            Row(
+              mainAxisAlignment: MainAxisAlignment.start, // alinha à esquerda
+              children: [
+                ChoiceChip(
+                  label: const Text('Todos'),
+                  selected: _filterTipo == null,
+                  selectedColor: Colors.white,
+                  backgroundColor: Colors.white,
+                  side: const BorderSide(color: Colors.grey),
+                  labelStyle: TextStyle(
+                    color: _filterTipo == null ? Colors.blue : Colors.black,
+                    fontWeight: FontWeight.w500,
+                  ),
+                  onSelected: (_) {
+                    setState(() {
+                      _filterTipo = null;
+                      _filterMovimentacoes();
+                    });
+                  },
+                ),
+                const SizedBox(width: 8),
+                ChoiceChip(
+                  label: const Text('Entradas'),
+                  selected: _filterTipo == 'Entrada',
+                  selectedColor: Colors.white,
+                  backgroundColor: Colors.white,
+                  side: const BorderSide(color: Colors.grey),
+                  labelStyle: TextStyle(
+                    color: _filterTipo == 'Entrada' ? Colors.green : Colors.black,
+                    fontWeight: FontWeight.w500,
+                  ),
+                  onSelected: (_) {
+                    setState(() {
+                      _filterTipo = 'Entrada';
+                      _filterMovimentacoes();
+                    });
+                  },
+                ),
+                const SizedBox(width: 8),
+                ChoiceChip(
+                  label: const Text('Saídas'),
+                  selected: _filterTipo == 'Saída',
+                  selectedColor: Colors.white,
+                  backgroundColor: Colors.white,
+                  side: const BorderSide(color: Colors.grey),
+                  labelStyle: TextStyle(
+                    color: _filterTipo == 'Saída' ? Colors.red : Colors.black,
+                    fontWeight: FontWeight.w500,
+                  ),
+                  onSelected: (_) {
+                    setState(() {
+                      _filterTipo = 'Saída';
+                      _filterMovimentacoes();
+                    });
+                  },
+                ),
+              ],
+            ),
+
+
             const SizedBox(height: 16),
+
             Expanded(child: _buildMovimentacoesTable()),
           ],
         ),
@@ -245,7 +323,7 @@ class _MovimentacoesPageState extends State<MovimentacoesPage> with SingleTicker
           constraints: BoxConstraints(minWidth: MediaQuery.of(context).size.width - ( _isRailExtended ? 180 : 70) - 48 - 32),
           child: DataTable(
             dataRowHeight: 60,
-            headingRowColor: MaterialStateProperty.all(Colors.grey.shade100),
+            headingRowColor: MaterialStateProperty.all(const Color.fromARGB(255, 255, 255, 255)),
             headingTextStyle: const TextStyle(
               fontWeight: FontWeight.bold,
               color: Colors.black87,

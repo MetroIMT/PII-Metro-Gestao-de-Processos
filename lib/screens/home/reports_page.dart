@@ -796,12 +796,10 @@ class _RelatoriosPageState extends State<RelatoriosPage>
           child: DataTable(
             headingRowColor: MaterialStateProperty.all(Colors.grey.shade100),
             columns: const [
-              DataColumn(label: Text('Código')),
-              DataColumn(label: Text('Data')),
-              DataColumn(label: Text('Item')),
-              DataColumn(label: Text('Categoria')),
-              DataColumn(label: Text('Quantidade')),
-              DataColumn(label: Text('Usuário')),
+              DataColumn(label: Text('Usuário', style: TextStyle(fontWeight: FontWeight.bold))),
+              DataColumn(label: Text('Data', style: TextStyle(fontWeight: FontWeight.bold))),
+              DataColumn(label: Text('Base', style: TextStyle(fontWeight: FontWeight.bold))),
+              DataColumn(label: Text('Categoria', style: TextStyle(fontWeight: FontWeight.bold))),
             ],
             rows: _buildDataRows(),
           ),
@@ -859,7 +857,7 @@ class _RelatoriosPageState extends State<RelatoriosPage>
 
   return Card(
     elevation: 2,
-    color: Colors.white, 
+    color: Colors.white,
     shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
     clipBehavior: Clip.antiAlias,
     child: Column(
