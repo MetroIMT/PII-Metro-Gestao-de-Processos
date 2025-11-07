@@ -231,6 +231,9 @@ class _HomeScreenState extends State<HomeScreen>
   Widget build(BuildContext context) {
     final isMobile = MediaQuery.of(context).size.width < 600;
 
+    final EdgeInsets contentPadding =
+        isMobile ? const EdgeInsets.all(16) : const EdgeInsets.all(40);
+
     return Scaffold(
       key: _scaffoldKey,
       backgroundColor: const Color(0xFFF4F5FA),
@@ -294,60 +297,50 @@ class _HomeScreenState extends State<HomeScreen>
             padding: EdgeInsets.only(
               left: !isMobile ? (_isRailExtended ? 180 : 70) : 0,
             ),
-            // Padding geral de 40.0
-            child: Padding(
-              padding: const EdgeInsets.all(40.0),
+            child: SingleChildScrollView(
+              padding: contentPadding,
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  // Header (Desktop)
                   if (!isMobile)
                     Padding(
                       padding: const EdgeInsets.only(bottom: 40.0),
-                    child: Row(
-                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                      children: [
-                        Row(
-                          children: [
-                            IconButton(
-                              icon: Icon(
-                                _isRailExtended ? Icons.menu_open : Icons.menu,
-                                color: metroBlue,
+                      child: Row(
+                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                        children: [
+                          Row(
+                            children: [
+                              IconButton(
+                                icon: Icon(
+                                  _isRailExtended ? Icons.menu_open : Icons.menu,
+                                  color: metroBlue,
+                                ),
+                                onPressed: _toggleRail,
                               ),
-                              onPressed: _toggleRail,
-                            ),
-                            const SizedBox(width: 12),
-                            Text(
-                              'Home',
-                              style: TextStyle(
-                                fontSize: 24,
-                                fontWeight: FontWeight.bold,
-                                color: metroBlue,
+                              const SizedBox(width: 12),
+                              Text(
+                                'Home',
+                                style: TextStyle(
+                                  fontSize: 24,
+                                  fontWeight: FontWeight.bold,
+                                  color: metroBlue,
+                                ),
                               ),
-                            ),
-                          ],
-                        ),
-                        Hero(
-                          tag: 'logo',
-                          child: Image.asset(
+                            ],
+                          ),
+                          Hero(
+                            tag: 'logo',
+                            child: Image.asset(
                               'assets/LogoMetro.png',
-                              height: 40, 
+                              height: 40,
                             ),
                           ),
                         ],
                       ),
                     ),
-                  
-                  // Header de "Cara de Home"
                   _buildWelcomeHeader(isMobile),
-
-                  // Ações Rápidas
                   _buildQuickActions(isMobile),
-
-                  // Grid de Cards
-                  Expanded(
-                    child: _buildHomeGrid(), 
-                  ),
+                  _buildHomeGrid(),
                 ],
               ),
             ),
@@ -478,9 +471,19 @@ class _HomeScreenState extends State<HomeScreen>
           crossAxisCount = 3;
         }
 
-        final double childAspectRatio = crossAxisCount == 1 ? 1.7 : 1.4;
+        final double childAspectRatio;
+        if (crossAxisCount == 1) {
+          const double desiredCardHeight = 430; // Altura fixa para evitar overflow em telas estreitas
+          childAspectRatio = constraints.maxWidth / desiredCardHeight;
+        } else if (crossAxisCount == 2) {
+          childAspectRatio = 1.4;
+        } else {
+          childAspectRatio = 1.2;
+        }
 
         return GridView(
+          shrinkWrap: true,
+          physics: const NeverScrollableScrollPhysics(),
           padding: const EdgeInsets.only(right: 24.0, bottom: 8.0),
           gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
             crossAxisCount: crossAxisCount,
@@ -1036,28 +1039,45 @@ class _HomeScreenState extends State<HomeScreen>
   String _typeLabel(AlertType t) =>
       t == AlertType.lowStock ? 'Estoque baixo' : 'Vencimento próximo';
 
-  Widget _smallStat(String label, String value, Color color) {
+  Widget _smallStat(String label, String value, Color color, IconData icon) {
     return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
       decoration: BoxDecoration(
-        color: color.withAlpha((0.12 * 255).round()),
-        borderRadius: BorderRadius.circular(10),
-        border: Border.all(color: color.withAlpha((0.18 * 255).round())),
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(12),
       ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
+      child: Row(
         children: [
-          Text(
-            label,
-            style: TextStyle(
-              fontSize: 12,
-              color: color.withAlpha((0.9 * 255).round()),
+          Container(
+            padding: const EdgeInsets.all(8),
+            decoration: BoxDecoration(
+              color: color.withAlpha((0.12 * 255).round()),
+              borderRadius: BorderRadius.circular(8),
             ),
+            child: Icon(icon, color: color, size: 20),
           ),
-          const SizedBox(height: 4),
-          Text(
-            value,
-            style: TextStyle(fontWeight: FontWeight.bold, color: color),
+          const SizedBox(width: 10),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  label,
+                  style: TextStyle(
+                    fontSize: 12,
+                    color: Colors.grey.shade600,
+                  ),
+                ),
+                Text(
+                  value,
+                  style: TextStyle(
+                    fontWeight: FontWeight.bold,
+                    fontSize: 18,
+                    color: color,
+                  ),
+                ),
+              ],
+            ),
           ),
         ],
       ),
@@ -1098,13 +1118,16 @@ class _HomeScreenState extends State<HomeScreen>
             ),
           ),
           const SizedBox(width: 6),
-          Chip(
-            label: Text(
+          Container(
+            padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+            decoration: BoxDecoration(
+              color: color.withAlpha((0.15 * 255).round()),
+              borderRadius: BorderRadius.circular(8),
+            ),
+            child: Text(
               'P: ${a.severity}', // P: Prioridade
               style: TextStyle(color: color, fontSize: 11, fontWeight: FontWeight.bold),
             ),
-            backgroundColor: color.withAlpha((0.12 * 255).round()),
-            padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 0),
           ),
         ],
       ),
@@ -1139,11 +1162,32 @@ class _HomeScreenState extends State<HomeScreen>
             // 3. Linha de Estatísticas
             Row(
               children: [
-                Expanded(child: _smallStat('Total de alertas', count.toString(), Colors.blue)),
+                Expanded(
+                  child: _smallStat(
+                    'Total de alertas',
+                    count.toString(),
+                    metroBlue,
+                    Icons.stacked_line_chart,
+                  ),
+                ),
                 const SizedBox(width: 8),
-                Expanded(child: _smallStat('Estoques baixos', lowStock.toString(), Colors.red)),
+                Expanded(
+                  child: _smallStat(
+                    'Estoques baixos',
+                    lowStock.toString(),
+                    Colors.red,
+                    Icons.inventory_2_outlined,
+                  ),
+                ),
                 const SizedBox(width: 8),
-                Expanded(child: _smallStat('Vencimentos próximos', nearExpiry.toString(), Colors.orange)),
+                Expanded(
+                  child: _smallStat(
+                    'Vencimentos próximos',
+                    nearExpiry.toString(),
+                    Colors.green,
+                    Icons.calendar_today_outlined,
+                  ),
+                ),
               ],
             ),
             const SizedBox(height: 12),
@@ -1216,43 +1260,49 @@ class _CardActionButtonState extends State<CardActionButton> {
     final bg = _isHover ? widget.borderColor : Colors.transparent;
     final iconColor = _isHover ? Colors.white : widget.borderColor;
 
-    return MouseRegion(
-      onEnter: (_) => setState(() => _isHover = true),
-      onExit: (_) => setState(() => _isHover = false),
-      child: GestureDetector(
-        onTapDown: (_) => setState(() => _isPressed = true),
-        onTapUp: (_) {
-          setState(() => _isPressed = false);
-          _handleTap();
-        },
-        onTapCancel: () => setState(() => _isPressed = false),
-        child: AnimatedContainer(
-          duration: _duration,
-          curve: Curves.easeOut,
-          height: 40,
-          padding: const EdgeInsets.symmetric(horizontal: 14),
-          decoration: BoxDecoration(
-            color: bg,
-            border: Border.all(color: widget.borderColor, width: 2),
-            borderRadius: BorderRadius.circular(11),
-          ),
-          child: Stack(
-            alignment: Alignment.center,
-            children: [
-              AnimatedContainer(
-                duration: _duration,
-                transform: Matrix4.translationValues(
-                  _isHover ? 5.0 : 0.0,
-                  0.0,
-                  0.0,
+    return Padding(
+      padding: const EdgeInsets.only(top: 10),
+      child: MouseRegion(
+        onEnter: (_) => setState(() => _isHover = true),
+        onExit: (_) => setState(() => _isHover = false),
+        child: GestureDetector(
+          onTapDown: (_) => setState(() => _isPressed = true),
+          onTapUp: (_) {
+            setState(() => _isPressed = false);
+            _handleTap();
+          },
+          onTapCancel: () => setState(() => _isPressed = false),
+          child: AnimatedContainer(
+            duration: _duration,
+            curve: Curves.easeOut,
+            height: 40,
+            padding: const EdgeInsets.symmetric(horizontal: 14),
+            decoration: BoxDecoration(
+              color: bg,
+              border: Border.all(color: widget.borderColor, width: 2),
+              borderRadius: BorderRadius.circular(11),
+            ),
+            child: Stack(
+              alignment: Alignment.center,
+              children: [
+                AnimatedContainer(
+                  duration: _duration,
+                  transform: Matrix4.translationValues(
+                    _isHover ? 5.0 : 0.0,
+                    0.0,
+                    0.0,
+                  ),
+                  child: Padding(
+                    padding: const EdgeInsets.only(top: 2),
+                    child: Icon(
+                      Icons.arrow_forward,
+                      size: 16,
+                      color: iconColor,
+                    ),
+                  ),
                 ),
-                child: Icon(
-                  Icons.arrow_forward,
-                  size: 16,
-                  color: iconColor,
-                ),
-              ),
-            ],
+              ],
+            ),
           ),
         ),
       ),
