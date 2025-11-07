@@ -65,15 +65,17 @@ class PdfService {
         '${_dd(startDate)}/${_mm(startDate)}/${startDate.year}';
     final dataFim = '${_dd(endDate)}/${_mm(endDate)}/${endDate.year}';
 
+    final now = DateTime.now();
+    final horaExportacao = '${_dd(now)}/${_mm(now)}/${now.year} ${now.hour.toString().padLeft(2, '0')}:${now.minute.toString().padLeft(2, '0')}';
+
     return pw.Column(
       crossAxisAlignment: pw.CrossAxisAlignment.center,
       children: [
-        // Linha superior (data/hora atual, se quiser pode mudar)
+        // Linha superior (data/hora atual)
         pw.Align(
           alignment: pw.Alignment.centerRight,
           child: pw.Text(
-            // você pode colocar DateTime.now() aqui se quiser
-            'Período do relatório',
+            'Gerado em: $horaExportacao',
             style: pw.TextStyle(
               fontSize: 9,
               color: PdfColors.grey700,
@@ -82,7 +84,7 @@ class PdfService {
         ),
         pw.SizedBox(height: 8),
 
-        // Título principal (tipo seu “Resultados” / “Movimentação de Itens”)
+        // Título principal
         pw.Text(
           title,
           textAlign: pw.TextAlign.center,
@@ -130,9 +132,9 @@ class PdfService {
       columnWidths: {
         0: const pw.FlexColumnWidth(1.0), // Código
         1: const pw.FlexColumnWidth(1.2), // Data
-        2: const pw.FlexColumnWidth(2.8), // Item
-        3: const pw.FlexColumnWidth(2.4), // Categoria
-        4: const pw.FlexColumnWidth(0.8), // Quantidade
+        2: const pw.FlexColumnWidth(2.6), // Item
+        3: const pw.FlexColumnWidth(2.0), // Categoria
+        4: const pw.FlexColumnWidth(1.2), // Quantidade
         7: const pw.FlexColumnWidth(1.6), // Usuário
       },
       children: [
