@@ -27,7 +27,7 @@ class _GerenciarUsuariosState extends State<GerenciarUsuarios>
   bool _isLoading = false;
   String? _errorMessage;
   String? _currentUserId;
-  String? _currentRole; 
+  String? _currentRole;
   final Set<String> _processingIds = <String>{};
 
   final Color metroBlue = const Color(0xFF001489);
@@ -213,6 +213,24 @@ class _GerenciarUsuariosState extends State<GerenciarUsuarios>
     }
   }
 
+  // Helper para o Input Style (cinza, borda arredondada)
+  InputDecoration _buildDialogInputDecoration(String label) {
+    return InputDecoration(
+      labelText: label,
+      labelStyle: const TextStyle(color: Colors.black54), // Texto "preto"
+      filled: true,
+      fillColor: Colors.grey.shade100, // Fundo "cinza"
+      border: OutlineInputBorder(
+        borderRadius: BorderRadius.circular(8),
+        borderSide: BorderSide.none,
+      ),
+      focusedBorder: OutlineInputBorder(
+        borderRadius: BorderRadius.circular(8),
+        borderSide: BorderSide(color: metroBlue, width: 2), // Borda "metroBlue"
+      ),
+    );
+  }
+
   Future<void> _showAddDialog() async {
     final formKey = GlobalKey<FormState>();
     final nameCtrl = TextEditingController();
@@ -226,101 +244,108 @@ class _GerenciarUsuariosState extends State<GerenciarUsuarios>
       context: context,
       builder: (dialogContext) {
         bool isSubmitting = false;
+
+        // --- MUDANÇA 1 (LARGURA DO DIÁLOGO) ---
+        final double dialogWidth = MediaQuery.of(dialogContext).size.width > 550
+            ? 500.0 // Largura fixa (500px) para desktop/telas largas
+            : MediaQuery.of(dialogContext).size.width * 0.95; // 95% para mobile
+
         return StatefulBuilder(
           builder: (context, setDialogState) => AlertDialog(
             shape: RoundedRectangleBorder(
               borderRadius: BorderRadius.circular(12),
             ),
             title: const Text('Adicionar membro'),
-            content: Form(
-              key: formKey,
-              child: SingleChildScrollView(
-                child: Column(
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    TextFormField(
-                      controller: nameCtrl,
-                      decoration: const InputDecoration(labelText: 'Nome *'),
-                      validator: (v) =>
-                          (v == null || v.isEmpty) ? 'Informe o nome' : null,
-                    ),
-                    const SizedBox(height: 8),
-                    TextFormField(
-                      controller: emailCtrl,
-                      decoration: const InputDecoration(labelText: 'Email *'),
-                      keyboardType: TextInputType.emailAddress,
-                      validator: (v) =>
-                          (v == null || v.isEmpty) ? 'Informe o email' : null,
-                    ),
-                    const SizedBox(height: 8),
-                    TextFormField(
-                      controller: senhaCtrl,
-                      decoration: const InputDecoration(labelText: 'Senha *'),
-                      obscureText: true,
-                      validator: (v) =>
-                          (v == null || v.isEmpty) ? 'Informe a senha' : null,
-                    ),
-                    const SizedBox(height: 8),
-                    TextFormField(
-                      controller: cpfCtrl,
-                      decoration: const InputDecoration(labelText: 'CPF *'),
-                      keyboardType: TextInputType.number,
-                      inputFormatters: [FilteringTextInputFormatter.digitsOnly],
-                      maxLength: 11,
-                      validator: (v) {
-                        if (v == null || v.isEmpty) return 'Informe o CPF';
-                        final digits = v.replaceAll(RegExp(r'\D'), '');
-                        if (digits.length != 11) {
-                          return 'CPF deve conter 11 dígitos';
-                        }
-                        return null;
-                      },
-                    ),
-                    const SizedBox(height: 8),
-                    TextFormField(
-                      controller: phoneCtrl,
-                      decoration: const InputDecoration(
-                        labelText: 'Telefone *',
+            content: SizedBox( // --- MUDANÇA 1 (LARGURA DO DIÁLOGO) ---
+              width: dialogWidth,
+              child: Form(
+                key: formKey,
+                child: SingleChildScrollView(
+                  child: Column(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      TextFormField(
+                        controller: nameCtrl,
+                        decoration: _buildDialogInputDecoration('Nome *'),
+                        validator: (v) =>
+                            (v == null || v.isEmpty) ? 'Informe o nome' : null,
                       ),
-                      keyboardType: TextInputType.phone,
-                      inputFormatters: [FilteringTextInputFormatter.digitsOnly],
-                      maxLength: 11,
-                      validator: (v) {
-                        if (v == null || v.isEmpty) return 'Informe o telefone';
-                        final digits = v.replaceAll(RegExp(r'\D'), '');
-                        if (digits.length < 10 || digits.length > 11) {
-                          return 'Telefone deve conter DDD + número (10 ou 11 dígitos)';
-                        }
-                        return null;
-                      },
-                    ),
-                    const SizedBox(height: 8),
-                    DropdownButtonFormField<String>(
-                      initialValue: selectedRole,
-                      items: const [
-                        DropdownMenuItem(value: 'admin', child: Text('Admin')),
-                        DropdownMenuItem(
-                          value: 'gestor',
-                          child: Text('Gestor'),
-                        ),
-                        DropdownMenuItem(
-                          value: 'tecnico',
-                          child: Text('Técnico'),
-                        ),
-                      ],
-                      onChanged: (v) {
-                        if (v != null) setDialogState(() => selectedRole = v);
-                      },
-                      decoration: const InputDecoration(labelText: 'Cargo *'),
-                    ),
-                  ],
+                      const SizedBox(height: 12),
+                      TextFormField(
+                        controller: emailCtrl,
+                        decoration: _buildDialogInputDecoration('Email *'),
+                        keyboardType: TextInputType.emailAddress,
+                        validator: (v) =>
+                            (v == null || v.isEmpty) ? 'Informe o email' : null,
+                      ),
+                      const SizedBox(height: 12),
+                      TextFormField(
+                        controller: senhaCtrl,
+                        decoration: _buildDialogInputDecoration('Senha *'),
+                        obscureText: true,
+                        validator: (v) =>
+                            (v == null || v.isEmpty) ? 'Informe a senha' : null,
+                      ),
+                      const SizedBox(height: 12),
+                      TextFormField(
+                        controller: cpfCtrl,
+                        decoration: _buildDialogInputDecoration('CPF *'),
+                        keyboardType: TextInputType.number,
+                        inputFormatters: [FilteringTextInputFormatter.digitsOnly],
+                        maxLength: 11,
+                        validator: (v) {
+                          if (v == null || v.isEmpty) return 'Informe o CPF';
+                          final digits = v.replaceAll(RegExp(r'\D'), '');
+                          if (digits.length != 11) {
+                            return 'CPF deve conter 11 dígitos';
+                          }
+                          return null;
+                        },
+                      ),
+                      const SizedBox(height: 12),
+                      TextFormField(
+                        controller: phoneCtrl,
+                        decoration: _buildDialogInputDecoration('Telefone *'),
+                        keyboardType: TextInputType.phone,
+                        inputFormatters: [FilteringTextInputFormatter.digitsOnly],
+                        maxLength: 11,
+                        validator: (v) {
+                          if (v == null || v.isEmpty) return 'Informe o telefone';
+                          final digits = v.replaceAll(RegExp(r'\D'), '');
+                          if (digits.length < 10 || digits.length > 11) {
+                            return 'Telefone deve conter DDD + número (10 ou 11 dígitos)';
+                          }
+                          return null;
+                        },
+                      ),
+                      const SizedBox(height: 12),
+                      DropdownButtonFormField<String>(
+                        initialValue: selectedRole,
+                        items: const [
+                          DropdownMenuItem(value: 'admin', child: Text('Admin')),
+                          DropdownMenuItem(
+                            value: 'gestor',
+                            child: Text('Gestor'),
+                          ),
+                          DropdownMenuItem(
+                            value: 'tecnico',
+                            child: Text('Técnico'),
+                          ),
+                        ],
+                        onChanged: (v) {
+                          if (v != null) setDialogState(() => selectedRole = v);
+                        },
+                        decoration: _buildDialogInputDecoration('Cargo *'),
+                      ),
+                    ],
+                  ),
                 ),
               ),
             ),
             actions: [
               TextButton(
                 onPressed: () => Navigator.of(dialogContext).pop(),
-                child: const Text('Cancelar'),
+                child: Text('Cancelar', style: TextStyle(color: metroBlue)),
               ),
               ElevatedButton(
                 style: ElevatedButton.styleFrom(
@@ -348,7 +373,10 @@ class _GerenciarUsuariosState extends State<GerenciarUsuarios>
                     ? const SizedBox(
                         width: 20,
                         height: 20,
-                        child: CircularProgressIndicator(strokeWidth: 2),
+                        child: CircularProgressIndicator(
+                          strokeWidth: 2,
+                          color: Colors.white,
+                        ),
                       )
                     : const Text('Adicionar'),
               ),
@@ -377,93 +405,100 @@ class _GerenciarUsuariosState extends State<GerenciarUsuarios>
       context: context,
       builder: (dialogContext) {
         bool isSubmitting = false;
+
+        // --- MUDANÇA 1 (LARGURA DO DIÁLOGO) ---
+        final double dialogWidth = MediaQuery.of(dialogContext).size.width > 550
+            ? 500.0 // Largura fixa (500px) para desktop/telas largas
+            : MediaQuery.of(dialogContext).size.width * 0.95; // 95% para mobile
+
         return StatefulBuilder(
           builder: (context, setDialogState) => AlertDialog(
             shape: RoundedRectangleBorder(
               borderRadius: BorderRadius.circular(12),
             ),
             title: const Text('Editar membro'),
-            content: Form(
-              key: formKey,
-              child: SingleChildScrollView(
-                child: Column(
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    TextFormField(
-                      controller: nameCtrl,
-                      decoration: const InputDecoration(labelText: 'Nome *'),
-                      validator: (v) =>
-                          (v == null || v.isEmpty) ? 'Informe o nome' : null,
-                    ),
-                    const SizedBox(height: 8),
-                    TextFormField(
-                      controller: emailCtrl,
-                      decoration: const InputDecoration(labelText: 'Email *'),
-                      keyboardType: TextInputType.emailAddress,
-                      validator: (v) =>
-                          (v == null || v.isEmpty) ? 'Informe o email' : null,
-                    ),
-                    const SizedBox(height: 8),
-                    TextFormField(
-                      controller: cpfCtrl,
-                      decoration: const InputDecoration(labelText: 'CPF *'),
-                      keyboardType: TextInputType.number,
-                      inputFormatters: [FilteringTextInputFormatter.digitsOnly],
-                      maxLength: 11,
-                      validator: (v) {
-                        if (v == null || v.isEmpty) return 'Informe o CPF';
-                        final digits = v.replaceAll(RegExp(r'\D'), '');
-                        if (digits.length != 11) {
-                          return 'CPF deve conter 11 dígitos';
-                        }
-                        return null;
-                      },
-                    ),
-                    const SizedBox(height: 8),
-                    TextFormField(
-                      controller: phoneCtrl,
-                      decoration: const InputDecoration(
-                        labelText: 'Telefone *',
+            content: SizedBox( // --- MUDANÇA 1 (LARGURA DO DIÁLOGO) ---
+              width: dialogWidth,
+              child: Form(
+                key: formKey,
+                child: SingleChildScrollView(
+                  child: Column(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      TextFormField(
+                        controller: nameCtrl,
+                        decoration: _buildDialogInputDecoration('Nome *'),
+                        validator: (v) =>
+                            (v == null || v.isEmpty) ? 'Informe o nome' : null,
                       ),
-                      keyboardType: TextInputType.phone,
-                      inputFormatters: [FilteringTextInputFormatter.digitsOnly],
-                      maxLength: 11,
-                      validator: (v) {
-                        if (v == null || v.isEmpty) return 'Informe o telefone';
-                        final digits = v.replaceAll(RegExp(r'\D'), '');
-                        if (digits.length < 10 || digits.length > 11) {
-                          return 'Telefone deve conter DDD + número (10 ou 11 dígitos)';
-                        }
-                        return null;
-                      },
-                    ),
-                    const SizedBox(height: 8),
-                    DropdownButtonFormField<String>(
-                      initialValue: selectedRole,
-                      items: const [
-                        DropdownMenuItem(value: 'admin', child: Text('Admin')),
-                        DropdownMenuItem(
-                          value: 'gestor',
-                          child: Text('Gestor'),
-                        ),
-                        DropdownMenuItem(
-                          value: 'tecnico',
-                          child: Text('Técnico'),
-                        ),
-                      ],
-                      onChanged: (v) {
-                        if (v != null) setDialogState(() => selectedRole = v);
-                      },
-                      decoration: const InputDecoration(labelText: 'Cargo *'),
-                    ),
-                  ],
+                      const SizedBox(height: 12),
+                      TextFormField(
+                        controller: emailCtrl,
+                        decoration: _buildDialogInputDecoration('Email *'),
+                        keyboardType: TextInputType.emailAddress,
+                        validator: (v) =>
+                            (v == null || v.isEmpty) ? 'Informe o email' : null,
+                      ),
+                      const SizedBox(height: 12),
+                      TextFormField(
+                        controller: cpfCtrl,
+                        decoration: _buildDialogInputDecoration('CPF *'),
+                        keyboardType: TextInputType.number,
+                        inputFormatters: [FilteringTextInputFormatter.digitsOnly],
+                        maxLength: 11,
+                        validator: (v) {
+                          if (v == null || v.isEmpty) return 'Informe o CPF';
+                          final digits = v.replaceAll(RegExp(r'\D'), '');
+                          if (digits.length != 11) {
+                            return 'CPF deve conter 11 dígitos';
+                          }
+                          return null;
+                        },
+                      ),
+                      const SizedBox(height: 12),
+                      TextFormField(
+                        controller: phoneCtrl,
+                        decoration: _buildDialogInputDecoration('Telefone *'),
+                        keyboardType: TextInputType.phone,
+                        inputFormatters: [FilteringTextInputFormatter.digitsOnly],
+                        maxLength: 11,
+                        validator: (v) {
+                          if (v == null || v.isEmpty) return 'Informe o telefone';
+                          final digits = v.replaceAll(RegExp(r'\D'), '');
+                          if (digits.length < 10 || digits.length > 11) {
+                            return 'Telefone deve conter DDD + número (10 ou 11 dígitos)';
+                          }
+                          return null;
+                        },
+                      ),
+                      const SizedBox(height: 12),
+                      DropdownButtonFormField<String>(
+                        initialValue: selectedRole,
+                        items: const [
+                          DropdownMenuItem(value: 'admin', child: Text('Admin')),
+                          DropdownMenuItem(
+                            value: 'gestor',
+                            child: Text('Gestor'),
+                          ),
+                          DropdownMenuItem(
+                            value: 'tecnico',
+                            child: Text('Técnico'),
+                          ),
+                        ],
+                        onChanged: (v) {
+                          if (v != null) setDialogState(() => selectedRole = v);
+                        },
+                        decoration: _buildDialogInputDecoration('Cargo *'),
+                      ),
+                    ],
+                  ),
                 ),
               ),
             ),
             actions: [
               TextButton(
                 onPressed: () => Navigator.of(dialogContext).pop(),
-                child: const Text('Cancelar'),
+                child: Text('Cancelar', style: TextStyle(color: metroBlue)),
               ),
               ElevatedButton(
                 style: ElevatedButton.styleFrom(
@@ -491,7 +526,10 @@ class _GerenciarUsuariosState extends State<GerenciarUsuarios>
                     ? const SizedBox(
                         width: 20,
                         height: 20,
-                        child: CircularProgressIndicator(strokeWidth: 2),
+                        child: CircularProgressIndicator(
+                          strokeWidth: 2,
+                          color: Colors.white,
+                        ),
                       )
                     : const Text('Salvar'),
               ),
@@ -526,16 +564,16 @@ class _GerenciarUsuariosState extends State<GerenciarUsuarios>
 
     return Scaffold(
       key: _scaffoldKey,
-      backgroundColor: backgroundColor,
+      backgroundColor: backgroundColor, // "Branco"
       appBar: isMobile
           ? AppBar(
               elevation: 0,
-              backgroundColor: Colors.white,
+              backgroundColor: Colors.white, // "Branco"
               leading: IconButton(
                 icon: AnimatedIcon(
                   icon: AnimatedIcons.menu_close,
                   progress: _animationController,
-                  color: metroBlue,
+                  color: metroBlue, // "Metro Blue"
                 ),
                 onPressed: () {
                   _scaffoldKey.currentState?.openDrawer();
@@ -544,7 +582,7 @@ class _GerenciarUsuariosState extends State<GerenciarUsuarios>
               title: const Text(
                 'Gerenciar Usuários',
                 style: TextStyle(
-                  color: Color(0xFF001489),
+                  color: Color(0xFF001489), // "Metro Blue"
                   fontWeight: FontWeight.bold,
                 ),
               ),
@@ -590,7 +628,7 @@ class _GerenciarUsuariosState extends State<GerenciarUsuarios>
                             IconButton(
                               icon: Icon(
                                 _isRailExtended ? Icons.menu_open : Icons.menu,
-                                color: metroBlue,
+                                color: metroBlue, // "Metro Blue"
                               ),
                               onPressed: _toggleRail,
                             ),
@@ -600,7 +638,7 @@ class _GerenciarUsuariosState extends State<GerenciarUsuarios>
                               style: TextStyle(
                                 fontSize: 24,
                                 fontWeight: FontWeight.bold,
-                                color: Color(0xFF001489),
+                                color: Color(0xFF001489), // "Metro Blue"
                               ),
                             ),
                           ],
@@ -616,7 +654,7 @@ class _GerenciarUsuariosState extends State<GerenciarUsuarios>
                     shape: RoundedRectangleBorder(
                       borderRadius: BorderRadius.circular(12),
                     ),
-                    color: Colors.white,
+                    color: Colors.white, // "Branco"
                     child: Padding(
                       padding: const EdgeInsets.all(16.0),
                       child: Row(
@@ -627,14 +665,14 @@ class _GerenciarUsuariosState extends State<GerenciarUsuarios>
                         style: TextStyle(
                           fontSize: 18,
                           fontWeight: FontWeight.bold,
-                          color: Colors.grey.shade800,
+                          color: Colors.grey.shade800, // "Preto/Cinza"
                         ),
                       ),
-                      if (_currentRole == 'admin') // 👈 só mostra se for admin
+                      if (_currentRole == 'admin')
                         ElevatedButton.icon(
                           style: ElevatedButton.styleFrom(
-                            backgroundColor: metroBlue,
-                            foregroundColor: Colors.white,
+                            backgroundColor: metroBlue, // "Metro Blue"
+                            foregroundColor: Colors.white, // "Branco"
                             shape: RoundedRectangleBorder(
                               borderRadius: BorderRadius.circular(8),
                             ),
@@ -650,8 +688,12 @@ class _GerenciarUsuariosState extends State<GerenciarUsuarios>
                   ),
                 ),
                 if (_isLoading)
-                  const Expanded(
-                    child: Center(child: CircularProgressIndicator()),
+                  Expanded(
+                    child: Center(
+                      child: CircularProgressIndicator(
+                        color: metroBlue, // "Metro Blue"
+                      ),
+                    ),
                   )
                 else if (_errorMessage != null)
                   Expanded(
@@ -662,13 +704,21 @@ class _GerenciarUsuariosState extends State<GerenciarUsuarios>
                           const Icon(
                             Icons.error_outline,
                             size: 48,
-                            color: Colors.red,
+                            color: Colors.red, // Cor semântica mantida
                           ),
                           const SizedBox(height: 16),
-                          Text(_errorMessage!, textAlign: TextAlign.center),
+                          Text(
+                            _errorMessage!,
+                            textAlign: TextAlign.center,
+                            style: const TextStyle(color: Colors.black87), // "Preto"
+                          ),
                           const SizedBox(height: 16),
                           ElevatedButton(
                             onPressed: _loadMembers,
+                            style: ElevatedButton.styleFrom(
+                              backgroundColor: metroBlue, // "Metro Blue"
+                              foregroundColor: Colors.white, // "Branco"
+                            ),
                             child: const Text('Tentar novamente'),
                           ),
                         ],
@@ -677,7 +727,12 @@ class _GerenciarUsuariosState extends State<GerenciarUsuarios>
                   )
                 else if (_members.isEmpty)
                   const Expanded(
-                    child: Center(child: Text('Nenhum usuário cadastrado')),
+                    child: Center(
+                      child: Text(
+                        'Nenhum usuário cadastrado',
+                        style: TextStyle(color: Colors.black54), // "Preto/Cinza"
+                      ),
+                    ),
                   )
                 else
                   Expanded(
@@ -700,28 +755,31 @@ class _GerenciarUsuariosState extends State<GerenciarUsuarios>
                                   ),
                                   clipBehavior: Clip.antiAlias,
                                   child: DataTable(
+                                    // --- MUDANÇA 2 (COR DO HEADER) ---
                                     headingRowColor: WidgetStateProperty.all(
-                                      Colors.grey.shade100,
+                                      Colors.grey.shade100, // "Cinza"
                                     ),
-                                    columns: const [
-                                      DataColumn(label: Text('Nome', style: TextStyle(fontWeight: FontWeight.bold))),
-                                      DataColumn(label: Text('Email', style: TextStyle(fontWeight: FontWeight.bold))),
-                                      DataColumn(label: Text('CPF', style: TextStyle(fontWeight: FontWeight.bold))),
-                                      DataColumn(label: Text('Telefone', style: TextStyle(fontWeight: FontWeight.bold))),
-                                      DataColumn(label: Text('Cargo', style: TextStyle(fontWeight: FontWeight.bold))),
-                                      DataColumn(label: Text('Ações', style: TextStyle(fontWeight: FontWeight.bold))),
+                                    dividerThickness: 1,
+                                    columns: [
+                                      DataColumn(label: Text('Nome', style: TextStyle(fontWeight: FontWeight.bold, color: metroBlue))),
+                                      DataColumn(label: Text('Email', style: TextStyle(fontWeight: FontWeight.bold, color: metroBlue))),
+                                      DataColumn(label: Text('CPF', style: TextStyle(fontWeight: FontWeight.bold, color: metroBlue))),
+                                      DataColumn(label: Text('Telefone', style: TextStyle(fontWeight: FontWeight.bold, color: metroBlue))),
+                                      DataColumn(label: Text('Cargo', style: TextStyle(fontWeight: FontWeight.bold, color: metroBlue))),
+                                      DataColumn(label: Text('Ações', style: TextStyle(fontWeight: FontWeight.bold, color: metroBlue))),
                                     ],
 
 
                                     rows: _members.map((user) {
                                       return DataRow(
+                                        color: WidgetStateProperty.all(Colors.white), // "Branco"
                                         cells: [
-                                          DataCell(Text(user.nome)),
-                                          DataCell(Text(user.email)),
-                                          DataCell(Text(user.cpf ?? '-')),
-                                          DataCell(Text(user.telefone ?? '-')),
+                                          DataCell(Text(user.nome, style: const TextStyle(color: Colors.black87))),
+                                          DataCell(Text(user.email, style: const TextStyle(color: Colors.black87))),
+                                          DataCell(Text(user.cpf ?? '-', style: const TextStyle(color: Colors.black87))),
+                                          DataCell(Text(user.telefone ?? '-', style: const TextStyle(color: Colors.black87))),
                                           DataCell(
-                                            Text(_getRoleDisplay(user.role)),
+                                            Text(_getRoleDisplay(user.role), style: const TextStyle(color: Colors.black87)),
                                           ),
                                           DataCell(
                                             Row(
@@ -729,7 +787,7 @@ class _GerenciarUsuariosState extends State<GerenciarUsuarios>
                                                 IconButton(
                                                   icon: Icon(
                                                     Icons.edit,
-                                                    color: Colors.blue.shade700,
+                                                    color: metroBlue, // "Metro Blue"
                                                   ),
                                                   onPressed: () =>
                                                       _showEditDialog(user),
@@ -738,7 +796,7 @@ class _GerenciarUsuariosState extends State<GerenciarUsuarios>
                                                     _processingIds.contains(
                                                       user.id,
                                                     ))
-                                                  const SizedBox(
+                                                  SizedBox(
                                                     width: 40,
                                                     height: 40,
                                                     child: Center(
@@ -748,6 +806,7 @@ class _GerenciarUsuariosState extends State<GerenciarUsuarios>
                                                         child:
                                                             CircularProgressIndicator(
                                                               strokeWidth: 2,
+                                                              color: metroBlue, // "Metro Blue"
                                                             ),
                                                       ),
                                                     ),
@@ -756,7 +815,7 @@ class _GerenciarUsuariosState extends State<GerenciarUsuarios>
                                                   IconButton(
                                                     icon: const Icon(
                                                       Icons.delete,
-                                                      color: Colors.red,
+                                                      color: Colors.red, // Semântico
                                                     ),
                                                     onPressed:
                                                         (user.id != null &&
@@ -807,6 +866,7 @@ class _GerenciarUsuariosState extends State<GerenciarUsuarios>
                                                               _removeMember(
                                                                 user.id!,
                                                               );
+
                                                             }
                                                           }
                                                         : null,

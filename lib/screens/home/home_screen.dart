@@ -5,7 +5,7 @@ import 'alerts_page.dart';
 import 'reports_page.dart';
 import 'estoque_categorias_page.dart';
 import 'movimentacoes_page.dart'; // Importar a nova página
-import '../../repositories/alert_repository.dart';
+import '../../repositories/alert_repository.dart'; // Importa AlertRepository, AlertItem e AlertType
 import '../../repositories/movimentacao_repository.dart';
 import '../../models/movimentacao.dart';
 import 'package:intl/intl.dart';
@@ -504,11 +504,9 @@ class _HomeScreenState extends State<HomeScreen>
               },
               hasAlert: AlertRepository.instance.countNotifier.value > 0,
               alertCount: AlertRepository.instance.countNotifier.value,
-              content: _buildStatContent(
-                AlertRepository.instance.countNotifier.value.toString(),
-                "Alertas ativos",
-                Colors.red.shade700
-              ),
+              // *** INÍCIO DA MODIFICAÇÃO ***
+              content: _buildAlertsCardContent(),
+              // *** FIM DA MODIFICAÇÃO ***
             ),
 
             // Card de Instrumentos
@@ -851,7 +849,6 @@ class _HomeScreenState extends State<HomeScreen>
         ),
       ));
     }
-  }
 
   // Widget para mostrar uma estatística no card de estoque
   Widget _buildEstoqueStat(
@@ -1013,7 +1010,175 @@ class _HomeScreenState extends State<HomeScreen>
         ),
       ));
     }
-  
+
+
+  // *** INÍCIO DOS NOVOS HELPERS ***
+
+  // --- Helpers copiados da AlertsPage ---
+
+  Color _severityColor(int s) {
+    switch (s) {
+      case 3:
+        return Colors.red;
+      case 2:
+        return Colors.orange;
+      default:
+        return Colors.yellow.shade700;
+    }
+  }
+
+  String _typeLabel(AlertType t) =>
+      t == AlertType.lowStock ? 'Estoque baixo' : 'Vencimento próximo';
+
+  Widget _smallStat(String label, String value, Color color) {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
+      decoration: BoxDecoration(
+        color: color.withAlpha((0.12 * 255).round()),
+        borderRadius: BorderRadius.circular(10),
+        border: Border.all(color: color.withAlpha((0.18 * 255).round())),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text(
+            label,
+            style: TextStyle(
+              fontSize: 12,
+              color: color.withAlpha((0.9 * 255).round()),
+            ),
+          ),
+          const SizedBox(height: 4),
+          Text(
+            value,
+            style: TextStyle(fontWeight: FontWeight.bold, color: color),
+          ),
+        ],
+      ),
+    );
+  }
+  // --- Fim dos Helpers ---
+
+  // NOVO: Helper para uma linha de alerta (versão simplificada para o dashboard)
+  Widget _buildAlertRow(AlertItem a, BuildContext context) {
+    final color = _severityColor(a.severity);
+    final icon = a.type == AlertType.lowStock ? Icons.inventory_2 : Icons.event;
+
+    return Padding(
+      padding: const EdgeInsets.symmetric(vertical: 6.0),
+      child: Row(
+        children: [
+          Icon(icon, color: color, size: 20),
+          const SizedBox(width: 12),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  a.nome,
+                  style: const TextStyle(
+                    color: Colors.black87,
+                    fontSize: 14,
+                    fontWeight: FontWeight.w500,
+                  ),
+                  overflow: TextOverflow.ellipsis, // Evita quebra de linha
+                  maxLines: 1,
+                ),
+                Text(
+                  _typeLabel(a.type),
+                  style: TextStyle(color: Colors.grey.shade600, fontSize: 12),
+                ),
+              ],
+            ),
+          ),
+          const SizedBox(width: 8),
+          Chip(
+            label: Text(
+              'P: ${a.severity}', // P: Prioridade
+              style: TextStyle(color: color, fontSize: 12, fontWeight: FontWeight.bold),
+            ),
+            backgroundColor: color.withAlpha((0.12 * 255).round()),
+            padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 0),
+          ),
+        ],
+      ),
+    );
+  }
+
+  // NOVO: Conteúdo dinâmico para o Card de Alertas
+  Widget _buildAlertsCardContent() {
+    // Usar ValueListenableBuilder para ouvir mudanças nos alertas
+    return ValueListenableBuilder<int>(
+      valueListenable: AlertRepository.instance.countNotifier,
+      builder: (context, count, _) {
+        final allAlerts = AlertRepository.instance.items;
+
+        // 1. Calcular Estatísticas
+        final lowStock = allAlerts
+            .where((a) => a.type == AlertType.lowStock)
+            .length;
+        final nearExpiry = allAlerts
+            .where((a) => a.type == AlertType.nearExpiry)
+            .length;
+
+        // 2. Obter os 3 mais urgentes (ordenados por severidade)
+        final sortedAlerts = List<AlertItem>.from(allAlerts);
+        sortedAlerts.sort((a, b) => b.severity.compareTo(a.severity));
+        // Limitar a 3 ou 4 itens para não sobrecarregar o card
+        final topAlerts = sortedAlerts.take(3).toList(); 
+
+        return Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            // 3. Linha de Estatísticas
+            Row(
+              children: [
+                Expanded(child: _smallStat('Total de alertas', count.toString(), Colors.blue)),
+                const SizedBox(width: 8),
+                Expanded(child: _smallStat('Estoques baixos', lowStock.toString(), Colors.red)),
+                const SizedBox(width: 8),
+                Expanded(child: _smallStat('Vencimentos próximos', nearExpiry.toString(), Colors.orange)),
+              ],
+            ),
+            const SizedBox(height: 20),
+            const Divider(), // Linha divisória
+            const SizedBox(height: 4),
+
+            // 4. Lista de Alertas Urgentes
+            if (topAlerts.isEmpty)
+              const Expanded(
+                child: Center(
+                  child: Column(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: [
+                      Icon(Icons.check_circle_outline, color: Colors.green, size: 32),
+                      SizedBox(height: 8),
+                      Text(
+                        'Nenhum alerta ativo.',
+                        style: TextStyle(color: Colors.black54),
+                      ),
+                    ],
+                  ),
+                ),
+              )
+            else
+              Expanded(
+                child: ListView.builder(
+                  padding: EdgeInsets.zero, // Remove o padding padrão da lista
+                  itemCount: topAlerts.length,
+                  itemBuilder: (context, index) {
+                    // Usar o novo helper de linha
+                    return _buildAlertRow(topAlerts[index], context);
+                  },
+                ),
+              ),
+          ],
+        );
+      },
+    );
+  }
+}
+
 
 
 // Botão de Ação do Card (Sem alterações)
