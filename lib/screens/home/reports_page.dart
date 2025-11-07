@@ -796,10 +796,12 @@ class _RelatoriosPageState extends State<RelatoriosPage>
           child: DataTable(
             headingRowColor: MaterialStateProperty.all(Colors.grey.shade100),
             columns: const [
-              DataColumn(label: Text('Usuário', style: TextStyle(fontWeight: FontWeight.bold))),
+              DataColumn(label: Text('Código', style: TextStyle(fontWeight: FontWeight.bold))),
               DataColumn(label: Text('Data', style: TextStyle(fontWeight: FontWeight.bold))),
-              DataColumn(label: Text('Base', style: TextStyle(fontWeight: FontWeight.bold))),
+              DataColumn(label: Text('Item', style: TextStyle(fontWeight: FontWeight.bold))),
               DataColumn(label: Text('Categoria', style: TextStyle(fontWeight: FontWeight.bold))),
+              DataColumn(label: Text('Quantidade', style: TextStyle(fontWeight: FontWeight.bold))),
+              DataColumn(label: Text('Usuário', style: TextStyle(fontWeight: FontWeight.bold))),
             ],
             rows: _buildDataRows(),
           ),

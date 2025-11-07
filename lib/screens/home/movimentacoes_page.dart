@@ -98,6 +98,7 @@ class _MovimentacoesPageState extends State<MovimentacoesPage> with SingleTicker
     final isMobile = MediaQuery.of(context).size.width < 600;
 
     return Scaffold(
+      backgroundColor: Colors.grey.shade100, 
       key: _scaffoldKey,
       appBar: isMobile
           ? AppBar(
