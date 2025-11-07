@@ -511,7 +511,6 @@ class _EstoqueCategoriaCard extends StatelessWidget {
                 Align(
                   alignment: Alignment.bottomRight,
                   child: CardActionButton(
-                    label: 'Ver detalhes',
                     borderColor: color,
                     onPressed: onTap,
                   ),

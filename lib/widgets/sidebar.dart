@@ -66,7 +66,7 @@ class _SidebarState extends State<Sidebar> {
       ),
       child: Column(
         children: [
-          const SizedBox(height: 60),
+          const SizedBox(height: 22),
           Container(
             padding: const EdgeInsets.symmetric(vertical: 16),
             decoration: BoxDecoration(
@@ -96,7 +96,7 @@ class _SidebarState extends State<Sidebar> {
           ),
           _sidebarItem(
             context,
-            Icons.assignment,
+            Icons.inventory_2,
             'Estoque',
             1,
             expanded,

@@ -304,24 +304,32 @@ class _HomeScreenState extends State<HomeScreen>
                   if (!isMobile)
                     Padding(
                       padding: const EdgeInsets.only(bottom: 40.0),
-                      child: Row(
-                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                        children: [
-                          Row(
-                            children: [
-                              IconButton(
-                                icon: Icon(
-                                  _isRailExtended ? Icons.menu_open : Icons.menu,
-                                  color: metroBlue,
-                                ),
-                                onPressed: _toggleRail,
+                    child: Row(
+                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                      children: [
+                        Row(
+                          children: [
+                            IconButton(
+                              icon: Icon(
+                                _isRailExtended ? Icons.menu_open : Icons.menu,
+                                color: metroBlue,
                               ),
-                              const SizedBox(width: 12),
-                            ],
-                          ),
-                          Hero(
-                            tag: 'logo',
-                            child: Image.asset(
+                              onPressed: _toggleRail,
+                            ),
+                            const SizedBox(width: 12),
+                            Text(
+                              'Home',
+                              style: TextStyle(
+                                fontSize: 24,
+                                fontWeight: FontWeight.bold,
+                                color: metroBlue,
+                              ),
+                            ),
+                          ],
+                        ),
+                        Hero(
+                          tag: 'logo',
+                          child: Image.asset(
                               'assets/LogoMetro.png',
                               height: 40, 
                             ),
@@ -360,8 +368,8 @@ class _HomeScreenState extends State<HomeScreen>
             'Bem-vindo de volta, Usuário!', // TODO: Trocar por nome real
             style: TextStyle(
               fontSize: isMobile ? 22 : 28,
-              fontWeight: FontWeight.bold,
-              color: metroBlue,
+              fontWeight: FontWeight.w400,
+              color: const Color(0xFF2D2D2D),
             ),
           ),
           const SizedBox(height: 4),
@@ -473,7 +481,7 @@ class _HomeScreenState extends State<HomeScreen>
         final double childAspectRatio = crossAxisCount == 1 ? 1.7 : 1.4;
 
         return GridView(
-          padding: EdgeInsets.zero, 
+          padding: const EdgeInsets.only(right: 24.0, bottom: 8.0),
           gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
             crossAxisCount: crossAxisCount,
             crossAxisSpacing: 16,
@@ -585,7 +593,7 @@ class _HomeScreenState extends State<HomeScreen>
             // Card Relatórios
             _buildDashboardCard(
               'Relatórios',
-              Icons.insert_chart,
+              Icons.article,
               const Color.fromARGB(255, 231, 126, 6),
               () {
                 Navigator.push(
@@ -838,7 +846,6 @@ class _HomeScreenState extends State<HomeScreen>
                 Align(
                   alignment: Alignment.bottomRight,
                   child: CardActionButton(
-                    label: 'Ver categorias', // Label alterado
                     borderColor: metroBlue,
                     onPressed: onTap,
                   ),
@@ -999,7 +1006,6 @@ class _HomeScreenState extends State<HomeScreen>
                 Align(
                   alignment: Alignment.bottomRight,
                   child: CardActionButton(
-                    label: 'Ver detalhes',
                     borderColor: color,
                     onPressed: onTap,
                   ),
@@ -1032,7 +1038,7 @@ class _HomeScreenState extends State<HomeScreen>
 
   Widget _smallStat(String label, String value, Color color) {
     return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
+      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
       decoration: BoxDecoration(
         color: color.withAlpha((0.12 * 255).round()),
         borderRadius: BorderRadius.circular(10),
@@ -1065,11 +1071,11 @@ class _HomeScreenState extends State<HomeScreen>
     final icon = a.type == AlertType.lowStock ? Icons.inventory_2 : Icons.event;
 
     return Padding(
-      padding: const EdgeInsets.symmetric(vertical: 6.0),
+      padding: const EdgeInsets.symmetric(vertical: 4.0),
       child: Row(
         children: [
-          Icon(icon, color: color, size: 20),
-          const SizedBox(width: 12),
+          Icon(icon, color: color, size: 18),
+          const SizedBox(width: 10),
           Expanded(
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
@@ -1078,7 +1084,7 @@ class _HomeScreenState extends State<HomeScreen>
                   a.nome,
                   style: const TextStyle(
                     color: Colors.black87,
-                    fontSize: 14,
+                    fontSize: 13,
                     fontWeight: FontWeight.w500,
                   ),
                   overflow: TextOverflow.ellipsis, // Evita quebra de linha
@@ -1091,11 +1097,11 @@ class _HomeScreenState extends State<HomeScreen>
               ],
             ),
           ),
-          const SizedBox(width: 8),
+          const SizedBox(width: 6),
           Chip(
             label: Text(
               'P: ${a.severity}', // P: Prioridade
-              style: TextStyle(color: color, fontSize: 12, fontWeight: FontWeight.bold),
+              style: TextStyle(color: color, fontSize: 11, fontWeight: FontWeight.bold),
             ),
             backgroundColor: color.withAlpha((0.12 * 255).round()),
             padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 0),
@@ -1140,37 +1146,33 @@ class _HomeScreenState extends State<HomeScreen>
                 Expanded(child: _smallStat('Vencimentos próximos', nearExpiry.toString(), Colors.orange)),
               ],
             ),
-            const SizedBox(height: 20),
-            const Divider(), // Linha divisória
-            const SizedBox(height: 4),
+            const SizedBox(height: 12),
+            const Divider(height: 16), // Linha divisória
 
             // 4. Lista de Alertas Urgentes
             if (topAlerts.isEmpty)
-              const Expanded(
-                child: Center(
-                  child: Column(
-                    mainAxisAlignment: MainAxisAlignment.center,
-                    children: [
-                      Icon(Icons.check_circle_outline, color: Colors.green, size: 32),
-                      SizedBox(height: 8),
-                      Text(
-                        'Nenhum alerta ativo.',
-                        style: TextStyle(color: Colors.black54),
-                      ),
-                    ],
-                  ),
+              Padding(
+                padding: const EdgeInsets.symmetric(vertical: 8),
+                child: Column(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: const [
+                    Icon(Icons.check_circle_outline, color: Colors.green, size: 28),
+                    SizedBox(height: 6),
+                    Text(
+                      'Nenhum alerta ativo.',
+                      style: TextStyle(color: Colors.black54),
+                    ),
+                  ],
                 ),
               )
             else
-              Expanded(
-                child: ListView.builder(
-                  padding: EdgeInsets.zero, // Remove o padding padrão da lista
-                  itemCount: topAlerts.length,
-                  itemBuilder: (context, index) {
-                    // Usar o novo helper de linha
-                    return _buildAlertRow(topAlerts[index], context);
-                  },
-                ),
+              Column(
+                children: [
+                  for (int i = 0; i < topAlerts.length; i++) ...[
+                    _buildAlertRow(topAlerts[i], context),
+                    if (i < topAlerts.length - 1) const SizedBox(height: 6),
+                  ],
+                ],
               ),
           ],
         );
@@ -1181,14 +1183,14 @@ class _HomeScreenState extends State<HomeScreen>
 
 
 
-// Botão de Ação do Card (Sem alterações)
+// Botão de ação com apenas o ícone de seta
 class CardActionButton extends StatefulWidget {
-  final String label;
+  final String? label; // Mantém compatibilidade com chamadas antigas
   final Color borderColor;
   final VoidCallback onPressed;
 
   const CardActionButton({
-    required this.label,
+    this.label,
     required this.borderColor,
     required this.onPressed,
     super.key,
@@ -1212,7 +1214,7 @@ class _CardActionButtonState extends State<CardActionButton> {
   @override
   Widget build(BuildContext context) {
     final bg = _isHover ? widget.borderColor : Colors.transparent;
-    final textColor = _isHover ? Colors.white : widget.borderColor;
+    final iconColor = _isHover ? Colors.white : widget.borderColor;
 
     return MouseRegion(
       onEnter: (_) => setState(() => _isHover = true),
@@ -1237,31 +1239,18 @@ class _CardActionButtonState extends State<CardActionButton> {
           child: Stack(
             alignment: Alignment.center,
             children: [
-              Row(
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  AnimatedContainer(
-                    duration: _duration,
-                    transform: Matrix4.translationValues(
-                      _isHover ? 5.0 : 0.0,
-                      0.0,
-                      0.0,
-                    ),
-                    child: Icon(
-                      Icons.arrow_forward,
-                      size: 16,
-                      color: textColor,
-                    ),
-                  ),
-                  const SizedBox(width: 8),
-                  Text(
-                    widget.label,
-                    style: TextStyle(
-                      color: textColor,
-                      fontWeight: FontWeight.bold,
-                    ),
-                  ),
-                ],
+              AnimatedContainer(
+                duration: _duration,
+                transform: Matrix4.translationValues(
+                  _isHover ? 5.0 : 0.0,
+                  0.0,
+                  0.0,
+                ),
+                child: Icon(
+                  Icons.arrow_forward,
+                  size: 16,
+                  color: iconColor,
+                ),
               ),
             ],
           ),
