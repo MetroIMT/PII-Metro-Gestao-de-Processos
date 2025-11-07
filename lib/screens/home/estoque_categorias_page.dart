@@ -142,7 +142,8 @@ class _EstoqueCategoriasPageState extends State<EstoqueCategoriasPage>
       // AppBar (Mobile)
       appBar: isMobile
           ? AppBar(
-              // Lógica do botão da sidebar
+              elevation: 0,
+              backgroundColor: Colors.white,
               leading: IconButton(
                 icon: AnimatedIcon(
                   icon: AnimatedIcons.menu_close,
@@ -153,18 +154,14 @@ class _EstoqueCategoriasPageState extends State<EstoqueCategoriasPage>
                   _scaffoldKey.currentState?.openDrawer();
                 },
               ),
-              // Seu título e ações originais
-              title: const Text(
+              title: Text(
                 'Categorias de Estoque',
                 style: TextStyle(
                   fontWeight: FontWeight.bold,
-                  color: Color(0xFF2D3748),
+                  color: metroBlue,
                 ),
               ),
-              backgroundColor: Colors.white,
-              foregroundColor: const Color(0xFF2D3748),
-              elevation: 1,
-              shadowColor: Colors.black.withAlpha((0.1 * 255).round()),
+              centerTitle: true,
               actions: [
                 Padding(
                   padding: const EdgeInsets.only(right: 16.0),
@@ -214,7 +211,7 @@ class _EstoqueCategoriasPageState extends State<EstoqueCategoriasPage>
                 // Header (Desktop)
                 if (!isMobile)
                   Padding(
-                    padding: const EdgeInsets.all(16.0),
+                    padding: const EdgeInsets.fromLTRB(24, 24, 24, 0),
                     child: Row(
                       mainAxisAlignment: MainAxisAlignment.spaceBetween,
                       children: [
@@ -274,18 +271,35 @@ class _EstoqueCategoriasPageState extends State<EstoqueCategoriasPage>
                           ),
                         );
                       } else {
-                        // Tablet e Desktop: Grid
-                        final crossAxisCount = constraints.maxWidth < 1200
-                            ? 2
-                            : 3;
+                        // Tablet e Desktop: Grid com mesmas proporções da Home
+                        final width = constraints.maxWidth;
+                        final int crossAxisCount;
+                        if (width < 650) {
+                          crossAxisCount = 1;
+                        } else if (width < 1100) {
+                          crossAxisCount = 2;
+                        } else {
+                          crossAxisCount = 3;
+                        }
+
+                        final double childAspectRatio;
+                        if (crossAxisCount == 1) {
+                          const double desiredCardHeight = 430;
+                          childAspectRatio = width / desiredCardHeight;
+                        } else if (crossAxisCount == 2) {
+                          childAspectRatio = 1.4;
+                        } else {
+                          childAspectRatio = 1.2;
+                        }
+
                         return GridView.builder(
                           padding: const EdgeInsets.all(24.0),
                           gridDelegate:
                               SliverGridDelegateWithFixedCrossAxisCount(
                                 crossAxisCount: crossAxisCount,
-                                crossAxisSpacing: 24,
-                                mainAxisSpacing: 24,
-                                childAspectRatio: 1.5,
+                                crossAxisSpacing: 16,
+                                mainAxisSpacing: 16,
+                                childAspectRatio: childAspectRatio,
                               ),
                           itemCount: categorias.length,
                           itemBuilder: (context, index) {

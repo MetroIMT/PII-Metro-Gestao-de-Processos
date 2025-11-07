@@ -115,12 +115,13 @@ class _MovimentacoesPageState extends State<MovimentacoesPage> with SingleTicker
                 },
               ),
               title: Text(
-                'Movimentações',
+                'Histórico de Movimentações',
                 style: TextStyle(
                   color: metroBlue,
                   fontWeight: FontWeight.bold,
                 ),
               ),
+              centerTitle: true,
               actions: [
                 Padding(
                   padding: const EdgeInsets.only(right: 16.0),
@@ -156,15 +157,28 @@ class _MovimentacoesPageState extends State<MovimentacoesPage> with SingleTicker
                   Padding(
                     padding: const EdgeInsets.fromLTRB(24, 24, 24, 0),
                     child: Row(
+                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
                       children: [
-                        IconButton(
-                          icon: Icon(
-                            _isRailExtended ? Icons.menu_open : Icons.menu,
-                            color: metroBlue,
-                          ),
-                          onPressed: _toggleRail,
+                        Row(
+                          children: [
+                            IconButton(
+                              icon: Icon(
+                                _isRailExtended ? Icons.menu_open : Icons.menu,
+                                color: metroBlue,
+                              ),
+                              onPressed: _toggleRail,
+                            ),
+                            const SizedBox(width: 12),
+                            Text(
+                              'Histórico de Movimentações',
+                              style: TextStyle(
+                                fontSize: 24,
+                                fontWeight: FontWeight.bold,
+                                color: metroBlue,
+                              ),
+                            ),
+                          ],
                         ),
-                        const Spacer(),
                         Image.asset('assets/LogoMetro.png', height: 40),
                       ],
                     ),
@@ -175,14 +189,16 @@ class _MovimentacoesPageState extends State<MovimentacoesPage> with SingleTicker
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
-                        Text(
-                          'Histórico de Movimentações',
-                          style: Theme.of(context).textTheme.headlineMedium?.copyWith(
-                                fontWeight: FontWeight.bold,
-                                color: metroBlue,
-                              ),
-                        ),
-                        const SizedBox(height: 8),
+                        if (!isMobile) const SizedBox(height: 8),
+                        if (isMobile)
+                          Text(
+                            'Histórico de Movimentações',
+                            style: Theme.of(context).textTheme.headlineMedium?.copyWith(
+                                  fontWeight: FontWeight.bold,
+                                  color: metroBlue,
+                                ),
+                          ),
+                        if (isMobile) const SizedBox(height: 8),
                         const Text(
                           'Visualize todas as entradas e saídas de materiais do estoque.',
                           style: TextStyle(fontSize: 16, color: Colors.black54),

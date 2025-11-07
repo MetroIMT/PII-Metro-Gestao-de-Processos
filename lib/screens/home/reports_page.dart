@@ -324,6 +324,7 @@ class _RelatoriosPageState extends State<RelatoriosPage>
                 'Relatórios',
                 style: TextStyle(color: metroBlue, fontWeight: FontWeight.bold),
               ),
+              centerTitle: true,
               actions: [
                 Padding(
                   padding: const EdgeInsets.only(right: 16.0),
@@ -356,7 +357,7 @@ class _RelatoriosPageState extends State<RelatoriosPage>
               children: [
                 if (!isMobile)
                   Padding(
-                    padding: const EdgeInsets.all(16.0),
+                    padding: const EdgeInsets.fromLTRB(24, 24, 24, 0),
                     child: Row(
                       mainAxisAlignment: MainAxisAlignment.spaceBetween,
                       children: [

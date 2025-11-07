@@ -255,9 +255,9 @@ class _AdminPageState extends State<AdminPage>
                 style: TextStyle(
                   color: metroBlue,
                   fontWeight: FontWeight.bold,
-                  fontSize: 18,
                 ),
               ),
+              centerTitle: true,
               actions: [
                 Padding(
                   padding: const EdgeInsets.only(right: 16.0),
@@ -317,39 +317,32 @@ class _AdminPageState extends State<AdminPage>
 
   /// O header que só aparece no layout desktop
   Widget _buildDesktopHeader() {
-    return Container(
-      padding: const EdgeInsets.symmetric(
-        horizontal: 24,
-        vertical: 16,
-      ),
-      decoration: const BoxDecoration(
-        color: Colors.white,
-        boxShadow: [
-          BoxShadow(
-            color: Colors.black12,
-            blurRadius: 6,
-            offset: Offset(0, 2),
-          ),
-        ],
-      ),
+    return Padding(
+      padding: const EdgeInsets.fromLTRB(24, 24, 24, 0),
       child: Row(
+        mainAxisAlignment: MainAxisAlignment.spaceBetween,
         children: [
-          IconButton(
-            icon: Icon(
-              _isRailExtended ? Icons.menu_open : Icons.menu,
-              color: metroBlue,
-            ),
-            onPressed: _toggleRail,
+          Row(
+            children: [
+              IconButton(
+                icon: Icon(
+                  _isRailExtended ? Icons.menu_open : Icons.menu,
+                  color: metroBlue,
+                ),
+                onPressed: _toggleRail,
+              ),
+              const SizedBox(width: 12),
+              const Text(
+                'Perfil do Administrador',
+                style: TextStyle(
+                  color: metroBlue,
+                  fontWeight: FontWeight.bold,
+                  fontSize: 24,
+                ),
+              ),
+            ],
           ),
-          const SizedBox(width: 8),
-          const Text(
-            'Perfil do Administrador',
-            style: TextStyle(
-              color: metroBlue,
-              fontWeight: FontWeight.w700,
-              fontSize: 20,
-            ),
-          ),
+          Image.asset('assets/LogoMetro.png', height: 40),
         ],
       ),
     );
