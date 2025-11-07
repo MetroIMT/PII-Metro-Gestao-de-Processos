@@ -2,7 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:pi_metro_2025_2/screens/login/login_screen.dart';
 import 'package:pi_metro_2025_2/screens/login/login_controller.dart';
-import '../mocks/mock_auth_service.dart';
+import '../../bdd/mocks/mock_auth_service.dart';
 
 void main() {
   group('Feature: Autenticação de Usuários', () {
