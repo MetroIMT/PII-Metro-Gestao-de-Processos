@@ -398,28 +398,32 @@ class _RelatoriosPageState extends State<RelatoriosPage>
                               Stack(
                                 children: [
                                   _buildReportCard(),
-                                  Positioned(
-                                    top: 12,
-                                    right: 12,
-                                    child: Material(
-                                      elevation: 4,
-                                      shape: RoundedRectangleBorder(
-                                        borderRadius: BorderRadius.circular(10),
-                                      ),
-                                      child: InkWell(
-                                        onTap: _openFilterDialog,
-                                        borderRadius: BorderRadius.circular(10),
-                                        child: SizedBox(
-                                          width: 44,
-                                          height: 44,
-                                          child: Icon(
-                                            Icons.filter_list,
-                                            color: metroBlue,
+                                    Positioned(
+                                      top: 12,
+                                      right: 12,
+                                      child: Material(
+                                        elevation: 4,
+                                        shape: RoundedRectangleBorder(
+                                          borderRadius: BorderRadius.circular(
+                                            10,
+                                          ),
+                                        ),
+                                        child: InkWell(
+                                          onTap: _openFilterDialog,
+                                          borderRadius: BorderRadius.circular(
+                                            10,
+                                          ),
+                                          child: SizedBox(
+                                            width: 44,
+                                            height: 44,
+                                            child: Icon(
+                                              Icons.filter_list,
+                                              color: metroBlue,
+                                            ),
                                           ),
                                         ),
                                       ),
                                     ),
-                                  ),
                                 ],
                               ),
                               const SizedBox(height: 16),
@@ -628,152 +632,106 @@ class _RelatoriosPageState extends State<RelatoriosPage>
 
   // ---------- CARD GERAR RELATÓRIO ----------
 
-  Widget _buildReportCard() {
-    int totalItems = _filteredData.length;
-    int totalSaidas = _filteredData
-        .where((r) => r['quantidade'] < 0)
-        .fold(0, (prev, r) => prev + (r['quantidade'] as int).abs());
-    int totalEntradas = _filteredData
-        .where((r) => r['quantidade'] > 0)
-        .fold(0, (prev, r) => prev + (r['quantidade'] as int));
+Widget _buildReportCard() {
+  int totalItems = _filteredData.length;
+  int totalSaidas = _filteredData
+      .where((r) => r['quantidade'] < 0)
+      .fold(0, (prev, r) => prev + (r['quantidade'] as int).abs());
+  int totalEntradas = _filteredData
+      .where((r) => r['quantidade'] > 0)
+      .fold(0, (prev, r) => prev + (r['quantidade'] as int));
 
-    bool showExportButtons = true;
-
-    if (_selectedReportType == 'Movimentações Base' && _selectedBase == null) {
-      showExportButtons = false;
-    }
-
-    return Card(
-      elevation: 2,
-      color: Colors.white,
-      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-      child: Padding(
-        padding: const EdgeInsets.all(16.0),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Text(
-              'Gerar Relatório',
-              style: TextStyle(
-                fontSize: 18,
-                fontWeight: FontWeight.bold,
-                color: metroBlue,
-              ),
-            ),
-            const SizedBox(height: 12),
-            const Text(
-              'Escolha o tipo de relatório para ser gerado:',
-              style: TextStyle(fontSize: 14, color: Colors.black87),
-            ),
-            const SizedBox(height: 8),
-
-            // 🔹 CHIPS de tipo de relatório
-            Wrap(
-              spacing: 8,
-              runSpacing: 8,
-              children: [
-                _reportTypeButton('Movimentações Base', Icons.business),
-                _reportTypeButton('Movimentações por Usuário', Icons.person),
-                _reportTypeButton('Movimentação Geral', Icons.all_inclusive),
-              ],
-            ),
-
-            const SizedBox(height: 16),
-
-            if (_selectedReportType == 'Movimentações Base') ...[
-              const Text(
-                'Selecione a Base:',
-                style: TextStyle(fontSize: 14, color: Colors.black87),
-              ),
-              const SizedBox(height: 8),
-              DropdownButtonFormField<String>(
-                value: _selectedBase,
-                decoration: const InputDecoration(
-                  border: OutlineInputBorder(),
-                  prefixIcon: Icon(Icons.home_work_outlined),
-                  hintText: 'Escolha a base de manutenção',
-                ),
-                items: const [
-                  DropdownMenuItem(value: 'WJA', child: Text('WJA - Jabaquara'),),
-                  DropdownMenuItem(value: 'PSO', child: Text('PSO - Paraiso')),
-                  DropdownMenuItem(value: 'TRD', child: Text('TRD - Tiradentes'),),
-                  DropdownMenuItem(value: 'TUC', child: Text('TUC - Tucuruvi')),
-                  DropdownMenuItem(value: 'LUM', child: Text('LUM - Luminárias'),),
-                  DropdownMenuItem(value: 'IMG', child: Text('IMG - Imigrantes'),),
-                  DropdownMenuItem(value: 'BFU', child: Text('BFU - Barra Funda'),),
-                  DropdownMenuItem(value: 'BAS', child: Text('BAS - Brás')),
-                  DropdownMenuItem(value: 'CEC', child: Text('CEC - Cecília')),
-                  DropdownMenuItem(value: 'MAT', child: Text('MAT - Matheus')),
-                  DropdownMenuItem(value: 'VTD', child: Text('VTD - Vila Matilde'),),
-                  DropdownMenuItem(value: 'VPT', child: Text('VPT – Vila Prudente'),),
-                  DropdownMenuItem(value: 'PIT', child: Text('PIT – Pátio Itaquera'),),
-                  DropdownMenuItem(value: 'POT', child: Text('POT – Pátio Oratório'),),
-                  DropdownMenuItem(value: 'PAT', child: Text('PAT – Pátio Jabaquara'),),
-                ],
-                onChanged: (value) {
-                  setState(() => _selectedBase = value);
-                },
-              ),
-              const SizedBox(height: 16),
-            ],
-
-            // BOTÕES DE EXPORTAÇÃO (só aparecem se permitido)
-            if (showExportButtons) ...[
-              const Divider(),
-              const SizedBox(height: 8),
-              Wrap(
-                spacing: 8,
-                children: [
-                  ElevatedButton.icon(
-                    onPressed: _exportPdf,
-                    icon: const Icon(Icons.picture_as_pdf_outlined),
-                    label: const Text('Exportar PDF'),
-                  ),
-                  ElevatedButton.icon(
-                    onPressed: _exportExcel,
-                    icon: const Icon(Icons.table_chart_outlined),
-                    label: const Text('Exportar Excel'),
-                  ),
-                ],
-              ),
-            ],
-
-            const SizedBox(height: 12),
-          ],
-        ),
-      ),
-    );
-  }
-
-  Widget _reportTypeButton(String label, IconData icon) {
-    final bool isSelected = _selectedReportType == label;
-
-    return ChoiceChip(
-      selected: isSelected,
-      selectedColor: metroBlue,
-      backgroundColor: Colors.grey.shade100,
-      labelPadding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-      label: Row(
-        mainAxisSize: MainAxisSize.min,
+  return Card(
+    elevation: 2,
+    color: Colors.white,
+    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+    child: Padding(
+      padding: const EdgeInsets.all(16.0),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Icon(icon, size: 18, color: isSelected ? Colors.white : metroBlue),
-          const SizedBox(width: 6),
           Text(
-            label,
+            'Gerar Relatório',
             style: TextStyle(
-              color: isSelected ? Colors.white : Colors.black87,
-              fontWeight: FontWeight.w500,
+              fontSize: 18,
+              fontWeight: FontWeight.bold,
+              color: metroBlue,
             ),
           ),
+          const SizedBox(height: 12),
+          const Text(
+            'Escolha o tipo de relatório para ser gerado:',
+            style: TextStyle(fontSize: 14, color: Colors.black87),
+          ),
+          const SizedBox(height: 8),
+
+          Wrap(
+            spacing: 8,
+            runSpacing: 8,
+            children: [
+              _reportTypeButton('Movimentações por Usuário', Icons.person),
+              _reportTypeButton('Movimentação Geral', Icons.all_inclusive),
+            ],
+          ),
+
+          const SizedBox(height: 16),
+
+          // BOTÕES DE EXPORTAÇÃO
+          const Divider(),
+          const SizedBox(height: 8),
+          Wrap(
+            spacing: 8,
+            children: [
+              ElevatedButton.icon(
+                onPressed: _exportPdf,
+                icon: const Icon(Icons.picture_as_pdf_outlined),
+                label: const Text('Exportar PDF'),
+              ),
+              ElevatedButton.icon(
+                onPressed: _exportExcel,
+                icon: const Icon(Icons.table_chart_outlined),
+                label: const Text('Exportar Excel'),
+              ),
+            ],
+          ),
+
+          const SizedBox(height: 12),
         ],
       ),
-      onSelected: (_) {
-        setState(() {
-          _selectedReportType = label;
-        });
-      },
-    );
-  }
+    ),
+  );
+}
+
+Widget _reportTypeButton(String label, IconData icon) {
+  final bool isSelected = _selectedReportType == label;
+
+  return ChoiceChip(
+    showCheckmark: false,
+    selected: isSelected,
+    selectedColor: metroBlue,
+    backgroundColor: Colors.grey.shade100,
+    labelPadding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+    label: Row(
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        Icon(icon, size: 18, color: isSelected ? Colors.white : metroBlue),
+        const SizedBox(width: 6),
+        Text(
+          label,
+          style: TextStyle(
+            color: isSelected ? Colors.white : Colors.black87,
+            fontWeight: FontWeight.w500,
+          ),
+        ),
+      ],
+    ),
+    onSelected: (_) {
+      setState(() {
+        _selectedReportType = label;
+      });
+    },
+  );
+}
 
   Widget _smallInfoTile(String title, String value) {
     return Column(
