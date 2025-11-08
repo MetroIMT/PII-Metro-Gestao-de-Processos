@@ -32,7 +32,7 @@ class _RelatoriosPageState extends State<RelatoriosPage>
   final TextEditingController _startDateController = TextEditingController();
   final TextEditingController _endDateController = TextEditingController();
 
-  final Color backgroundColor = const Color(0xFFFFFFFF);
+  final Color backgroundColor = Colors.grey.shade100;
   final Color metroBlue = const Color(0xFF001489);
 
   // Mock data - movimentação geral
@@ -449,7 +449,7 @@ class _RelatoriosPageState extends State<RelatoriosPage>
                   ),
                 Expanded(
                   child: Padding(
-                    padding: const EdgeInsets.fromLTRB(16, 0, 16, 16),
+                    padding: EdgeInsets.all(isMobile ? 16 : 24),
                     child: Row(
                       children: [
                         // Coluna esquerda (relatórios + tabela)
@@ -950,21 +950,15 @@ class _RelatoriosPageState extends State<RelatoriosPage>
             padding: const EdgeInsets.all(16.0),
             child: Row(
               children: [
-                const Icon(Icons.map, color: Colors.blue),
+                Icon(Icons.map, color: metroBlue),
                 const SizedBox(width: 8),
-                const Text(
+                Text(
                   'Mapa de Desempenho — São Paulo',
-                  style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
-                ),
-                const Spacer(),
-                TextButton.icon(
-                  onPressed: () {
-                    _showErrorSnackBar(
-                      'Abrir mapa em tela cheia (não implementado)',
-                    );
-                  },
-                  icon: const Icon(Icons.open_in_full),
-                  label: const Text('Tela cheia'),
+                  style: TextStyle(
+                    fontSize: 18,
+                    fontWeight: FontWeight.bold,
+                    color: metroBlue,
+                  ),
                 ),
               ],
             ),

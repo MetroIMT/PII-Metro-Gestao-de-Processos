@@ -43,6 +43,7 @@ class _AlertsPageState extends State<AlertsPage>
         ? computedMinWidth
         : size.width;
 
+
     return Card(
       elevation: 2,
       color: Colors.white,
@@ -577,6 +578,84 @@ class _AlertsPageState extends State<AlertsPage>
     final nearExpiry = AlertRepository.instance.items
         .where((a) => a.type == AlertType.nearExpiry)
         .length;
+    final size = MediaQuery.of(context).size;
+    final bool isMobileView = size.width < 600;
+
+    final Widget searchField = TextField(
+      style: const TextStyle(fontWeight: FontWeight.w500),
+      decoration: InputDecoration(
+        labelText: 'Buscar alerta...',
+        hintText: 'Digite nome, código ou local',
+        prefixIcon: const Icon(Icons.search),
+        filled: true,
+        fillColor: Colors.grey.shade100,
+        border: OutlineInputBorder(
+          borderRadius: BorderRadius.circular(12),
+          borderSide: BorderSide.none,
+        ),
+      ),
+      onChanged: (v) => setState(() => _query = v),
+    );
+
+    Widget severitySelector(double width) {
+      return SizedBox(
+        width: width,
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            const Text(
+              'Prioridade mínima',
+              style: TextStyle(
+                fontSize: 12,
+                fontWeight: FontWeight.w600,
+                color: Colors.black54,
+              ),
+            ),
+            const SizedBox(height: 6),
+            DropdownButtonFormField<int>(
+              value: _minSeverity,
+              iconEnabledColor: metroBlue,
+              decoration: InputDecoration(
+                isDense: true,
+                filled: true,
+                fillColor: Colors.grey.shade100,
+                border: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(12),
+                  borderSide: BorderSide.none,
+                ),
+                contentPadding: const EdgeInsets.symmetric(
+                  horizontal: 12,
+                  vertical: 10,
+                ),
+              ),
+              items: const [
+                DropdownMenuItem(value: 1, child: Text('≥ 1')),
+                DropdownMenuItem(value: 2, child: Text('≥ 2')),
+                DropdownMenuItem(value: 3, child: Text('≥ 3')),
+              ],
+              onChanged: (v) => setState(() => _minSeverity = v ?? 1),
+            ),
+          ],
+        ),
+      );
+    }
+
+    final Widget filterControls = isMobileView
+        ? Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              searchField,
+              const SizedBox(height: 12),
+              severitySelector(double.infinity),
+            ],
+          )
+        : Row(
+            children: [
+              Expanded(child: searchField),
+              const SizedBox(width: 12),
+              severitySelector(190),
+            ],
+          );
 
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
@@ -584,12 +663,6 @@ class _AlertsPageState extends State<AlertsPage>
         if (showTitle)
           Row(
             children: [
-              const Expanded(
-                child: Text(
-                  'Alertas',
-                  style: TextStyle(fontSize: 22, fontWeight: FontWeight.bold),
-                ),
-              ),
               _smallStat('Total', total.toString(), metroBlue),
               const SizedBox(width: 8),
               _smallStat('Estoque baixo', lowStock.toString(), Colors.red),
@@ -598,71 +671,11 @@ class _AlertsPageState extends State<AlertsPage>
             ],
           ),
         if (showTitle) const SizedBox(height: 12),
-        Row(
-          children: [
-            Expanded(
-              child: TextField(
-                style: const TextStyle(fontWeight: FontWeight.w500),
-                decoration: InputDecoration(
-                  labelText: 'Buscar alerta...',
-                  hintText: 'Digite nome, código ou local',
-                  prefixIcon: const Icon(Icons.search),
-                  filled: true,
-                  fillColor: Colors.grey.shade100,
-                  border: OutlineInputBorder(
-                    borderRadius: BorderRadius.circular(12),
-                    borderSide: BorderSide.none,
-                  ),
-                ),
-                onChanged: (v) => setState(() => _query = v),
-              ),
-            ),
-            const SizedBox(width: 12),
-            SizedBox(
-              width: 190,
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  const Text(
-                    'Prioridade mínima',
-                    style: TextStyle(
-                      fontSize: 12,
-                      fontWeight: FontWeight.w600,
-                      color: Colors.black54,
-                    ),
-                  ),
-                  const SizedBox(height: 6),
-                  DropdownButtonFormField<int>(
-                    value: _minSeverity,
-                    iconEnabledColor: metroBlue,
-                    decoration: InputDecoration(
-                      isDense: true,
-                      filled: true,
-                      fillColor: Colors.grey.shade100,
-                      border: OutlineInputBorder(
-                        borderRadius: BorderRadius.circular(12),
-                        borderSide: BorderSide.none,
-                      ),
-                      contentPadding: const EdgeInsets.symmetric(
-                        horizontal: 12,
-                        vertical: 10,
-                      ),
-                    ),
-                    items: const [
-                      DropdownMenuItem(value: 1, child: Text('≥ 1')),
-                      DropdownMenuItem(value: 2, child: Text('≥ 2')),
-                      DropdownMenuItem(value: 3, child: Text('≥ 3')),
-                    ],
-                    onChanged: (v) => setState(() => _minSeverity = v ?? 1),
-                  ),
-                ],
-              ),
-            ),
-          ],
-        ),
+        filterControls,
         const SizedBox(height: 12),
-        Row(
-          mainAxisAlignment: MainAxisAlignment.start,
+        Wrap(
+          spacing: 8,
+          runSpacing: 8,
           children: [
             ChoiceChip(
               label: const Text('Todos'),
@@ -671,12 +684,11 @@ class _AlertsPageState extends State<AlertsPage>
               backgroundColor: Colors.white,
               side: const BorderSide(color: Colors.grey),
               labelStyle: TextStyle(
-                color: _filterType == null ? Colors.blue : Colors.black,
+                color: _filterType == null ? metroBlue : Colors.black,
                 fontWeight: FontWeight.w500,
               ),
               onSelected: (_) => setState(() => _filterType = null),
             ),
-            const SizedBox(width: 8),
             ChoiceChip(
               label: const Text('Estoque baixo'),
               selected: _filterType == AlertType.lowStock,
@@ -692,7 +704,6 @@ class _AlertsPageState extends State<AlertsPage>
               onSelected: (_) =>
                   setState(() => _filterType = AlertType.lowStock),
             ),
-            const SizedBox(width: 8),
             ChoiceChip(
               label: const Text('Vencimento próximo'),
               selected: _filterType == AlertType.nearExpiry,
@@ -807,21 +818,11 @@ class _AlertsPageState extends State<AlertsPage>
                   ),
                 Expanded(
                   child: Padding(
-                    padding: const EdgeInsets.all(24.0),
+                    padding: EdgeInsets.all(isMobile ? 16 : 24),
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
                         if (!isMobile) const SizedBox(height: 8),
-                        if (isMobile)
-                          Text(
-                            'Alertas',
-                            style: Theme.of(context).textTheme.headlineMedium
-                                ?.copyWith(
-                                  fontWeight: FontWeight.bold,
-                                  color: metroBlue,
-                                ),
-                          ),
-                        if (isMobile) const SizedBox(height: 8),
                         const Text(
                           'Aqui você verifica os alertas.',
                           style: TextStyle(fontSize: 16, color: Colors.black54),
@@ -900,7 +901,10 @@ class _AlertsPageState extends State<AlertsPage>
                     mainAxisSize: MainAxisSize.min,
                     children: [
                       IconButton(
-                        icon: const Icon(Icons.visibility),
+                        icon: Icon(
+                          Icons.visibility,
+                          color: metroBlue,
+                        ),
                         onPressed: () => _showDetail(a),
                       ),
                       IconButton(

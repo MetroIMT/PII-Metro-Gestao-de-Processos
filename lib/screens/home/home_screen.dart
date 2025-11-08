@@ -264,13 +264,12 @@ class _HomeScreenState extends State<HomeScreen>
   Widget build(BuildContext context) {
     final isMobile = MediaQuery.of(context).size.width < 600;
 
-    final EdgeInsets contentPadding = isMobile
-        ? const EdgeInsets.all(16)
-        : const EdgeInsets.fromLTRB(24, 24, 24, 40);
+    final EdgeInsets contentPadding =
+        EdgeInsets.all(isMobile ? 16 : 24);
 
     return Scaffold(
       key: _scaffoldKey,
-      backgroundColor: const Color(0xFFF4F5FA),
+      backgroundColor: Colors.grey.shade100,
       appBar: isMobile
           ? AppBar(
               elevation: 0,

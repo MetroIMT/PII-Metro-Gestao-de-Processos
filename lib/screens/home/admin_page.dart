@@ -18,7 +18,6 @@ class AdminPage extends StatefulWidget {
 class _AdminPageState extends State<AdminPage>
     with SingleTickerProviderStateMixin {
   static const Color metroBlue = Color(0xFF001489);
-  static const Color pageBackground = Color(0xFFF9F7FC);
 
   final TextEditingController _nameController = TextEditingController(
     text: 'Breno Augusto Gandolf',
@@ -417,7 +416,7 @@ class _AdminPageState extends State<AdminPage>
 
     return Scaffold(
       key: _scaffoldKey,
-      backgroundColor: pageBackground,
+      backgroundColor: Colors.grey.shade100,
       // AppBar só aparece no mobile
       appBar: isMobile
           ? AppBar(
@@ -433,7 +432,7 @@ class _AdminPageState extends State<AdminPage>
                   _scaffoldKey.currentState?.openDrawer();
                 },
               ),
-              title: const Text(
+              title: Text(
                 'Perfil do Administrador',
                 style: TextStyle(color: metroBlue, fontWeight: FontWeight.bold),
               ),
@@ -481,7 +480,7 @@ class _AdminPageState extends State<AdminPage>
                 Expanded(
                   child: Padding(
                     // Padding diferente para mobile e desktop
-                    padding: EdgeInsets.all(isMobile ? 16 : 32),
+                    padding: EdgeInsets.all(isMobile ? 16 : 24),
                     child: SingleChildScrollView(child: _buildProfileCard()),
                   ),
                 ),
@@ -503,6 +502,8 @@ class _AdminPageState extends State<AdminPage>
           Row(
             children: [
               IconButton(
+                iconSize: 28,
+                padding: EdgeInsets.zero,
                 icon: Icon(
                   _isRailExtended ? Icons.menu_open : Icons.menu,
                   color: metroBlue,
@@ -510,9 +511,9 @@ class _AdminPageState extends State<AdminPage>
                 onPressed: _toggleRail,
               ),
               const SizedBox(width: 12),
-              const Text(
+              Text(
                 'Perfil do Administrador',
-                style: TextStyle(
+                style: const TextStyle(
                   color: metroBlue,
                   fontWeight: FontWeight.bold,
                   fontSize: 24,

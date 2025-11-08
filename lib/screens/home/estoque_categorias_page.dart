@@ -239,84 +239,87 @@ class _EstoqueCategoriasPageState extends State<EstoqueCategoriasPage>
 
                 // O SEU CONTEÚDO ORIGINAL (o LayoutBuilder)
                 Expanded(
-                  child: LayoutBuilder(
-                    builder: (context, constraints) {
-                      final isMobileContent = constraints.maxWidth < 700;
+                  child: Padding(
+                    padding: EdgeInsets.all(isMobile ? 16 : 24),
+                    child: LayoutBuilder(
+                      builder: (context, constraints) {
+                        final isMobileContent = constraints.maxWidth < 700;
 
-                      if (isMobileContent) {
-                        // Mobile: SingleChildScrollView com Column
-                        return SingleChildScrollView(
-                          padding: const EdgeInsets.all(16.0),
-                          child: Column(
-                            children: categorias.map((categoria) {
-                              return Padding(
-                                padding: const EdgeInsets.only(bottom: 16.0),
-                                child: _EstoqueCategoriaCard(
-                                  title: categoria['titulo'],
-                                  icon: categoria['icone'],
-                                  color: categoria['cor'],
-                                  materiais: categoria['materiais'],
-                                  onTap: () => Navigator.push(
-                                    context,
-                                    MaterialPageRoute(
-                                      builder: (_) => categoria['pagina'](),
+                        if (isMobileContent) {
+                          // Mobile: SingleChildScrollView com Column
+                          return SingleChildScrollView(
+                            padding: EdgeInsets.zero,
+                            child: Column(
+                              children: categorias.map((categoria) {
+                                return Padding(
+                                  padding: const EdgeInsets.only(bottom: 16.0),
+                                  child: _EstoqueCategoriaCard(
+                                    title: categoria['titulo'],
+                                    icon: categoria['icone'],
+                                    color: categoria['cor'],
+                                    materiais: categoria['materiais'],
+                                    onTap: () => Navigator.push(
+                                      context,
+                                      MaterialPageRoute(
+                                        builder: (_) => categoria['pagina'](),
+                                      ),
                                     ),
+                                  ),
+                                );
+                              }).toList(),
+                            ),
+                          );
+                        } else {
+                          // Tablet e Desktop: Grid com mesmas proporções da Home
+                          final width = constraints.maxWidth;
+                          final int crossAxisCount;
+                          if (width < 650) {
+                            crossAxisCount = 1;
+                          } else if (width < 1100) {
+                            crossAxisCount = 2;
+                          } else {
+                            crossAxisCount = 3;
+                          }
+
+                          final double childAspectRatio;
+                          if (crossAxisCount == 1) {
+                            const double desiredCardHeight = 430;
+                            childAspectRatio = width / desiredCardHeight;
+                          } else if (crossAxisCount == 2) {
+                            childAspectRatio = 1.4;
+                          } else {
+                            childAspectRatio = 1.2;
+                          }
+
+                          return GridView.builder(
+                            padding: EdgeInsets.zero,
+                            gridDelegate:
+                                SliverGridDelegateWithFixedCrossAxisCount(
+                                  crossAxisCount: crossAxisCount,
+                                  crossAxisSpacing: 16,
+                                  mainAxisSpacing: 16,
+                                  childAspectRatio: childAspectRatio,
+                                ),
+                            itemCount: categorias.length,
+                            itemBuilder: (context, index) {
+                              final categoria = categorias[index];
+                              return _EstoqueCategoriaCard(
+                                title: categoria['titulo'],
+                                icon: categoria['icone'],
+                                color: categoria['cor'],
+                                materiais: categoria['materiais'],
+                                onTap: () => Navigator.push(
+                                  context,
+                                  MaterialPageRoute(
+                                    builder: (_) => categoria['pagina'](),
                                   ),
                                 ),
                               );
-                            }).toList(),
-                          ),
-                        );
-                      } else {
-                        // Tablet e Desktop: Grid com mesmas proporções da Home
-                        final width = constraints.maxWidth;
-                        final int crossAxisCount;
-                        if (width < 650) {
-                          crossAxisCount = 1;
-                        } else if (width < 1100) {
-                          crossAxisCount = 2;
-                        } else {
-                          crossAxisCount = 3;
+                            },
+                          );
                         }
-
-                        final double childAspectRatio;
-                        if (crossAxisCount == 1) {
-                          const double desiredCardHeight = 430;
-                          childAspectRatio = width / desiredCardHeight;
-                        } else if (crossAxisCount == 2) {
-                          childAspectRatio = 1.4;
-                        } else {
-                          childAspectRatio = 1.2;
-                        }
-
-                        return GridView.builder(
-                          padding: const EdgeInsets.all(24.0),
-                          gridDelegate:
-                              SliverGridDelegateWithFixedCrossAxisCount(
-                                crossAxisCount: crossAxisCount,
-                                crossAxisSpacing: 16,
-                                mainAxisSpacing: 16,
-                                childAspectRatio: childAspectRatio,
-                              ),
-                          itemCount: categorias.length,
-                          itemBuilder: (context, index) {
-                            final categoria = categorias[index];
-                            return _EstoqueCategoriaCard(
-                              title: categoria['titulo'],
-                              icon: categoria['icone'],
-                              color: categoria['cor'],
-                              materiais: categoria['materiais'],
-                              onTap: () => Navigator.push(
-                                context,
-                                MaterialPageRoute(
-                                  builder: (_) => categoria['pagina'](),
-                                ),
-                              ),
-                            );
-                          },
-                        );
-                      }
-                    },
+                      },
+                    ),
                   ),
                 ),
               ],
