@@ -79,6 +79,7 @@ class AuthService {
           _storage.write(key: 'role', value: data['role'] as String?),
           _storage.write(key: 'nome', value: data['nome'] as String?),
           _storage.write(key: 'userId', value: data['id'] as String?),
+          _storage.write(key: 'sessionId', value: data['sessionId'] as String?),
           _storage.write(
             key: 'tokenExpiresIn',
             value: (data['expiresIn']?.toString() ?? ''),
@@ -92,6 +93,7 @@ class AuthService {
             prefs.setString('role', data['role'] as String? ?? ''),
             prefs.setString('nome', data['nome'] as String? ?? ''),
             prefs.setString('userId', data['id'] as String? ?? ''),
+            prefs.setString('sessionId', data['sessionId'] as String? ?? ''),
             prefs.setString(
               'tokenExpiresIn',
               data['expiresIn']?.toString() ?? '',
@@ -178,6 +180,7 @@ class AuthService {
       _storage.delete(key: 'nome'),
       _storage.delete(key: 'userId'),
       _storage.delete(key: 'tokenExpiresIn'),
+      _storage.delete(key: 'sessionId'),
     ]);
 
     try {
@@ -188,6 +191,7 @@ class AuthService {
         prefs.remove('nome'),
         prefs.remove('userId'),
         prefs.remove('tokenExpiresIn'),
+        prefs.remove('sessionId'),
       ]);
     } catch (_) {
       // ignore
