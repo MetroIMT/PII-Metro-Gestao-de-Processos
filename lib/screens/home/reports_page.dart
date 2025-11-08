@@ -37,6 +37,7 @@ class _RelatoriosPageState extends State<RelatoriosPage>
   String? _selectedCategory;
   String? _selectedSubCategory;
   String? _selectedBase;
+  String? _selectedUser;
 
   final TextEditingController _startDateController = TextEditingController();
   final TextEditingController _endDateController = TextEditingController();
@@ -146,6 +147,54 @@ class _RelatoriosPageState extends State<RelatoriosPage>
       'base': 'WJA - Jabaquara',
       'base_id': 'WJA',
     },
+    {
+      'usuario': 'Carlos Souza',
+      'codigo': 'ITM-00567',
+      'item': 'Parafuso ABC',
+      'quantidade': -15,
+      'data': DateTime(2025, 10, 26),
+      'categoria_id': 'consumo',
+      'categoria': 'Material de Consumo',
+      'sub_categoria_id': null,
+      'base': 'BFU - Barra Funda',
+      'base_id': 'BFU',
+    },
+    {
+      'usuario': 'João Pereira',
+      'codigo': 'ITM-00678',
+      'item': 'Chave de Fenda',
+      'quantidade': 3,
+      'data': DateTime(2025, 10, 27),
+      'categoria_id': 'patrimoniado',
+      'categoria': 'Material Patrimoniado',
+      'sub_categoria_id': 'ferramenta',
+      'base': 'PSO - Paraiso',
+      'base_id': 'PSO',
+    },
+    {
+      'usuario': 'Ana Silva',
+      'codigo': 'ITM-00789',
+      'item': 'Alicate XYZ',
+      'quantidade': 2,
+      'data': DateTime(2025, 10, 28),
+      'categoria_id': 'patrimoniado',
+      'categoria': 'Material Patrimoniado',
+      'sub_categoria_id': 'ferramenta',
+      'base': 'TUC - Tucuruvi',
+      'base_id': 'TUC',
+    },
+    {
+      'usuario': 'Carlos Souza',
+      'codigo': 'ITM-00890',
+      'item': 'Disjuntor 20A',
+      'quantidade': -10,
+      'data': DateTime(2025, 10, 29),
+      'categoria_id': 'consumo',
+      'categoria': 'Material de Consumo',
+      'sub_categoria_id': null,
+      'base': 'WJA - Jabaquara',
+      'base_id': 'WJA',
+    },
   ];
 
   // Lista final que será exibida na tabela.
@@ -196,6 +245,13 @@ class _RelatoriosPageState extends State<RelatoriosPage>
       _currentSource,
     );
 
+    if (_selectedReportType == 'Movimentações por Usuário' &&
+        _selectedUser != null) {
+      tempResults = tempResults.where((row) {
+        return row['usuario'] == _selectedUser;
+      }).toList();
+    }
+
     if (_selectedStartDate != null) {
       tempResults = tempResults.where((row) {
         DateTime rowDate = row['data'];
@@ -240,8 +296,11 @@ class _RelatoriosPageState extends State<RelatoriosPage>
       _selectedCategory = null;
       _selectedSubCategory = null;
       _selectedBase = null;
+      _selectedUser = null;
+
       _startDateController.clear();
       _endDateController.clear();
+
       _filteredData = List<Map<String, dynamic>>.from(_currentSource);
     });
   }
@@ -465,8 +524,9 @@ class _RelatoriosPageState extends State<RelatoriosPage>
                 Expanded(
                   child: Padding(
                     padding: EdgeInsets.all(isMobile ? 16 : 24),
-                    child:
-                        isMobile ? _buildMobileReportsLayout() : _buildDesktopReportsLayout(),
+                    child: isMobile
+                        ? _buildMobileReportsLayout()
+                        : _buildDesktopReportsLayout(),
                   ),
                 ),
               ],
@@ -677,10 +737,7 @@ class _RelatoriosPageState extends State<RelatoriosPage>
               child: SizedBox(
                 width: 44,
                 height: 44,
-                child: Icon(
-                  Icons.filter_list,
-                  color: metroBlue,
-                ),
+                child: Icon(Icons.filter_list, color: metroBlue),
               ),
             ),
           ),
@@ -698,7 +755,6 @@ class _RelatoriosPageState extends State<RelatoriosPage>
         .where((r) => r['quantidade'] > 0)
         .fold(0, (prev, r) => prev + (r['quantidade'] as int));
 
-    // por enquanto só usamos os números se você quiser exibir depois
     totalItems;
     totalSaidas;
     totalEntradas;
@@ -734,6 +790,43 @@ class _RelatoriosPageState extends State<RelatoriosPage>
                 _reportTypeButton('Movimentação Geral', Icons.all_inclusive),
               ],
             ),
+
+            // 🔹 Dropdown só aparece nesse tipo de relatório
+            if (_selectedReportType == 'Movimentações por Usuário') ...[
+              const SizedBox(height: 16),
+              const Text(
+                'Selecione o usuário:',
+                style: TextStyle(fontSize: 14, color: Colors.black87),
+              ),
+              const SizedBox(height: 8),
+              DropdownButtonFormField<String>(
+                value: _selectedUser,
+                decoration: const InputDecoration(
+                  border: OutlineInputBorder(),
+                  prefixIcon: Icon(Icons.person_outline),
+                  hintText: 'Escolha um usuário',
+                ),
+                // monta a lista de usuários únicos a partir de _userData
+                items:
+                    (_userData
+                            .map((e) => e['usuario'] as String)
+                            .toSet()
+                            .toList()
+                          ..sort())
+                        .map(
+                          (user) =>
+                              DropdownMenuItem(value: user, child: Text(user)),
+                        )
+                        .toList(),
+                onChanged: (value) {
+                  setState(() {
+                    _selectedUser = value;
+                  });
+                  _applyFilters(); // reaplica filtros já considerando o usuário
+                },
+              ),
+            ],
+
             const SizedBox(height: 16),
             const Divider(),
             const SizedBox(height: 8),
@@ -785,10 +878,12 @@ class _RelatoriosPageState extends State<RelatoriosPage>
       onSelected: (_) {
         setState(() {
           _selectedReportType = label;
+          _selectedUser = null;
           _filteredData = List<Map<String, dynamic>>.from(
             _currentSource,
-          ); // troca fonte
+          );
         });
+        _applyFilters();
       },
     );
   }
@@ -895,17 +990,15 @@ class _RelatoriosPageState extends State<RelatoriosPage>
       ),
     );
 
-    final Widget dataWidget =
-        _filteredData.isEmpty ? noResultsWidget : tabelaWidget;
+    final Widget dataWidget = _filteredData.isEmpty
+        ? noResultsWidget
+        : tabelaWidget;
 
     Widget _buildDataSection() {
       if (hasBoundedHeight) {
         return Expanded(child: dataWidget);
       }
-      return SizedBox(
-        height: 320,
-        child: dataWidget,
-      );
+      return SizedBox(height: 320, child: dataWidget);
     }
 
     return Card(
@@ -936,8 +1029,8 @@ class _RelatoriosPageState extends State<RelatoriosPage>
 
   void _zoomMap(bool zoomIn) {
     if (!_isMapReady) return;
-    final double targetZoom =
-        (zoomIn ? _latestZoom + 0.5 : _latestZoom - 0.5).clamp(5.0, 18.0);
+    final double targetZoom = (zoomIn ? _latestZoom + 0.5 : _latestZoom - 0.5)
+        .clamp(5.0, 18.0);
     _mapController.move(_latestCenter, targetZoom);
   }
 
@@ -960,10 +1053,7 @@ class _RelatoriosPageState extends State<RelatoriosPage>
 
     final bounds = LatLngBounds.fromPoints(points);
     _mapController.fitCamera(
-      CameraFit.bounds(
-        bounds: bounds,
-        padding: const EdgeInsets.all(32),
-      ),
+      CameraFit.bounds(bounds: bounds, padding: const EdgeInsets.all(32)),
     );
   }
 
@@ -1000,9 +1090,7 @@ class _RelatoriosPageState extends State<RelatoriosPage>
             children: [
               _buildReportSection(),
               const SizedBox(height: 16),
-              Expanded(
-                child: _buildResultsCard(hasBoundedHeight: true),
-              ),
+              Expanded(child: _buildResultsCard(hasBoundedHeight: true)),
             ],
           ),
         ),
@@ -1130,10 +1218,7 @@ class _RelatoriosPageState extends State<RelatoriosPage>
                             color: Colors.white.withOpacity(0.9),
                             borderRadius: BorderRadius.circular(6),
                             boxShadow: const [
-                              BoxShadow(
-                                color: Colors.black12,
-                                blurRadius: 4,
-                              ),
+                              BoxShadow(color: Colors.black12, blurRadius: 4),
                             ],
                           ),
                           child: Text(
