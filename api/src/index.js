@@ -10,6 +10,7 @@ import authRoutes from "./routes/auth.routes.js";
 import itensRoutes from "./routes/itens.routes.js";
 import movimentosRoutes from "./routes/movimentos.routes.js";
 import usuariosRoutes from "./routes/usuarios.routes.js";
+import materiaisRoutes from "./routes/materiais.routes.js";
 
 async function bootstrap() {
   const db = await connectDB();
@@ -33,6 +34,7 @@ async function bootstrap() {
   app.get("/health", (_, res) => res.json({ ok: true }));
   app.use("/auth", authRoutes);
   app.use("/itens", itensRoutes);
+  app.use("/materiais", materiaisRoutes);
   app.use("/movimentos", movimentosRoutes);
   app.use("/usuarios", usuariosRoutes);
 

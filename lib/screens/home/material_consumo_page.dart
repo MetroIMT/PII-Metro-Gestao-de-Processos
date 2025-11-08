@@ -1,43 +1,48 @@
 import 'package:flutter/material.dart';
 import 'estoque_page.dart'; // Reutiliza a estrutura da página de estoque e o modelo de dados
+import '../../services/material_service.dart';
 
-class MaterialConsumoPage extends StatelessWidget {
+class MaterialConsumoPage extends StatefulWidget {
   const MaterialConsumoPage({super.key});
 
   @override
+  State<MaterialConsumoPage> createState() => _MaterialConsumoPageState();
+}
+
+class _MaterialConsumoPageState extends State<MaterialConsumoPage> {
+  final MaterialService _service = MaterialService();
+  List<EstoqueMaterial>? _materiais;
+  String? _error;
+
+  @override
+  void initState() {
+    super.initState();
+    _load();
+  }
+
+  Future<void> _load() async {
+    try {
+      final list = await _service.getByTipo('consumo');
+      setState(() => _materiais = list);
+    } catch (e) {
+      setState(() => _error = e.toString());
+    }
+  }
+
+  @override
   Widget build(BuildContext context) {
-    // Dados de exemplo para esta categoria.
-    final List<EstoqueMaterial> materiaisConsumo = [
-      EstoqueMaterial(
-        codigo: 'C001',
-        nome: 'Óleo Lubrificante XPTO',
-        quantidade: 15,
-        local: 'Oficina 1',
-      ),
-      EstoqueMaterial(
-        codigo: 'C002',
-        nome: 'Graxa de Lítio',
-        quantidade: 5,
-        local: 'Oficina 2',
-        vencimento: DateTime(2024, 8, 1),
-      ),
-      EstoqueMaterial(
-        codigo: 'C003',
-        nome: 'Estopa (pacote)',
-        quantidade: 100,
-        local: 'Oficina 1',
-      ),
-      EstoqueMaterial(
-        codigo: 'C004',
-        nome: 'Lixa para Ferro',
-        quantidade: 0,
-        local: 'Almoxarifado C',
-      ),
-    ];
+    if (_error != null) {
+      return Center(child: Text('Erro: $_error'));
+    }
+
+    if (_materiais == null) {
+      return const Center(child: CircularProgressIndicator());
+    }
 
     return EstoquePage(
       title: 'Material de Consumo',
-      materiais: materiaisConsumo,
+      materiais: _materiais!,
+      tipo: 'consumo',
     );
   }
 }
