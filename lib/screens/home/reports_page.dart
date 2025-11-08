@@ -173,14 +173,13 @@ class _RelatoriosPageState extends State<RelatoriosPage>
   }
 
   List<Map<String, dynamic>> get _currentSource =>
-      _selectedReportType == 'Movimentações por Usuário'
-          ? _userData
-          : _allData;
+      _selectedReportType == 'Movimentações por Usuário' ? _userData : _allData;
 
   /// Aplica filtros
   void _applyFilters() {
-    List<Map<String, dynamic>> tempResults =
-        List<Map<String, dynamic>>.from(_currentSource);
+    List<Map<String, dynamic>> tempResults = List<Map<String, dynamic>>.from(
+      _currentSource,
+    );
 
     if (_selectedStartDate != null) {
       tempResults = tempResults.where((row) {
@@ -788,8 +787,9 @@ class _RelatoriosPageState extends State<RelatoriosPage>
       onSelected: (_) {
         setState(() {
           _selectedReportType = label;
-          _filteredData =
-              List<Map<String, dynamic>>.from(_currentSource); // troca fonte
+          _filteredData = List<Map<String, dynamic>>.from(
+            _currentSource,
+          ); // troca fonte
         });
       },
     );

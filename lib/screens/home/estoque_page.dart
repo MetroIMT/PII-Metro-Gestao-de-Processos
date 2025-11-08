@@ -2,8 +2,9 @@
 
 import 'package:flutter/material.dart';
 // NOVO: Importar o repositório que acabamos de criar
-import '../../repositories/movimentacao_repository.dart'; 
+import '../../repositories/movimentacao_repository.dart';
 import '../../services/material_service.dart';
+import '../../widgets/sidebar.dart';
 
 class EstoqueMaterial {
   final String codigo;
@@ -30,19 +31,31 @@ class EstoquePage extends StatefulWidget {
   final List<EstoqueMaterial> materiais;
   // opcional: tipo que será usado ao criar um material (ex: 'giro','consumo','patrimoniado')
   final String? tipo;
+  // Se true, a página renderiza a Sidebar (desktop rail + drawer on mobile)
+  final bool withSidebar;
+  // índice selecionado no sidebar (por padrão 1 = Estoque)
+  final int sidebarSelectedIndex;
 
   const EstoquePage({
     super.key,
     this.title = 'Estoque',
     required this.materiais,
     this.tipo,
+    this.withSidebar = false,
+    this.sidebarSelectedIndex = 1,
   });
 
   @override
   State<EstoquePage> createState() => _EstoquePageState();
 }
 
-class _EstoquePageState extends State<EstoquePage> {
+class _EstoquePageState extends State<EstoquePage>
+    with SingleTickerProviderStateMixin {
+  // --- Sidebar / layout state (used only when widget.withSidebar == true)
+  bool _isRailExtended = false;
+  late AnimationController _animationController;
+  final GlobalKey<ScaffoldState> _scaffoldKey = GlobalKey<ScaffoldState>();
+
   final TextEditingController _searchController = TextEditingController();
   String _searchQuery = '';
   late List<EstoqueMaterial> _materiais;
@@ -52,10 +65,14 @@ class _EstoquePageState extends State<EstoquePage> {
   void initState() {
     super.initState();
     _materiais = List.from(widget.materiais);
+    _animationController = AnimationController(
+      vsync: this,
+      duration: const Duration(milliseconds: 300),
+    );
   }
 
   List<EstoqueMaterial> get _filteredMateriais {
-  // ... (sem alterações)
+    // ... (sem alterações)
     if (_searchQuery.isEmpty) {
       return _materiais;
     }
@@ -71,13 +88,24 @@ class _EstoquePageState extends State<EstoquePage> {
 
   @override
   void dispose() {
-  // ... (sem alterações)
     _searchController.dispose();
+    _animationController.dispose();
     super.dispose();
   }
 
+  void _toggleRail() {
+    setState(() {
+      _isRailExtended = !_isRailExtended;
+      if (_isRailExtended) {
+        _animationController.forward();
+      } else {
+        _animationController.reverse();
+      }
+    });
+  }
+
   Widget _buildInfoRow(String label, String value) {
-  // ... (sem alterações)
+    // ... (sem alterações)
     return Row(
       children: [
         Text(
@@ -94,7 +122,7 @@ class _EstoquePageState extends State<EstoquePage> {
   }
 
   String _formatDate(DateTime? d) {
-  // ... (sem alterações)
+    // ... (sem alterações)
     if (d == null) return '-';
     return '${d.day.toString().padLeft(2, '0')}/${d.month.toString().padLeft(2, '0')}/${d.year}';
   }
@@ -109,7 +137,7 @@ class _EstoquePageState extends State<EstoquePage> {
     DateTime? selectedVencimento;
     final vencimentoController = TextEditingController();
 
-    final primaryColor = const Color(0xFF253250); 
+    final primaryColor = const Color(0xFF253250);
     final secondaryColor = Colors.blue.shade700;
 
     InputDecoration inputDecoration(String label, String hint, IconData icon) {
@@ -154,7 +182,7 @@ class _EstoquePageState extends State<EstoquePage> {
             children: [
               // Header
               Row(
-              // ... (sem alterações)
+                // ... (sem alterações)
                 children: [
                   Container(
                     padding: const EdgeInsets.all(10),
@@ -200,7 +228,7 @@ class _EstoquePageState extends State<EstoquePage> {
 
               // Form fields
               TextField(
-              // ... (sem alterações)
+                // ... (sem alterações)
                 controller: codigoController,
                 decoration: inputDecoration(
                   'Código',
@@ -212,7 +240,7 @@ class _EstoquePageState extends State<EstoquePage> {
               const SizedBox(height: 16),
 
               TextField(
-              // ... (sem alterações)
+                // ... (sem alterações)
                 controller: nomeController,
                 decoration: inputDecoration(
                   'Nome',
@@ -224,7 +252,7 @@ class _EstoquePageState extends State<EstoquePage> {
               const SizedBox(height: 16),
 
               TextField(
-              // ... (sem alterações)
+                // ... (sem alterações)
                 controller: quantidadeController,
                 decoration: inputDecoration(
                   'Quantidade',
@@ -237,7 +265,7 @@ class _EstoquePageState extends State<EstoquePage> {
               const SizedBox(height: 16),
 
               TextField(
-              // ... (sem alterações)
+                // ... (sem alterações)
                 controller: localController,
                 decoration: inputDecoration(
                   'Local',
@@ -249,7 +277,7 @@ class _EstoquePageState extends State<EstoquePage> {
               const SizedBox(height: 16),
               // Campo opcional de vencimento (abre date picker)
               TextField(
-              // ... (sem alterações)
+                // ... (sem alterações)
                 controller: vencimentoController,
                 readOnly: true,
                 decoration: inputDecoration(
@@ -283,7 +311,7 @@ class _EstoquePageState extends State<EstoquePage> {
                 mainAxisAlignment: MainAxisAlignment.end,
                 children: [
                   OutlinedButton(
-                  // ... (botão cancelar sem alterações)
+                    // ... (botão cancelar sem alterações)
                     onPressed: () => Navigator.pop(context),
                     style: OutlinedButton.styleFrom(
                       foregroundColor: primaryColor,
@@ -350,7 +378,8 @@ class _EstoquePageState extends State<EstoquePage> {
                       showDialog(
                         context: context,
                         barrierDismissible: false,
-                        builder: (_) => const Center(child: CircularProgressIndicator()),
+                        builder: (_) =>
+                            const Center(child: CircularProgressIndicator()),
                       );
 
                       try {
@@ -377,8 +406,12 @@ class _EstoquePageState extends State<EstoquePage> {
                         );
 
                         // Fechar indicador de progresso e diálogo de formulário
-                        Navigator.of(context).pop(); // fecha o CircularProgressIndicator
-                        Navigator.of(context).pop(); // fecha o diálogo de adicionar
+                        Navigator.of(
+                          context,
+                        ).pop(); // fecha o CircularProgressIndicator
+                        Navigator.of(
+                          context,
+                        ).pop(); // fecha o diálogo de adicionar
 
                         // Mostrar confirmação
                         ScaffoldMessenger.of(context).showSnackBar(
@@ -422,7 +455,7 @@ class _EstoquePageState extends State<EstoquePage> {
                       }
                     },
                     child: Row(
-                    // ... (botão adicionar sem alterações)
+                      // ... (botão adicionar sem alterações)
                       mainAxisSize: MainAxisSize.min,
                       children: const [
                         Icon(Icons.add),
@@ -451,7 +484,7 @@ class _EstoquePageState extends State<EstoquePage> {
     // ... (O resto do seu método build continua aqui, sem alterações)
     // Eu adicionei a lógica no `onPressed` do botão "Adicionar"
     // dentro do diálogo `_showAddMaterialDialog`.
-    
+
     // Você deve fazer o mesmo para "Editar" e "Movimentar":
     // 1. Encontre o onPressed do botão "Editar" (na linha 600 ou 759)
     //    e adicione:
@@ -461,594 +494,701 @@ class _EstoquePageState extends State<EstoquePage> {
     //    e adicione:
     //    MovimentacaoRepository.instance.addMovimentacao("Retirado: ${material.nome}", Icons.remove_circle);
     //    (ou adicione um diálogo que pergunta a quantidade e decide o ícone)
-    
-    final metroBlue = const Color(0xFF001489); 
 
-    return Scaffold(
-      appBar: AppBar(
-        title: Text(
-          widget.title,
-          style: const TextStyle(fontWeight: FontWeight.bold),
-        ),
-        backgroundColor: Colors.white,
-        foregroundColor: const Color(0xFF2D3748),
-        actions: [
+    final metroBlue = const Color(0xFF001489);
+
+    // Original body (extracted so we can reuse it with or without sidebar)
+    Widget bodyContent = Padding(
+      padding: const EdgeInsets.all(16.0),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          // Barra de pesquisa
           Padding(
-            padding: const EdgeInsets.only(right: 16.0),
-            child: Image.asset('assets/LogoMetro.png', height: 32),
-          ),
-        ],
-      ),
-      body: Padding(
-        padding: const EdgeInsets.all(16.0),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            // Barra de pesquisa
-            Padding(
-              padding: const EdgeInsets.only(bottom: 16.0),
-              child: Row(
-                children: [
-                  Expanded(
-                    child: TextField(
-                      controller: _searchController,
-                      decoration: InputDecoration(
-                        hintText: 'Pesquisar material...',
-                        prefixIcon: const Icon(Icons.search),
-                        border: OutlineInputBorder(
-                          borderRadius: BorderRadius.circular(8.0),
-                          borderSide: BorderSide.none,
-                        ),
-                        filled: true,
-                        fillColor: Colors.grey.shade200,
+            padding: const EdgeInsets.only(bottom: 16.0),
+            child: Row(
+              children: [
+                Expanded(
+                  child: TextField(
+                    controller: _searchController,
+                    decoration: InputDecoration(
+                      hintText: 'Pesquisar material...',
+                      prefixIcon: const Icon(Icons.search),
+                      border: OutlineInputBorder(
+                        borderRadius: BorderRadius.circular(8.0),
+                        borderSide: BorderSide.none,
                       ),
-                      onChanged: (value) {
-                        setState(() {
-                          _searchQuery = value;
-                        });
-                      },
+                      filled: true,
+                      fillColor: Colors.grey.shade200,
                     ),
-                  ),
-                  const SizedBox(width: 8),
-                  IconButton(
-                    icon: const Icon(Icons.filter_list),
-                    onPressed: () {
-                      // Implementar filtragem avançada
+                    onChanged: (value) {
+                      setState(() {
+                        _searchQuery = value;
+                      });
                     },
                   ),
-                ],
-              ),
+                ),
+                const SizedBox(width: 8),
+                IconButton(
+                  icon: const Icon(Icons.filter_list),
+                  onPressed: () {
+                    // Implementar filtragem avançada
+                  },
+                ),
+              ],
             ),
+          ),
 
-            // Informações de contagem e estatísticas
-            Padding(
-              padding: const EdgeInsets.only(bottom: 16.0),
-              child: Row(
-                mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                children: [
-                  Text(
-                    'Itens no estoque: ${_filteredMateriais.length}',
-                    style: TextStyle(
-                      fontSize: 16,
-                      fontWeight: FontWeight.w500,
-                      color: Colors.grey.shade700,
+          // Informações de contagem e estatísticas
+          Padding(
+            padding: const EdgeInsets.only(bottom: 16.0),
+            child: Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              children: [
+                Text(
+                  'Itens no estoque: ${_filteredMateriais.length}',
+                  style: TextStyle(
+                    fontSize: 16,
+                    fontWeight: FontWeight.w500,
+                    color: Colors.grey.shade700,
+                  ),
+                ),
+                Row(
+                  children: [
+                    Container(
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 12,
+                        vertical: 6,
+                      ),
+                      decoration: BoxDecoration(
+                        color: Colors.green.withAlpha((0.1 * 255).round()),
+                        borderRadius: BorderRadius.circular(20),
+                        border: Border.all(color: Colors.green, width: 1),
+                      ),
+                      child: Row(
+                        children: [
+                          Icon(
+                            Icons.check_circle,
+                            color: Colors.green,
+                            size: 16,
+                          ),
+                          SizedBox(width: 4),
+                          Text(
+                            'Disponíveis: ${_materiais.where((m) => m.quantidade > 0).length}',
+                            style: TextStyle(
+                              color: Colors.green.shade700,
+                              fontWeight: FontWeight.w500,
+                            ),
+                          ),
+                        ],
+                      ),
                     ),
-                  ),
-                  Row(
-                    children: [
-                      Container(
-                        padding: const EdgeInsets.symmetric(
-                          horizontal: 12,
-                          vertical: 6,
-                        ),
-                        decoration: BoxDecoration(
-                          color: Colors.green.withAlpha((0.1 * 255).round()),
-                          borderRadius: BorderRadius.circular(20),
-                          border: Border.all(color: Colors.green, width: 1),
-                        ),
-                        child: Row(
-                          children: [
-                            Icon(
-                              Icons.check_circle,
-                              color: Colors.green,
-                              size: 16,
-                            ),
-                            SizedBox(width: 4),
-                            Text(
-                              'Disponíveis: ${_materiais.where((m) => m.quantidade > 0).length}',
-                              style: TextStyle(
-                                color: Colors.green.shade700,
-                                fontWeight: FontWeight.w500,
-                              ),
-                            ),
-                          ],
-                        ),
+                    SizedBox(width: 12),
+                    Container(
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 12,
+                        vertical: 6,
                       ),
-                      SizedBox(width: 12),
-                      Container(
-                        padding: const EdgeInsets.symmetric(
-                          horizontal: 12,
-                          vertical: 6,
-                        ),
-                        decoration: BoxDecoration(
-                          color: Colors.red.withAlpha((0.1 * 255).round()),
-                          borderRadius: BorderRadius.circular(20),
-                          border: Border.all(color: Colors.red, width: 1),
-                        ),
-                        child: Row(
-                          children: [
-                            Icon(Icons.warning, color: Colors.red, size: 16),
-                            SizedBox(width: 4),
-                            Text(
-                              'Em falta: ${_materiais.where((m) => m.quantidade <= 0).length}',
-                              style: TextStyle(
-                                color: Colors.red.shade700,
-                                fontWeight: FontWeight.w500,
-                              ),
-                            ),
-                          ],
-                        ),
+                      decoration: BoxDecoration(
+                        color: Colors.red.withAlpha((0.1 * 255).round()),
+                        borderRadius: BorderRadius.circular(20),
+                        border: Border.all(color: Colors.red, width: 1),
                       ),
-                    ],
-                  ),
-                ],
-              ),
+                      child: Row(
+                        children: [
+                          Icon(Icons.warning, color: Colors.red, size: 16),
+                          SizedBox(width: 4),
+                          Text(
+                            'Em falta: ${_materiais.where((m) => m.quantidade <= 0).length}',
+                            style: TextStyle(
+                              color: Colors.red.shade700,
+                              fontWeight: FontWeight.w500,
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                  ],
+                ),
+              ],
             ),
+          ),
 
-            // Tabela de materiais - Versão responsiva
-            Expanded(
-              child: LayoutBuilder(
-                builder: (context, constraints) {
-                  // Decidir qual layout usar baseado no tamanho da tela
-                  final isMobile = constraints.maxWidth < 600;
+          // Tabela de materiais - Versão responsiva
+          Expanded(
+            child: LayoutBuilder(
+              builder: (context, constraints) {
+                // Decidir qual layout usar baseado no tamanho da tela
+                final isMobile = constraints.maxWidth < 600;
 
-                  if (isMobile) {
-                    // Layout de cards para mobile
-                    return ListView.builder(
-                      padding: const EdgeInsets.symmetric(vertical: 8),
-                      itemCount: _filteredMateriais.length,
-                      itemBuilder: (context, index) {
-                        final material = _filteredMateriais[index];
-                        return Padding(
-                          padding: const EdgeInsets.only(bottom: 12),
-                          child: Card(
-                            elevation: 2,
-                            shape: RoundedRectangleBorder(
-                              borderRadius: BorderRadius.circular(12),
-                            ),
-                            child: ExpansionTile(
-                              title: Row(
-                                children: [
-                                  // Ícone baseado na quantidade
-                                  Container(
-                                    padding: const EdgeInsets.all(8),
-                                    decoration: BoxDecoration(
-                                      color: material.quantidade > 0
-                                          ? Colors.green.withAlpha(
-                                              (0.1 * 255).round(),
-                                            )
-                                          : Colors.red.withAlpha(
-                                              (0.1 * 255).round(),
-                                            ),
-                                      borderRadius: BorderRadius.circular(8),
-                                    ),
-                                    child: Icon(
-                                      material.quantidade > 0
-                                          ? Icons.inventory_2
-                                          : Icons.warning_amber,
-                                      color: material.quantidade > 0
-                                          ? Colors.green
-                                          : Colors.red,
-                                      size: 24,
-                                    ),
-                                  ),
-                                  const SizedBox(width: 12),
-                                  // Informações principais
-                                  Expanded(
-                                    child: Column(
-                                      crossAxisAlignment:
-                                          CrossAxisAlignment.start,
-                                      children: [
-                                        Text(
-                                          material.nome,
-                                          style: const TextStyle(
-                                            fontWeight: FontWeight.bold,
-                                            fontSize: 16,
-                                          ),
-                                        ),
-                                        const SizedBox(height: 4),
-                                        Text(
-                                          'Código: ${material.codigo}',
-                                          style: TextStyle(
-                                            color: Colors.grey.shade700,
-                                            fontSize: 14,
-                                          ),
-                                        ),
-                                      ],
-                                    ),
-                                  ),
-                                  // Status badge
-                                  Container(
-                                    padding: const EdgeInsets.symmetric(
-                                      horizontal: 8,
-                                      vertical: 4,
-                                    ),
-                                    decoration: BoxDecoration(
-                                      color: material.quantidade > 0
-                                          ? Colors.green
-                                          : Colors.red,
-                                      borderRadius: BorderRadius.circular(12),
-                                    ),
-                                    child: Text(
-                                      material.status,
-                                      style: const TextStyle(
-                                        color: Colors.white,
-                                        fontSize: 12,
-                                        fontWeight: FontWeight.bold,
-                                      ),
-                                    ),
-                                  ),
-                                ],
-                              ),
-                              // Detalhes quando expandido
+                if (isMobile) {
+                  // Layout de cards para mobile
+                  return ListView.builder(
+                    padding: const EdgeInsets.symmetric(vertical: 8),
+                    itemCount: _filteredMateriais.length,
+                    itemBuilder: (context, index) {
+                      final material = _filteredMateriais[index];
+                      return Padding(
+                        padding: const EdgeInsets.only(bottom: 12),
+                        child: Card(
+                          elevation: 2,
+                          shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(12),
+                          ),
+                          child: ExpansionTile(
+                            title: Row(
                               children: [
-                                Padding(
-                                  padding: const EdgeInsets.fromLTRB(
-                                    16,
-                                    0,
-                                    16,
-                                    16,
+                                // Ícone baseado na quantidade
+                                Container(
+                                  padding: const EdgeInsets.all(8),
+                                  decoration: BoxDecoration(
+                                    color: material.quantidade > 0
+                                        ? Colors.green.withAlpha(
+                                            (0.1 * 255).round(),
+                                          )
+                                        : Colors.red.withAlpha(
+                                            (0.1 * 255).round(),
+                                          ),
+                                    borderRadius: BorderRadius.circular(8),
                                   ),
+                                  child: Icon(
+                                    material.quantidade > 0
+                                        ? Icons.inventory_2
+                                        : Icons.warning_amber,
+                                    color: material.quantidade > 0
+                                        ? Colors.green
+                                        : Colors.red,
+                                    size: 24,
+                                  ),
+                                ),
+                                const SizedBox(width: 12),
+                                // Informações principais
+                                Expanded(
                                   child: Column(
+                                    crossAxisAlignment:
+                                        CrossAxisAlignment.start,
                                     children: [
-                                      const Divider(),
-                                      const SizedBox(height: 8),
-                                      _buildInfoRow(
-                                        'Quantidade:',
-                                        material.quantidade.toString(),
+                                      Text(
+                                        material.nome,
+                                        style: const TextStyle(
+                                          fontWeight: FontWeight.bold,
+                                          fontSize: 16,
+                                        ),
                                       ),
-                                      const SizedBox(height: 8),
-                                      _buildInfoRow('Local:', material.local),
-                                      const SizedBox(height: 8),
-                                      _buildInfoRow(
-                                        'Vencimento:',
-                                        _formatDate(material.vencimento),
-                                      ),
-                                      const SizedBox(height: 12),
-                                      // Botões de ação
-                                      Row(
-                                        mainAxisAlignment:
-                                            MainAxisAlignment.end,
-                                        children: [
-                                          OutlinedButton.icon(
-                                            icon: const Icon(
-                                              Icons.edit,
-                                              size: 18,
-                                            ),
-                                            label: const Text('Editar'),
-                                            onPressed: () {
-                                              // Implementar edição de material
-                                            },
-                                          ),
-                                          const SizedBox(width: 8),
-                                          ElevatedButton.icon(
-                                            icon: const Icon(
-                                              Icons.swap_vert,
-                                              size: 18,
-                                            ),
-                                            label: const Text('Movimentar'),
-                                            style: ElevatedButton.styleFrom(
-                                              backgroundColor: const Color(
-                                                0xFF253250,
-                                              ),
-                                            ),
-                                            onPressed: () {
-                                              // Implementar movimentação de material
-                                            },
-                                          ),
-                                        ],
+                                      const SizedBox(height: 4),
+                                      Text(
+                                        'Código: ${material.codigo}',
+                                        style: TextStyle(
+                                          color: Colors.grey.shade700,
+                                          fontSize: 14,
+                                        ),
                                       ),
                                     ],
+                                  ),
+                                ),
+                                // Status badge
+                                Container(
+                                  padding: const EdgeInsets.symmetric(
+                                    horizontal: 8,
+                                    vertical: 4,
+                                  ),
+                                  decoration: BoxDecoration(
+                                    color: material.quantidade > 0
+                                        ? Colors.green
+                                        : Colors.red,
+                                    borderRadius: BorderRadius.circular(12),
+                                  ),
+                                  child: Text(
+                                    material.status,
+                                    style: const TextStyle(
+                                      color: Colors.white,
+                                      fontSize: 12,
+                                      fontWeight: FontWeight.bold,
+                                    ),
                                   ),
                                 ),
                               ],
                             ),
-                          ),
-                        );
-                      },
-                    );
-                  } else {
-                    // Layout de tabela para desktop - Responsivo
-                    return Container(
-                      decoration: BoxDecoration(
-                        color: Colors.white,
-                        borderRadius: BorderRadius.circular(12),
-                        boxShadow: [
-                          BoxShadow(
-                            color: Colors.grey.withAlpha((0.1 * 255).round()),
-                            blurRadius: 4,
-                            offset: const Offset(0, 2),
-                          ),
-                        ],
-                      ),
-                      width: double.infinity,
-                      child: Theme(
-                        data: Theme.of(
-                          context,
-                        ).copyWith(dividerColor: Colors.grey.shade200),
-                        // Horizontal scroll externo (mantido) + scroll vertical interno (adicionado)
-                        child: SingleChildScrollView(
-                          scrollDirection: Axis.horizontal,
-                          child: ConstrainedBox(
-                            constraints: BoxConstraints(
-                              minWidth: constraints.maxWidth,
-                            ),
-                            child: SingleChildScrollView(
-                              // Adiciona rolagem vertical para permitir "rodar para baixo"
-                              scrollDirection: Axis.vertical,
-                              child: DataTable(
-                                headingRowColor:
-                                    WidgetStateProperty.resolveWith<Color>(
-                                  (Set<WidgetState> states) =>
-                                      const Color(0xFFF5F7FA),
+                            // Detalhes quando expandido
+                            children: [
+                              Padding(
+                                padding: const EdgeInsets.fromLTRB(
+                                  16,
+                                  0,
+                                  16,
+                                  16,
                                 ),
-                                dataRowColor:
-                                    WidgetStateProperty.resolveWith<Color>((
-                                  Set<WidgetState> states,
-                                ) {
-                                  if (states.contains(
-                                    WidgetState.selected,
-                                  )) {
-                                    return Colors.blue.withAlpha(
-                                      (0.1 * 255).round(),
-                                    );
-                                  }
-                                  return Colors.white;
-                                }),
-                                columnSpacing: 24,
-                                horizontalMargin: 24,
-                                dataRowMinHeight: 64,
-                                dataRowMaxHeight: 64,
-                                headingRowHeight: 60,
-                                showCheckboxColumn: false,
-                                dividerThickness: 1,
-                                columns: [
-                                  const DataColumn(
-                                    label: Expanded(
-                                      child: Text(
-                                        'Código',
-                                        style: TextStyle(
-                                          fontWeight: FontWeight.bold,
-                                        ),
-                                      ),
+                                child: Column(
+                                  children: [
+                                    const Divider(),
+                                    const SizedBox(height: 8),
+                                    _buildInfoRow(
+                                      'Quantidade:',
+                                      material.quantidade.toString(),
                                     ),
-                                  ),
-                                  DataColumn(
-                                    label: Expanded(
-                                      flex: 3,
-                                      child: Text(
-                                        'Nome',
-                                        style: TextStyle(
-                                          fontWeight: FontWeight.bold,
-                                        ),
-                                      ),
+                                    const SizedBox(height: 8),
+                                    _buildInfoRow('Local:', material.local),
+                                    const SizedBox(height: 8),
+                                    _buildInfoRow(
+                                      'Vencimento:',
+                                      _formatDate(material.vencimento),
                                     ),
-                                  ),
-                                  // Cabeçalho centralizado para a coluna Quantidade
-                                  DataColumn(
-                                    label: SizedBox(
-                                      width: 120,
-                                      child: Center(
-                                        child: Text(
-                                          'Quantidade',
-                                          style: TextStyle(
-                                            fontWeight: FontWeight.bold,
+                                    const SizedBox(height: 12),
+                                    // Botões de ação
+                                    Row(
+                                      mainAxisAlignment: MainAxisAlignment.end,
+                                      children: [
+                                        OutlinedButton.icon(
+                                          icon: const Icon(
+                                            Icons.edit,
+                                            size: 18,
                                           ),
+                                          label: const Text('Editar'),
+                                          onPressed: () {
+                                            // Implementar edição de material
+                                          },
                                         ),
-                                      ),
-                                    ),
-                                    numeric: true,
-                                  ),
-                                  const DataColumn(
-                                    label: Expanded(
-                                      child: Text(
-                                        'Local',
-                                        style: TextStyle(
-                                          fontWeight: FontWeight.bold,
-                                        ),
-                                      ),
-                                    ),
-                                  ),
-                                  // Nova coluna de Vencimento (opcional)
-                                  DataColumn(
-                                    label: SizedBox(
-                                      width: 120,
-                                      child: Center(
-                                        child: Text(
-                                          'Vencimento',
-                                          style: TextStyle(
-                                            fontWeight: FontWeight.bold,
+                                        const SizedBox(width: 8),
+                                        ElevatedButton.icon(
+                                          icon: const Icon(
+                                            Icons.swap_vert,
+                                            size: 18,
                                           ),
-                                        ),
-                                      ),
-                                    ),
-                                  ),
-                                  const DataColumn(
-                                    label: Expanded(
-                                      child: Text(
-                                        'Status',
-                                        style: TextStyle(
-                                          fontWeight: FontWeight.bold,
-                                        ),
-                                      ),
-                                    ),
-                                  ),
-                                  const DataColumn(
-                                    label: Expanded(
-                                      child: Text(
-                                        'Ações',
-                                        style: TextStyle(
-                                          fontWeight: FontWeight.bold,
-                                        ),
-                                      ),
-                                    ),
-                                  ),
-                                ],
-                                rows: _filteredMateriais.map((material) {
-                                  return DataRow(
-                                    cells: [
-                                      DataCell(
-                                        Text(
-                                          material.codigo,
-                                          style: const TextStyle(
-                                            fontWeight: FontWeight.w500,
-                                          ),
-                                        ),
-                                      ),
-                                      DataCell(
-                                        Text(
-                                          material.nome,
-                                          style: TextStyle(
-                                            color: Colors.grey.shade800,
-                                          ),
-                                        ),
-                                      ),
-                                      // Célula centralizada para a quantidade
-                                      DataCell(
-                                        SizedBox(
-                                          width: 120,
-                                          child: Center(
-                                            child: Text(
-                                              material.quantidade.toString(),
-                                              textAlign: TextAlign.center,
-                                              style: TextStyle(
-                                                fontWeight: FontWeight.bold,
-                                                color: material.quantidade > 0
-                                                    ? Colors.black
-                                                    : Colors.red,
-                                              ),
+                                          label: const Text('Movimentar'),
+                                          style: ElevatedButton.styleFrom(
+                                            backgroundColor: const Color(
+                                              0xFF253250,
                                             ),
                                           ),
+                                          onPressed: () {
+                                            // Implementar movimentação de material
+                                          },
                                         ),
-                                      ),
-                                      DataCell(Text(material.local)),
-                                      // Célula de vencimento (formatação ou '-')
-                                      DataCell(
-                                        SizedBox(
-                                          width: 120,
-                                          child: Center(
-                                            child: Text(
-                                              _formatDate(material.vencimento),
-                                              textAlign: TextAlign.center,
-                                              style: TextStyle(
-                                                color:
-                                                    material.vencimento == null
-                                                        ? Colors.grey
-                                                        : Colors.black87,
-                                              ),
-                                            ),
-                                          ),
-                                        ),
-                                      ),
-                                      DataCell(
-                                        Container(
-                                          padding: const EdgeInsets.symmetric(
-                                            horizontal: 8,
-                                            vertical: 4,
-                                          ),
-                                          decoration: BoxDecoration(
-                                            color: material.quantidade > 0
-                                                ? Colors.green
-                                                : Colors.red,
-                                            borderRadius: BorderRadius.circular(
-                                              12,
-                                            ),
-                                          ),
-                                          child: Text(
-                                            material.status,
-                                            style: const TextStyle(
-                                              color: Colors.white,
-                                              fontSize: 12,
-                                              fontWeight: FontWeight.bold,
-                                            ),
-                                          ),
-                                        ),
-                                      ),
-                                      DataCell(
-                                        Row(
-                                          mainAxisSize: MainAxisSize.min,
-                                          children: [
-                                            IconButton(
-                                              icon: const Icon(
-                                                Icons.edit,
-                                                size: 20,
-                                              ),
-                                              color: Colors.blue,
-                                              tooltip: "Editar",
-                                              onPressed: () {
-                                                // Implementar edição
-                                              },
-                                            ),
-                                            IconButton(
-                                              icon: const Icon(
-                                                Icons.swap_vert,
-                                                size: 20,
-                                              ),
-                                              color: const Color(0xFF253250),
-                                              tooltip: "Movimentar",
-                                              onPressed: () {
-                                                // Implementar movimentação
-                                              },
-                                            ),
-                                          ],
-                                        ),
-                                      ),
-                                    ],
-                                    onSelectChanged: (selected) {
-                                      if (selected == true) {
-                                        // Implementar ação ao selecionar linha
-                                      }
-                                    },
-                                  );
-                                }).toList(),
+                                      ],
+                                    ),
+                                  ],
+                                ),
                               ),
+                            ],
+                          ),
+                        ),
+                      );
+                    },
+                  );
+                } else {
+                  // Layout de tabela para desktop - Responsivo
+                  return Container(
+                    decoration: BoxDecoration(
+                      color: Colors.white,
+                      borderRadius: BorderRadius.circular(12),
+                      boxShadow: [
+                        BoxShadow(
+                          color: Colors.grey.withAlpha((0.1 * 255).round()),
+                          blurRadius: 4,
+                          offset: const Offset(0, 2),
+                        ),
+                      ],
+                    ),
+                    width: double.infinity,
+                    child: Theme(
+                      data: Theme.of(
+                        context,
+                      ).copyWith(dividerColor: Colors.grey.shade200),
+                      // Horizontal scroll externo (mantido) + scroll vertical interno (adicionado)
+                      child: SingleChildScrollView(
+                        scrollDirection: Axis.horizontal,
+                        child: ConstrainedBox(
+                          constraints: BoxConstraints(
+                            minWidth: constraints.maxWidth,
+                          ),
+                          child: SingleChildScrollView(
+                            // Adiciona rolagem vertical para permitir "rodar para baixo"
+                            scrollDirection: Axis.vertical,
+                            child: DataTable(
+                              headingRowColor:
+                                  MaterialStateProperty.resolveWith<Color?>(
+                                    (Set<MaterialState> states) =>
+                                        const Color(0xFFF5F7FA),
+                                  ),
+                              dataRowColor:
+                                  MaterialStateProperty.resolveWith<Color?>((
+                                    Set<MaterialState> states,
+                                  ) {
+                                    if (states.contains(
+                                      MaterialState.selected,
+                                    )) {
+                                      return Colors.blue.withAlpha(
+                                        (0.1 * 255).round(),
+                                      );
+                                    }
+                                    return Colors.white;
+                                  }),
+                              columnSpacing: 24,
+                              horizontalMargin: 24,
+                              dataRowMinHeight: 64,
+                              dataRowMaxHeight: 64,
+                              headingRowHeight: 60,
+                              showCheckboxColumn: false,
+                              dividerThickness: 1,
+                              columns: [
+                                const DataColumn(
+                                  label: Expanded(
+                                    child: Text(
+                                      'Código',
+                                      style: TextStyle(
+                                        fontWeight: FontWeight.bold,
+                                      ),
+                                    ),
+                                  ),
+                                ),
+                                DataColumn(
+                                  label: Expanded(
+                                    flex: 3,
+                                    child: Text(
+                                      'Nome',
+                                      style: TextStyle(
+                                        fontWeight: FontWeight.bold,
+                                      ),
+                                    ),
+                                  ),
+                                ),
+                                // Cabeçalho centralizado para a coluna Quantidade
+                                DataColumn(
+                                  label: SizedBox(
+                                    width: 120,
+                                    child: Center(
+                                      child: Text(
+                                        'Quantidade',
+                                        style: TextStyle(
+                                          fontWeight: FontWeight.bold,
+                                        ),
+                                      ),
+                                    ),
+                                  ),
+                                  numeric: true,
+                                ),
+                                const DataColumn(
+                                  label: Expanded(
+                                    child: Text(
+                                      'Local',
+                                      style: TextStyle(
+                                        fontWeight: FontWeight.bold,
+                                      ),
+                                    ),
+                                  ),
+                                ),
+                                // Nova coluna de Vencimento (opcional)
+                                DataColumn(
+                                  label: SizedBox(
+                                    width: 120,
+                                    child: Center(
+                                      child: Text(
+                                        'Vencimento',
+                                        style: TextStyle(
+                                          fontWeight: FontWeight.bold,
+                                        ),
+                                      ),
+                                    ),
+                                  ),
+                                ),
+                                const DataColumn(
+                                  label: Expanded(
+                                    child: Text(
+                                      'Status',
+                                      style: TextStyle(
+                                        fontWeight: FontWeight.bold,
+                                      ),
+                                    ),
+                                  ),
+                                ),
+                                const DataColumn(
+                                  label: Expanded(
+                                    child: Text(
+                                      'Ações',
+                                      style: TextStyle(
+                                        fontWeight: FontWeight.bold,
+                                      ),
+                                    ),
+                                  ),
+                                ),
+                              ],
+                              rows: _filteredMateriais.map((material) {
+                                return DataRow(
+                                  cells: [
+                                    DataCell(
+                                      Text(
+                                        material.codigo,
+                                        style: const TextStyle(
+                                          fontWeight: FontWeight.w500,
+                                        ),
+                                      ),
+                                    ),
+                                    DataCell(
+                                      Text(
+                                        material.nome,
+                                        style: TextStyle(
+                                          color: Colors.grey.shade800,
+                                        ),
+                                      ),
+                                    ),
+                                    // Célula centralizada para a quantidade
+                                    DataCell(
+                                      SizedBox(
+                                        width: 120,
+                                        child: Center(
+                                          child: Text(
+                                            material.quantidade.toString(),
+                                            textAlign: TextAlign.center,
+                                            style: TextStyle(
+                                              fontWeight: FontWeight.bold,
+                                              color: material.quantidade > 0
+                                                  ? Colors.black
+                                                  : Colors.red,
+                                            ),
+                                          ),
+                                        ),
+                                      ),
+                                    ),
+                                    DataCell(Text(material.local)),
+                                    // Célula de vencimento (formatação ou '-')
+                                    DataCell(
+                                      SizedBox(
+                                        width: 120,
+                                        child: Center(
+                                          child: Text(
+                                            _formatDate(material.vencimento),
+                                            textAlign: TextAlign.center,
+                                            style: TextStyle(
+                                              color: material.vencimento == null
+                                                  ? Colors.grey
+                                                  : Colors.black87,
+                                            ),
+                                          ),
+                                        ),
+                                      ),
+                                    ),
+                                    DataCell(
+                                      Container(
+                                        padding: const EdgeInsets.symmetric(
+                                          horizontal: 8,
+                                          vertical: 4,
+                                        ),
+                                        decoration: BoxDecoration(
+                                          color: material.quantidade > 0
+                                              ? Colors.green
+                                              : Colors.red,
+                                          borderRadius: BorderRadius.circular(
+                                            12,
+                                          ),
+                                        ),
+                                        child: Text(
+                                          material.status,
+                                          style: const TextStyle(
+                                            color: Colors.white,
+                                            fontSize: 12,
+                                            fontWeight: FontWeight.bold,
+                                          ),
+                                        ),
+                                      ),
+                                    ),
+                                    DataCell(
+                                      Row(
+                                        mainAxisSize: MainAxisSize.min,
+                                        children: [
+                                          IconButton(
+                                            icon: const Icon(
+                                              Icons.edit,
+                                              size: 20,
+                                            ),
+                                            color: Colors.blue,
+                                            tooltip: "Editar",
+                                            onPressed: () {
+                                              // Implementar edição
+                                            },
+                                          ),
+                                          IconButton(
+                                            icon: const Icon(
+                                              Icons.swap_vert,
+                                              size: 20,
+                                            ),
+                                            color: const Color(0xFF253250),
+                                            tooltip: "Movimentar",
+                                            onPressed: () {
+                                              // Implementar movimentação
+                                            },
+                                          ),
+                                        ],
+                                      ),
+                                    ),
+                                  ],
+                                  onSelectChanged: (selected) {
+                                    if (selected == true) {
+                                      // Implementar ação ao selecionar linha
+                                    }
+                                  },
+                                );
+                              }).toList(),
                             ),
                           ),
                         ),
                       ),
-                    );
-                  }
+                    ),
+                  );
+                }
+              },
+            ),
+          ),
+
+          // Botão para adicionar material
+          Padding(
+            padding: const EdgeInsets.only(top: 16.0),
+            child: Align(
+              alignment: Alignment.centerRight,
+              child: ElevatedButton.icon(
+                icon: const Icon(Icons.add),
+                label: const Text('Adicionar material'),
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: metroBlue,
+                  foregroundColor: Colors.white,
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 20,
+                    vertical: 12,
+                  ),
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(12),
+                  ),
+                ),
+                onPressed: () {
+                  _showAddMaterialDialog(context);
                 },
               ),
             ),
+          ),
+        ],
+      ),
+    );
 
-            // Botão para adicionar material
+    // If the caller doesn't want the sidebar, return the original scaffold
+    if (!widget.withSidebar) {
+      return Scaffold(
+        appBar: AppBar(
+          title: Text(
+            widget.title,
+            style: const TextStyle(fontWeight: FontWeight.bold),
+          ),
+          backgroundColor: Colors.white,
+          foregroundColor: const Color(0xFF2D3748),
+          actions: [
             Padding(
-              padding: const EdgeInsets.only(top: 16.0),
-              child: Align(
-                alignment: Alignment.centerRight,
-                child: ElevatedButton.icon(
-                  icon: const Icon(Icons.add),
-                  label: const Text('Adicionar material'),
-                  style: ElevatedButton.styleFrom(
-                    backgroundColor: metroBlue,
-                    foregroundColor: Colors.white,
-                    padding: const EdgeInsets.symmetric(
-                      horizontal: 20,
-                      vertical: 12,
-                    ),
-                    shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(12),
-                    ),
-                  ),
-                  onPressed: () {
-                    _showAddMaterialDialog(context);
-                  },
-                ),
-              ),
+              padding: const EdgeInsets.only(right: 16.0),
+              child: Image.asset('assets/LogoMetro.png', height: 32),
             ),
           ],
         ),
+        body: bodyContent,
+      );
+    }
+
+    // Otherwise, build a layout that includes the Sidebar (responsive)
+    final isMobile = MediaQuery.of(context).size.width < 600;
+
+    return Scaffold(
+      key: _scaffoldKey,
+      backgroundColor: Colors.grey.shade50,
+      appBar: isMobile
+          ? AppBar(
+              elevation: 0,
+              backgroundColor: Colors.white,
+              leading: IconButton(
+                icon: AnimatedIcon(
+                  icon: AnimatedIcons.menu_close,
+                  progress: _animationController,
+                  color: metroBlue,
+                ),
+                onPressed: () => _scaffoldKey.currentState?.openDrawer(),
+              ),
+              title: Text(
+                widget.title,
+                style: TextStyle(fontWeight: FontWeight.bold, color: metroBlue),
+              ),
+              centerTitle: true,
+              actions: [
+                Padding(
+                  padding: const EdgeInsets.only(right: 16.0),
+                  child: Image.asset('assets/LogoMetro.png', height: 32),
+                ),
+              ],
+            )
+          : null,
+      drawer: isMobile
+          ? Drawer(
+              child: Sidebar(
+                expanded: true,
+                selectedIndex: widget.sidebarSelectedIndex,
+              ),
+            )
+          : null,
+      body: Stack(
+        children: [
+          if (!isMobile)
+            AnimatedPositioned(
+              duration: const Duration(milliseconds: 300),
+              curve: Curves.easeInOut,
+              left: 0,
+              top: 0,
+              bottom: 0,
+              width: _isRailExtended ? 180 : 70,
+              child: Sidebar(
+                expanded: _isRailExtended,
+                selectedIndex: widget.sidebarSelectedIndex,
+              ),
+            ),
+
+          AnimatedPadding(
+            duration: const Duration(milliseconds: 300),
+            padding: EdgeInsets.only(
+              left: !isMobile ? (_isRailExtended ? 180 : 70) : 0,
+            ),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                if (!isMobile)
+                  Padding(
+                    padding: const EdgeInsets.fromLTRB(24, 24, 24, 0),
+                    child: Row(
+                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                      children: [
+                        Row(
+                          children: [
+                            IconButton(
+                              icon: Icon(
+                                _isRailExtended ? Icons.menu_open : Icons.menu,
+                                color: metroBlue,
+                              ),
+                              onPressed: _toggleRail,
+                            ),
+                            const SizedBox(width: 12),
+                            Text(
+                              widget.title,
+                              style: const TextStyle(
+                                fontSize: 24,
+                                fontWeight: FontWeight.bold,
+                                color: Color(0xFF001489),
+                              ),
+                            ),
+                          ],
+                        ),
+                        Image.asset('assets/LogoMetro.png', height: 40),
+                      ],
+                    ),
+                  ),
+
+                // Conteúdo principal (o body original)
+                Expanded(child: bodyContent),
+              ],
+            ),
+          ),
+        ],
       ),
     );
   }

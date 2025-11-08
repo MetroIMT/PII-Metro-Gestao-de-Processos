@@ -2,17 +2,15 @@ import 'package:pi_metro_2025_2/services/auth_service.dart';
 
 class LoginController {
   LoginController({AuthService? authService})
-      : _authService = authService ?? AuthService();
+    : _authService = authService ?? AuthService();
 
   final AuthService _authService;
 
-  static final RegExp _metroEmailRegex =
-      RegExp(r'^[a-z0-9._%+-]+@metrosp\.com\.br$');
+  static final RegExp _metroEmailRegex = RegExp(
+    r'^[a-z0-9._%+-]+@metrosp\.com\.br$',
+  );
 
-  Future<bool> login({
-    required String email,
-    required String password,
-  }) async {
+  Future<bool> login({required String email, required String password}) async {
     final normalizedEmail = email.trim().toLowerCase();
 
     if (!_metroEmailRegex.hasMatch(normalizedEmail)) {
@@ -23,9 +21,6 @@ class LoginController {
       throw const FormatException('Senha obrigatória.');
     }
 
-    return _authService.login(
-      email: normalizedEmail,
-      senha: password,
-    );
+    return _authService.login(email: normalizedEmail, senha: password);
   }
 }

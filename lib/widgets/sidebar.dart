@@ -83,7 +83,14 @@ class _SidebarState extends State<Sidebar> {
           const SizedBox(height: 20),
 
           // PERFIL - usando o mesmo helper que os outros itens
-          _sidebarItem(context, Icons.person, 'Perfil', -1, expanded, selectedIndex),
+          _sidebarItem(
+            context,
+            Icons.person,
+            'Perfil',
+            -1,
+            expanded,
+            selectedIndex,
+          ),
 
           // Itens do menu
           _sidebarItem(

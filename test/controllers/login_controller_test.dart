@@ -13,10 +13,7 @@ class _FakeAuthService extends AuthService {
   String? lastSenha;
 
   @override
-  Future<bool> login({
-    required String email,
-    required String senha,
-  }) async {
+  Future<bool> login({required String email, required String senha}) async {
     wasCalled = true;
     lastEmail = email;
     lastSenha = senha;
@@ -94,10 +91,8 @@ void main() {
 
   test('Login com domínio inválido não chama o serviço', () async {
     expect(
-      () async => loginController.login(
-        email: 'teste@gmail.com',
-        password: 'senha123',
-      ),
+      () async =>
+          loginController.login(email: 'teste@gmail.com', password: 'senha123'),
       throwsA(isA<FormatException>()),
     );
 

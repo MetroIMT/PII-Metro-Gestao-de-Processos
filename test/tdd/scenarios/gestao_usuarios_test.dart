@@ -34,10 +34,7 @@ void main() {
                     ],
                     onChanged: (value) {},
                   ),
-                  ElevatedButton(
-                    onPressed: () {},
-                    child: const Text('Salvar'),
-                  ),
+                  ElevatedButton(onPressed: () {}, child: const Text('Salvar')),
                 ],
               ),
             ),

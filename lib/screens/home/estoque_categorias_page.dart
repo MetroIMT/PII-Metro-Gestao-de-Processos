@@ -156,10 +156,7 @@ class _EstoqueCategoriasPageState extends State<EstoqueCategoriasPage>
               ),
               title: Text(
                 'Categorias de Estoque',
-                style: TextStyle(
-                  fontWeight: FontWeight.bold,
-                  color: metroBlue,
-                ),
+                style: TextStyle(fontWeight: FontWeight.bold, color: metroBlue),
               ),
               centerTitle: true,
               actions: [
@@ -524,10 +521,7 @@ class _EstoqueCategoriaCard extends StatelessWidget {
                 // Rodapé do Card
                 Align(
                   alignment: Alignment.bottomRight,
-                  child: CardActionButton(
-                    borderColor: color,
-                    onPressed: onTap,
-                  ),
+                  child: CardActionButton(borderColor: color, onPressed: onTap),
                 ),
               ],
             ),

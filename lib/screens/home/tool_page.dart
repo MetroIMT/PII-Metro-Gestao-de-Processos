@@ -93,10 +93,7 @@ class _ToolPageState extends State<ToolPage>
               ),
               title: const Text(
                 'Materiais',
-                style: TextStyle(
-                  color: metroBlue,
-                  fontWeight: FontWeight.bold,
-                ),
+                style: TextStyle(color: metroBlue, fontWeight: FontWeight.bold),
               ),
               centerTitle: true,
             )
@@ -118,7 +115,9 @@ class _ToolPageState extends State<ToolPage>
           AnimatedPadding(
             duration: const Duration(milliseconds: 300),
             padding: EdgeInsets.only(
-              left: !isMobile ? (_isRailExtended ? 200 : 100) : 16, // espaçamento maior da sidebar
+              left: !isMobile
+                  ? (_isRailExtended ? 200 : 100)
+                  : 16, // espaçamento maior da sidebar
               top: 32,
               right: 32,
               bottom: 32,
@@ -161,18 +160,16 @@ class _ToolPageState extends State<ToolPage>
                   child: LayoutBuilder(
                     builder: (context, constraints) {
                       final crossAxisCount = constraints.maxWidth < 600
-                      ? 1 // telas pequenas: 1 card por linha
-                      : (constraints.maxWidth < 900 ? 2 : 3);
-
+                          ? 1 // telas pequenas: 1 card por linha
+                          : (constraints.maxWidth < 900 ? 2 : 3);
 
                       return GridView.builder(
-                        gridDelegate:
-                            SliverGridDelegateWithFixedCrossAxisCount(
-                            crossAxisCount: crossAxisCount,
-                            mainAxisSpacing: 20,
-                            crossAxisSpacing: 20,
-                            childAspectRatio: 1.7, // mais retangular e elegante
-                          ),
+                        gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
+                          crossAxisCount: crossAxisCount,
+                          mainAxisSpacing: 20,
+                          crossAxisSpacing: 20,
+                          childAspectRatio: 1.7, // mais retangular e elegante
+                        ),
 
                         itemCount: categorias.length,
                         itemBuilder: (context, index) {

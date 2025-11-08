@@ -35,9 +35,13 @@ class _AlertsPageState extends State<AlertsPage>
     final size = MediaQuery.of(context).size;
     final bool isMobileView = size.width < 600;
     final double computedMinWidth =
-        size.width - (isMobileView ? 0 : (_isRailExtended ? 180 : 70)) - 48 - 32;
-    final double tableMinWidth =
-        computedMinWidth > 0 ? computedMinWidth : size.width;
+        size.width -
+        (isMobileView ? 0 : (_isRailExtended ? 180 : 70)) -
+        48 -
+        32;
+    final double tableMinWidth = computedMinWidth > 0
+        ? computedMinWidth
+        : size.width;
 
     return Card(
       elevation: 2,
@@ -70,63 +74,61 @@ class _AlertsPageState extends State<AlertsPage>
                       ),
                     )
                   : useListLayout
-                      ? ListView.separated(
-                          itemCount: _visibleAlerts.length,
-                          separatorBuilder: (_, __) => const SizedBox(height: 12),
-                          itemBuilder: (context, i) {
-                            final a = _visibleAlerts[i];
-                            return Dismissible(
-                              key: ValueKey(a.codigo + a.nome),
-                              direction: DismissDirection.endToStart,
-                              confirmDismiss: (direction) async {
-                                return await showDialog<bool>(
-                                      context: context,
-                                      builder: (context) => AlertDialog(
-                                        title: const Text('Confirmar remoção'),
-                                        content: Text(
-                                          'Deseja marcar o alerta de \"${a.nome}\" como resolvido?',
-                                        ),
-                                        actions: [
-                                          TextButton(
-                                            onPressed: () =>
-                                                Navigator.of(context).pop(false),
-                                            child: const Text('Cancelar'),
-                                          ),
-                                          ElevatedButton(
-                                            onPressed: () =>
-                                                Navigator.of(context).pop(true),
-                                            style: ElevatedButton.styleFrom(
-                                              backgroundColor: Colors.green,
-                                            ),
-                                            child: const Text('Confirmar'),
-                                          ),
-                                        ],
+                  ? ListView.separated(
+                      itemCount: _visibleAlerts.length,
+                      separatorBuilder: (_, __) => const SizedBox(height: 12),
+                      itemBuilder: (context, i) {
+                        final a = _visibleAlerts[i];
+                        return Dismissible(
+                          key: ValueKey(a.codigo + a.nome),
+                          direction: DismissDirection.endToStart,
+                          confirmDismiss: (direction) async {
+                            return await showDialog<bool>(
+                                  context: context,
+                                  builder: (context) => AlertDialog(
+                                    title: const Text('Confirmar remoção'),
+                                    content: Text(
+                                      'Deseja marcar o alerta de \"${a.nome}\" como resolvido?',
+                                    ),
+                                    actions: [
+                                      TextButton(
+                                        onPressed: () =>
+                                            Navigator.of(context).pop(false),
+                                        child: const Text('Cancelar'),
                                       ),
-                                    ) ??
-                                    false;
-                              },
-                              background: Container(
-                                alignment: Alignment.centerRight,
-                                padding: const EdgeInsets.only(right: 20),
-                                decoration: BoxDecoration(
-                                  color: Colors.green,
-                                  borderRadius: BorderRadius.circular(12),
-                                ),
-                                child: const Icon(Icons.check, color: Colors.white),
-                              ),
-                              onDismissed: (_) => _resolveAlertAt(i),
-                              child: _buildAlertCardMobile(a, i),
-                            );
+                                      ElevatedButton(
+                                        onPressed: () =>
+                                            Navigator.of(context).pop(true),
+                                        style: ElevatedButton.styleFrom(
+                                          backgroundColor: Colors.green,
+                                        ),
+                                        child: const Text('Confirmar'),
+                                      ),
+                                    ],
+                                  ),
+                                ) ??
+                                false;
                           },
-                        )
+                          background: Container(
+                            alignment: Alignment.centerRight,
+                            padding: const EdgeInsets.only(right: 20),
+                            decoration: BoxDecoration(
+                              color: Colors.green,
+                              borderRadius: BorderRadius.circular(12),
+                            ),
+                            child: const Icon(Icons.check, color: Colors.white),
+                          ),
+                          onDismissed: (_) => _resolveAlertAt(i),
+                          child: _buildAlertCardMobile(a, i),
+                        );
+                      },
+                    )
                   : SingleChildScrollView(
                       scrollDirection: Axis.vertical,
                       child: SingleChildScrollView(
                         scrollDirection: Axis.horizontal,
                         child: ConstrainedBox(
-                          constraints: BoxConstraints(
-                            minWidth: tableMinWidth,
-                          ),
+                          constraints: BoxConstraints(minWidth: tableMinWidth),
                           child: DataTable(
                             dataRowHeight: 60,
                             headingRowColor: MaterialStateProperty.all(
@@ -315,7 +317,10 @@ class _AlertsPageState extends State<AlertsPage>
                         color: Colors.green.withAlpha((0.12 * 255).round()),
                         borderRadius: BorderRadius.circular(12),
                       ),
-                      child: const Icon(Icons.check_circle, color: Colors.green),
+                      child: const Icon(
+                        Icons.check_circle,
+                        color: Colors.green,
+                      ),
                     ),
                     const SizedBox(width: 16),
                     const Expanded(
@@ -439,7 +444,9 @@ class _AlertsPageState extends State<AlertsPage>
                       ),
                     ),
                     Chip(
-                      backgroundColor: severityColor.withAlpha((0.15 * 255).round()),
+                      backgroundColor: severityColor.withAlpha(
+                        (0.15 * 255).round(),
+                      ),
                       shape: const StadiumBorder(),
                       label: Text(
                         'Prioridade ${a.severity}',
@@ -468,10 +475,7 @@ class _AlertsPageState extends State<AlertsPage>
                   a.type == AlertType.lowStock
                       ? 'Estoque baixo — considere reposição ou realocação para este item.'
                       : 'Vencimento próximo — priorize o uso ou inspeção do material.',
-                  style: const TextStyle(
-                    color: Colors.black54,
-                    fontSize: 15,
-                  ),
+                  style: const TextStyle(color: Colors.black54, fontSize: 15),
                 ),
                 const SizedBox(height: 24),
                 Row(
@@ -680,8 +684,9 @@ class _AlertsPageState extends State<AlertsPage>
               backgroundColor: Colors.white,
               side: const BorderSide(color: Colors.grey),
               labelStyle: TextStyle(
-                color:
-                    _filterType == AlertType.lowStock ? Colors.green : Colors.black,
+                color: _filterType == AlertType.lowStock
+                    ? Colors.green
+                    : Colors.black,
                 fontWeight: FontWeight.w500,
               ),
               onSelected: (_) =>
@@ -748,12 +753,7 @@ class _AlertsPageState extends State<AlertsPage>
             )
           : null,
       drawer: isMobile
-          ? Drawer(
-              child: Sidebar(
-                expanded: true,
-                selectedIndex: 3,
-              ),
-            )
+          ? Drawer(child: Sidebar(expanded: true, selectedIndex: 3))
           : null,
       body: Stack(
         children: [
@@ -765,10 +765,7 @@ class _AlertsPageState extends State<AlertsPage>
               top: 0,
               bottom: 0,
               width: _isRailExtended ? 180 : 70,
-              child: Sidebar(
-                expanded: _isRailExtended,
-                selectedIndex: 3,
-              ),
+              child: Sidebar(expanded: _isRailExtended, selectedIndex: 3),
             ),
           AnimatedPadding(
             duration: const Duration(milliseconds: 300),
@@ -818,9 +815,7 @@ class _AlertsPageState extends State<AlertsPage>
                         if (isMobile)
                           Text(
                             'Alertas',
-                            style: Theme.of(context)
-                                .textTheme
-                                .headlineMedium
+                            style: Theme.of(context).textTheme.headlineMedium
                                 ?.copyWith(
                                   fontWeight: FontWeight.bold,
                                   color: metroBlue,
@@ -849,7 +844,6 @@ class _AlertsPageState extends State<AlertsPage>
       ),
     );
   }
-
 
   // Novo helper: card otimizado para mobile (empilhado, textos quebram)
   Widget _buildAlertCardMobile(AlertItem a, int index) {

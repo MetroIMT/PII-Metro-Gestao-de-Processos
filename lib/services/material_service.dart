@@ -20,7 +20,8 @@ class MaterialService {
     return decoded.map<EstoqueMaterial>((m) {
       DateTime? venc;
       try {
-        if (m['vencimento'] != null) venc = DateTime.tryParse(m['vencimento'].toString());
+        if (m['vencimento'] != null)
+          venc = DateTime.tryParse(m['vencimento'].toString());
       } catch (_) {
         venc = null;
       }
@@ -28,7 +29,9 @@ class MaterialService {
       return EstoqueMaterial(
         codigo: m['codigo']?.toString() ?? '',
         nome: m['nome']?.toString() ?? '',
-        quantidade: (m['quantidade'] is int) ? m['quantidade'] as int : int.tryParse(m['quantidade']?.toString() ?? '0') ?? 0,
+        quantidade: (m['quantidade'] is int)
+            ? m['quantidade'] as int
+            : int.tryParse(m['quantidade']?.toString() ?? '0') ?? 0,
         local: m['local']?.toString() ?? '',
         vencimento: venc,
       );
@@ -43,7 +46,9 @@ class MaterialService {
     DateTime? vencimento,
     String? tipo,
   }) async {
-    final uri = Uri.parse('$_baseUrl/materiais${tipo == 'giro' ? '/giro' : ''}');
+    final uri = Uri.parse(
+      '$_baseUrl/materiais${tipo == 'giro' ? '/giro' : ''}',
+    );
     final body = {
       'codigo': codigo,
       'nome': nome,
@@ -53,16 +58,25 @@ class MaterialService {
       if (tipo != null && tipo != 'giro') 'tipo': tipo,
     };
 
-    final resp = await _client.post(uri, headers: {'Content-Type': 'application/json'}, body: json.encode(body)).timeout(const Duration(seconds: 30));
+    final resp = await _client
+        .post(
+          uri,
+          headers: {'Content-Type': 'application/json'},
+          body: json.encode(body),
+        )
+        .timeout(const Duration(seconds: 30));
 
     if (resp.statusCode != 201 && resp.statusCode != 200) {
-      throw Exception('Falha ao criar material: ${resp.statusCode} ${resp.body}');
+      throw Exception(
+        'Falha ao criar material: ${resp.statusCode} ${resp.body}',
+      );
     }
 
     final m = json.decode(resp.body);
     DateTime? venc;
     try {
-      if (m['vencimento'] != null) venc = DateTime.tryParse(m['vencimento'].toString());
+      if (m['vencimento'] != null)
+        venc = DateTime.tryParse(m['vencimento'].toString());
     } catch (_) {
       venc = null;
     }
@@ -70,7 +84,9 @@ class MaterialService {
     return EstoqueMaterial(
       codigo: m['codigo']?.toString() ?? '',
       nome: m['nome']?.toString() ?? '',
-      quantidade: (m['quantidade'] is int) ? m['quantidade'] as int : int.tryParse(m['quantidade']?.toString() ?? '0') ?? 0,
+      quantidade: (m['quantidade'] is int)
+          ? m['quantidade'] as int
+          : int.tryParse(m['quantidade']?.toString() ?? '0') ?? 0,
       local: m['local']?.toString() ?? '',
       vencimento: venc,
     );

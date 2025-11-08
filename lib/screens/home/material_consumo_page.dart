@@ -43,6 +43,8 @@ class _MaterialConsumoPageState extends State<MaterialConsumoPage> {
       title: 'Material de Consumo',
       materiais: _materiais!,
       tipo: 'consumo',
+      withSidebar: true,
+      sidebarSelectedIndex: 1,
     );
   }
 }
