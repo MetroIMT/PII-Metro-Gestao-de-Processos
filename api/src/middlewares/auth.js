@@ -1,5 +1,7 @@
 import jwt from "jsonwebtoken";
 import { config } from "../config.js";
+import { getDB } from "../db.js";
+import { ObjectId } from "mongodb";
 
 export function auth(required = true) {
   return (req, res, next) => {
@@ -15,6 +17,28 @@ export function auth(required = true) {
     try {
       const payload = jwt.verify(token, config.jwtSecret);
       req.user = payload; // { sub, role }
+      // If the client sent a session id, update its lastSeen timestamp so
+      // the sessions list reflects recent activity.
+      const sessionId =
+        req.headers["x-session-id"] || req.headers["X-Session-Id"];
+      if (sessionId) {
+        try {
+          const db = getDB();
+          // Try interpreting as ObjectId first
+          let query = null;
+          try {
+            query = { _id: new ObjectId(String(sessionId)) };
+          } catch (e) {
+            // fallback to string id field
+            query = { id: String(sessionId) };
+          }
+          db.collection("sessions")
+            .updateOne(query, { $set: { lastSeen: new Date() } })
+            .catch(() => {});
+        } catch (e) {
+          // ignore session update errors
+        }
+      }
       next();
     } catch (err) {
       return res.status(401).json({ error: "Token inválido" });

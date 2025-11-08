@@ -62,6 +62,12 @@ class UserService {
       headers['Authorization'] = 'Bearer $token';
     }
 
+    // Include session id if available so backend can update lastSeen
+    try {
+      final sess = await _secureStorage.read(key: 'sessionId');
+      if (sess != null && sess.isNotEmpty) headers['X-Session-Id'] = sess;
+    } catch (_) {}
+
     return headers;
   }
 
@@ -222,6 +228,8 @@ class UserService {
     String? telefone,
     String? role,
     String? avatarUrl,
+    String? senha,
+    String? current,
   }) async {
     try {
       final headers = await _getHeaders();
@@ -234,6 +242,9 @@ class UserService {
       if (role != null && role.isNotEmpty) body['role'] = role;
       // avatarUrl can be explicitly null to request removal; check for != null
       if (avatarUrl != null) body['avatarUrl'] = avatarUrl;
+      // senha: allow explicit password change (backend should validate current auth)
+      if (senha != null && senha.isNotEmpty) body['senha'] = senha;
+      if (current != null && current.isNotEmpty) body['current'] = current;
 
       final response = await _client
           .patch(

@@ -38,8 +38,7 @@ class _AdminPageState extends State<AdminPage>
   bool _obscureNew = true;
   bool _obscureConfirm = true;
 
-  // Simulação de senha "armazenada" — no seu app real substitua por verificação no backend
-  String _storedPassword = 'password123';
+  // Nota: não armazenamos nem exibimos a senha real no cliente por segurança.
 
   // Avatar (suporta arquivo local + URL remota)
   final ImagePicker _picker = ImagePicker();
@@ -649,21 +648,24 @@ class _AdminPageState extends State<AdminPage>
             const Divider(height: 24),
 
             // --- Função ---
-            const ListTile(
-              leading: Icon(Icons.work_outline, color: metroBlue),
-              title: Text(
+            ListTile(
+              leading: const Icon(Icons.work_outline, color: metroBlue),
+              title: const Text(
                 'Função',
                 style: TextStyle(fontSize: 14, color: Colors.black54),
               ),
               subtitle: Text(
-                'Manutenção do trilho',
-                style: TextStyle(
+                _user?.role == null ? '—' : _roleLabel(_user!.role),
+                style: const TextStyle(
                   fontSize: 18,
                   fontWeight: FontWeight.w700,
                   color: Colors.black87,
                 ),
               ),
-              // Sem 'trailing' porque é só informativo
+              trailing: TextButton(
+                onPressed: _editRole,
+                child: const Text('Editar'),
+              ),
             ),
 
             const SizedBox(height: 24),
@@ -834,6 +836,79 @@ class _AdminPageState extends State<AdminPage>
     return '${diff.inDays}d atrás';
   }
 
+  // Human-friendly label for role values stored in DB
+  String _roleLabel(String role) {
+    switch (role) {
+      case 'admin':
+        return 'Administrador';
+      case 'gestor':
+        return 'Gestor';
+      case 'tecnico':
+        return 'Técnico';
+      default:
+        return role;
+    }
+  }
+
+  Future<void> _editRole() async {
+    final current = _user?.role ?? 'tecnico';
+    String selected = current;
+
+    final ok = await showDialog<bool?>(
+      context: context,
+      builder: (dialogContext) {
+        return AlertDialog(
+          title: const Text('Alterar função'),
+          content: StatefulBuilder(
+            builder: (context, setStateDialog) {
+              return DropdownButton<String>(
+                value: selected,
+                items: const [
+                  DropdownMenuItem(value: 'tecnico', child: Text('Técnico')),
+                  DropdownMenuItem(value: 'gestor', child: Text('Gestor')),
+                  DropdownMenuItem(
+                    value: 'admin',
+                    child: Text('Administrador'),
+                  ),
+                ],
+                onChanged: (v) =>
+                    setStateDialog(() => selected = v ?? selected),
+              );
+            },
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.pop(dialogContext, false),
+              child: const Text('Cancelar'),
+            ),
+            ElevatedButton(
+              onPressed: () => Navigator.pop(dialogContext, true),
+              child: const Text('Salvar'),
+            ),
+          ],
+        );
+      },
+    );
+
+    if (ok != true) return;
+    final id = _user?.id ?? await _getStoredUserId();
+    if (id == null) {
+      if (!mounted) return;
+      _showSnackbar('Usuário não autenticado');
+      return;
+    }
+
+    try {
+      final updated = await _userService.update(id, role: selected);
+      if (!mounted) return;
+      setState(() => _user = updated);
+      _showSnackbar('Função atualizada');
+    } catch (e) {
+      if (!mounted) return;
+      _showSnackbar('Erro ao atualizar função: $e');
+    }
+  }
+
   /// Dialog para alterar a senha (implementado) — com indicador de força
   void _showChangePasswordDialog() {
     // Limpa campos ao abrir
@@ -867,10 +942,9 @@ class _AdminPageState extends State<AdminPage>
                 return;
               }
 
-              if (current != _storedPassword) {
-                setStateDialog(() => errorText = 'Senha atual incorreta.');
-                return;
-              }
+              // Note: the backend endpoint accepts a new 'senha' via PATCH.
+              // We don't expose the stored hash to the client for security, so
+              // we simply attempt the update; the server will handle auth.
 
               if (next.length < 6) {
                 setStateDialog(
@@ -885,15 +959,20 @@ class _AdminPageState extends State<AdminPage>
                 return;
               }
 
-              // Simula processamento (substitua por chamada ao backend)
               setStateDialog(() => isProcessing = true);
               try {
-                final navigator = Navigator.of(dialogContext);
-                await Future.delayed(const Duration(milliseconds: 800));
-                // Atualiza "senha" localmente
-                setState(() => _storedPassword = next);
+                final id = _user?.id ?? await _getStoredUserId();
+                if (id == null) {
+                  setStateDialog(() => errorText = 'Usuário não autenticado');
+                  return;
+                }
 
-                // Fecha diálogo
+                // Call backend to update password (send current for verification)
+                await _userService.update(id, senha: next, current: current);
+
+                final navigator = Navigator.of(dialogContext);
+                // Password updated on server; no local stored plaintext kept.
+
                 if (mounted) {
                   navigator.pop();
                   _showSnackbar(
@@ -903,7 +982,7 @@ class _AdminPageState extends State<AdminPage>
                   );
                 }
               } catch (e) {
-                setStateDialog(() => errorText = 'Erro ao alterar senha.');
+                setStateDialog(() => errorText = 'Erro ao alterar senha: $e');
               } finally {
                 setStateDialog(() => isProcessing = false);
               }

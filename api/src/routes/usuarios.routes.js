@@ -139,14 +139,56 @@ router.patch(
       if (!ObjectId.isValid(id))
         return res.status(400).json({ error: "ID inválido" });
 
-      const { nome, email, senha, cpf, telefone, role, ativo, avatarUrl } =
-        req.body || {};
+      const {
+        nome,
+        email,
+        senha,
+        current,
+        cpf,
+        telefone,
+        role,
+        ativo,
+        avatarUrl,
+      } = req.body || {};
+
+      const db = getDB();
+
+      // Load existing user for password verification and other checks
+      let existingUser = null;
+      try {
+        existingUser = await db
+          .collection("usuarios")
+          .findOne({ _id: new ObjectId(id) });
+      } catch (e) {
+        existingUser = null;
+      }
+
       const update = { atualizadoEm: new Date() };
       if (nome !== undefined) update.nome = nome;
       if (email !== undefined)
         update.email = String(email).trim().toLowerCase();
-      if (senha !== undefined)
+
+      // Handle password change: if the user is changing their own password and
+      // is not an admin, require `current` and verify it against the stored
+      // senhaHash. Admins may change without providing the current password.
+      if (senha !== undefined) {
+        if (req.user && req.user.sub === id && req.user.role !== "admin") {
+          if (!current)
+            return res.status(400).json({ error: "Senha atual é necessária" });
+          if (!existingUser || !existingUser.senhaHash)
+            return res
+              .status(400)
+              .json({ error: "Não foi possível verificar a senha atual" });
+          const ok = await bcrypt.compare(
+            String(current),
+            String(existingUser.senhaHash)
+          );
+          if (!ok)
+            return res.status(403).json({ error: "Senha atual incorreta" });
+        }
         update.senhaHash = await bcrypt.hash(String(senha), 10);
+      }
+
       if (cpf !== undefined) update.cpf = cpf;
       if (telefone !== undefined) update.telefone = telefone;
       if (avatarUrl !== undefined) update.avatarUrl = avatarUrl;
@@ -161,7 +203,6 @@ router.patch(
       }
       if (ativo !== undefined) update.ativo = !!ativo;
 
-      const db = getDB();
       if (update.email) {
         const exists = await db
           .collection("usuarios")
