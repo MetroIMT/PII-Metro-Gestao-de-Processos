@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'package:flutter/material.dart';
 import '../../widgets/sidebar.dart';
 import '../../services/pdf_service.dart';
@@ -14,10 +15,18 @@ class RelatoriosPage extends StatefulWidget {
 
 class _RelatoriosPageState extends State<RelatoriosPage>
     with SingleTickerProviderStateMixin {
+  static const LatLng _mapDefaultCenter = LatLng(-23.55, -46.63);
+  static const double _mapDefaultZoom = 11.0;
+
   // --- Sidebar ---
   bool _isRailExtended = false;
   late AnimationController _animationController;
   final GlobalKey<ScaffoldState> _scaffoldKey = GlobalKey<ScaffoldState>();
+  final MapController _mapController = MapController();
+  late final StreamSubscription<MapEvent> _mapEventSubscription;
+  LatLng _latestCenter = _mapDefaultCenter;
+  double _latestZoom = _mapDefaultZoom;
+  bool _isMapReady = false;
 
   // 🔹 tipo de relatório selecionado
   String _selectedReportType = 'Movimentação Geral';
@@ -149,6 +158,10 @@ class _RelatoriosPageState extends State<RelatoriosPage>
       vsync: this,
       duration: const Duration(milliseconds: 300),
     );
+    _mapEventSubscription = _mapController.mapEventStream.listen((event) {
+      _latestCenter = event.camera.center;
+      _latestZoom = event.camera.zoom;
+    });
     // inicia com o tipo padrão (Movimentação Geral)
     _filteredData = List<Map<String, dynamic>>.from(_allData);
   }
@@ -158,6 +171,8 @@ class _RelatoriosPageState extends State<RelatoriosPage>
     _animationController.dispose();
     _startDateController.dispose();
     _endDateController.dispose();
+    _mapEventSubscription.cancel();
+    _mapController.dispose();
     super.dispose();
   }
 
@@ -450,55 +465,8 @@ class _RelatoriosPageState extends State<RelatoriosPage>
                 Expanded(
                   child: Padding(
                     padding: EdgeInsets.all(isMobile ? 16 : 24),
-                    child: Row(
-                      children: [
-                        // Coluna esquerda (relatórios + tabela)
-                        Expanded(
-                          flex: 1,
-                          child: Column(
-                            crossAxisAlignment: CrossAxisAlignment.stretch,
-                            children: [
-                              Stack(
-                                children: [
-                                  _buildReportCard(),
-                                  Positioned(
-                                    top: 12,
-                                    right: 12,
-                                    child: Material(
-                                      elevation: 4,
-                                      shape: RoundedRectangleBorder(
-                                        borderRadius: BorderRadius.circular(10),
-                                      ),
-                                      child: InkWell(
-                                        onTap: _openFilterDialog,
-                                        borderRadius: BorderRadius.circular(10),
-                                        child: SizedBox(
-                                          width: 44,
-                                          height: 44,
-                                          child: Icon(
-                                            Icons.filter_list,
-                                            color: metroBlue,
-                                          ),
-                                        ),
-                                      ),
-                                    ),
-                                  ),
-                                ],
-                              ),
-                              const SizedBox(height: 16),
-                              Expanded(
-                                child: _buildResultsCard(
-                                  hasBoundedHeight: true,
-                                ),
-                              ),
-                            ],
-                          ),
-                        ),
-                        const SizedBox(width: 16),
-                        // Coluna direita (mapa)
-                        Expanded(flex: 1, child: _buildMapCard()),
-                      ],
-                    ),
+                    child:
+                        isMobile ? _buildMobileReportsLayout() : _buildDesktopReportsLayout(),
                   ),
                 ),
               ],
@@ -690,6 +658,36 @@ class _RelatoriosPageState extends State<RelatoriosPage>
   }
 
   // ---------- CARD GERAR RELATÓRIO ----------
+
+  Widget _buildReportSection() {
+    return Stack(
+      children: [
+        _buildReportCard(),
+        Positioned(
+          top: 12,
+          right: 12,
+          child: Material(
+            elevation: 4,
+            shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(10),
+            ),
+            child: InkWell(
+              onTap: _openFilterDialog,
+              borderRadius: BorderRadius.circular(10),
+              child: SizedBox(
+                width: 44,
+                height: 44,
+                child: Icon(
+                  Icons.filter_list,
+                  color: metroBlue,
+                ),
+              ),
+            ),
+          ),
+        ),
+      ],
+    );
+  }
 
   Widget _buildReportCard() {
     int totalItems = _filteredData.length;
@@ -897,6 +895,19 @@ class _RelatoriosPageState extends State<RelatoriosPage>
       ),
     );
 
+    final Widget dataWidget =
+        _filteredData.isEmpty ? noResultsWidget : tabelaWidget;
+
+    Widget _buildDataSection() {
+      if (hasBoundedHeight) {
+        return Expanded(child: dataWidget);
+      }
+      return SizedBox(
+        height: 320,
+        child: dataWidget,
+      );
+    }
+
     return Card(
       elevation: 2,
       color: Colors.white,
@@ -916,18 +927,109 @@ class _RelatoriosPageState extends State<RelatoriosPage>
               ),
             ),
             const SizedBox(height: 8),
-            Expanded(
-              child: _filteredData.isEmpty ? noResultsWidget : tabelaWidget,
-            ),
+            _buildDataSection(),
           ],
         ),
       ),
     );
   }
 
+  void _zoomMap(bool zoomIn) {
+    if (!_isMapReady) return;
+    final double targetZoom =
+        (zoomIn ? _latestZoom + 0.5 : _latestZoom - 0.5).clamp(5.0, 18.0);
+    _mapController.move(_latestCenter, targetZoom);
+  }
+
+  void _resetMapView() {
+    if (!_isMapReady) return;
+    _mapController.move(_mapDefaultCenter, _mapDefaultZoom);
+  }
+
+  void _fitMapToPoints(List<LatLng> points) {
+    if (!_isMapReady) return;
+    if (points.isEmpty) {
+      _resetMapView();
+      return;
+    }
+
+    if (points.length == 1) {
+      _mapController.move(points.first, 13);
+      return;
+    }
+
+    final bounds = LatLngBounds.fromPoints(points);
+    _mapController.fitCamera(
+      CameraFit.bounds(
+        bounds: bounds,
+        padding: const EdgeInsets.all(32),
+      ),
+    );
+  }
+
+  Widget _buildMapControlButton({
+    required IconData icon,
+    required VoidCallback onPressed,
+    required String tooltip,
+  }) {
+    return Tooltip(
+      message: tooltip,
+      child: Material(
+        color: Colors.white,
+        elevation: 3,
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+        child: InkWell(
+          onTap: onPressed,
+          borderRadius: BorderRadius.circular(8),
+          child: SizedBox(
+            width: 42,
+            height: 42,
+            child: Icon(icon, color: metroBlue),
+          ),
+        ),
+      ),
+    );
+  }
+
+  Widget _buildDesktopReportsLayout() {
+    return Row(
+      children: [
+        Expanded(
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: [
+              _buildReportSection(),
+              const SizedBox(height: 16),
+              Expanded(
+                child: _buildResultsCard(hasBoundedHeight: true),
+              ),
+            ],
+          ),
+        ),
+        const SizedBox(width: 16),
+        Expanded(child: _buildMapCard()),
+      ],
+    );
+  }
+
+  Widget _buildMobileReportsLayout() {
+    return SingleChildScrollView(
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          _buildReportSection(),
+          const SizedBox(height: 16),
+          _buildResultsCard(hasBoundedHeight: false),
+          const SizedBox(height: 16),
+          _buildMapCard(isCompact: true),
+        ],
+      ),
+    );
+  }
+
   // ---------- MAPA ----------
 
-  Widget _buildMapCard() {
+  Widget _buildMapCard({bool isCompact = false}) {
     final Map<String, LatLng> baseCoordinates = {
       'WJA': LatLng(-23.6434, -46.6415),
       'PSO': LatLng(-23.5733, -46.6401),
@@ -937,6 +1039,9 @@ class _RelatoriosPageState extends State<RelatoriosPage>
     };
 
     final usedBases = _allData.map((e) => e['base_id'] as String).toSet();
+    final List<LatLng> basePoints = usedBases
+        .map((base) => baseCoordinates[base] ?? _mapDefaultCenter)
+        .toList();
 
     return Card(
       elevation: 2,
@@ -963,65 +1068,121 @@ class _RelatoriosPageState extends State<RelatoriosPage>
               ],
             ),
           ),
-          Expanded(
-            child: FlutterMap(
-              options: const MapOptions(
-                initialCenter: LatLng(-23.55, -46.63),
-                initialZoom: 11.0,
-              ),
-              children: [
-                TileLayer(
-                  urlTemplate: 'https://tile.openstreetmap.org/{z}/{x}/{y}.png',
-                  userAgentPackageName: 'com.example.app',
-                ),
-                MarkerLayer(
-                  markers: usedBases.map((base) {
-                    final coord =
-                        baseCoordinates[base] ?? const LatLng(-23.55, -46.63);
-                    return Marker(
-                      point: coord,
-                      width: 80,
-                      height: 80,
-                      child: GestureDetector(
-                        onTap: () => _showBaseDetails(base),
-                        child: Column(
-                          children: [
-                            const Icon(
-                              Icons.location_on,
-                              size: 36,
-                              color: Colors.red,
-                            ),
-                            Container(
-                              padding: const EdgeInsets.symmetric(
-                                horizontal: 6,
-                                vertical: 2,
-                              ),
-                              decoration: BoxDecoration(
-                                color: Colors.white.withOpacity(0.9),
-                                borderRadius: BorderRadius.circular(6),
-                                boxShadow: const [
-                                  BoxShadow(
-                                    color: Colors.black12,
-                                    blurRadius: 4,
-                                  ),
-                                ],
-                              ),
-                              child: Text(
-                                base,
-                                style: const TextStyle(fontSize: 12),
-                              ),
-                            ),
-                          ],
-                        ),
-                      ),
-                    );
-                  }).toList(),
-                ),
-              ],
+          if (isCompact)
+            SizedBox(
+              height: 360,
+              child: _buildMapStack(baseCoordinates, usedBases, basePoints),
+            )
+          else
+            Expanded(
+              child: _buildMapStack(baseCoordinates, usedBases, basePoints),
             ),
-          ),
         ],
       ),
+    );
+  }
+
+  Widget _buildMapStack(
+    Map<String, LatLng> baseCoordinates,
+    Set<String> usedBases,
+    List<LatLng> basePoints,
+  ) {
+    return Stack(
+      children: [
+        FlutterMap(
+          mapController: _mapController,
+          options: MapOptions(
+            initialCenter: _mapDefaultCenter,
+            initialZoom: _mapDefaultZoom,
+            onMapReady: () {
+              _isMapReady = true;
+              _latestCenter = _mapDefaultCenter;
+              _latestZoom = _mapDefaultZoom;
+            },
+          ),
+          children: [
+            TileLayer(
+              urlTemplate: 'https://tile.openstreetmap.org/{z}/{x}/{y}.png',
+              userAgentPackageName: 'com.example.app',
+            ),
+            MarkerLayer(
+              markers: usedBases.map((base) {
+                final coord = baseCoordinates[base] ?? _mapDefaultCenter;
+                return Marker(
+                  point: coord,
+                  width: 80,
+                  height: 80,
+                  child: GestureDetector(
+                    onTap: () => _showBaseDetails(base),
+                    child: Column(
+                      children: [
+                        const Icon(
+                          Icons.location_on,
+                          size: 36,
+                          color: Colors.red,
+                        ),
+                        Container(
+                          padding: const EdgeInsets.symmetric(
+                            horizontal: 6,
+                            vertical: 2,
+                          ),
+                          decoration: BoxDecoration(
+                            color: Colors.white.withOpacity(0.9),
+                            borderRadius: BorderRadius.circular(6),
+                            boxShadow: const [
+                              BoxShadow(
+                                color: Colors.black12,
+                                blurRadius: 4,
+                              ),
+                            ],
+                          ),
+                          child: Text(
+                            base,
+                            style: const TextStyle(fontSize: 12),
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                );
+              }).toList(),
+            ),
+          ],
+        ),
+        Positioned(
+          top: 16,
+          right: 16,
+          child: Column(
+            children: [
+              _buildMapControlButton(
+                icon: Icons.add,
+                tooltip: 'Aproximar',
+                onPressed: () => _zoomMap(true),
+              ),
+              const SizedBox(height: 8),
+              _buildMapControlButton(
+                icon: Icons.remove,
+                tooltip: 'Afastar',
+                onPressed: () => _zoomMap(false),
+              ),
+              const SizedBox(height: 8),
+              _buildMapControlButton(
+                icon: Icons.center_focus_strong,
+                tooltip: 'Centralizar São Paulo',
+                onPressed: _resetMapView,
+              ),
+              if (basePoints.length > 1) ...[
+                const SizedBox(height: 8),
+                _buildMapControlButton(
+                  icon: Icons.zoom_out_map,
+                  tooltip: 'Enquadrar bases',
+                  onPressed: () => _fitMapToPoints(basePoints),
+                ),
+              ],
+            ],
+          ),
+        ),
+      ],
     );
   }
 
