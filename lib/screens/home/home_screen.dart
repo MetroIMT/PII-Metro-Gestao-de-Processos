@@ -86,7 +86,6 @@ class PieChartPainter extends CustomPainter {
   bool shouldRepaint(covariant CustomPainter oldDelegate) => true;
 }
 
-
 class HomeScreen extends StatefulWidget {
   const HomeScreen({super.key});
 
@@ -96,7 +95,6 @@ class HomeScreen extends StatefulWidget {
 
 class _HomeScreenState extends State<HomeScreen>
     with SingleTickerProviderStateMixin {
-  
   static const Color metroBlue = Color(0xFF001489);
 
   // --- Lógica da Sidebar ---
@@ -112,9 +110,11 @@ class _HomeScreenState extends State<HomeScreen>
       duration: const Duration(milliseconds: 300),
     );
     AlertRepository.instance.countNotifier.addListener(_onAlertsCountChanged);
-    
+
     // Adicionar listener para o novo repositório
-    MovimentacaoRepository.instance.movimentacoesNotifier.addListener(_onAlertsCountChanged);
+    MovimentacaoRepository.instance.movimentacoesNotifier.addListener(
+      _onAlertsCountChanged,
+    );
     // carregar materiais do backend para atualizar o card de estoque
     _loadMateriais();
   }
@@ -207,7 +207,9 @@ class _HomeScreenState extends State<HomeScreen>
       nome: 'Óleo Hidráulico',
       quantidade: 10,
       local: 'Oficina Mecânica',
-      vencimento: DateTime.now().add(const Duration(days: 15)), // Vence em 15 dias
+      vencimento: DateTime.now().add(
+        const Duration(days: 15),
+      ), // Vence em 15 dias
     ),
   ];
   final List<EstoqueMaterial> materiaisConsumo = [
@@ -272,12 +274,12 @@ class _HomeScreenState extends State<HomeScreen>
       appBar: isMobile
           ? AppBar(
               elevation: 0,
-              backgroundColor: Colors.white, 
+              backgroundColor: Colors.white,
               leading: IconButton(
                 icon: AnimatedIcon(
                   icon: AnimatedIcons.menu_close,
                   progress: _animationController,
-                  color: metroBlue, 
+                  color: metroBlue,
                 ),
                 onPressed: () {
                   _scaffoldKey.currentState?.openDrawer();
@@ -285,10 +287,7 @@ class _HomeScreenState extends State<HomeScreen>
               ),
               title: const Text(
                 'Home',
-                style: TextStyle(
-                  color: metroBlue,
-                  fontWeight: FontWeight.bold,
-                ),
+                style: TextStyle(color: metroBlue, fontWeight: FontWeight.bold),
               ),
               actions: [
                 Padding(
@@ -299,12 +298,7 @@ class _HomeScreenState extends State<HomeScreen>
             )
           : null,
       drawer: isMobile
-          ? Drawer(
-              child: Sidebar(
-                expanded: true, 
-                selectedIndex: 0, 
-              ),
-            )
+          ? Drawer(child: Sidebar(expanded: true, selectedIndex: 0))
           : null,
       body: Stack(
         children: [
@@ -317,10 +311,7 @@ class _HomeScreenState extends State<HomeScreen>
               top: 0,
               bottom: 0,
               width: _isRailExtended ? 180 : 70,
-              child: Sidebar(
-                expanded: _isRailExtended,
-                selectedIndex: 0,
-              ),
+              child: Sidebar(expanded: _isRailExtended, selectedIndex: 0),
             ),
 
           // Conteúdo principal
@@ -344,7 +335,9 @@ class _HomeScreenState extends State<HomeScreen>
                             children: [
                               IconButton(
                                 icon: Icon(
-                                  _isRailExtended ? Icons.menu_open : Icons.menu,
+                                  _isRailExtended
+                                      ? Icons.menu_open
+                                      : Icons.menu,
                                   color: metroBlue,
                                 ),
                                 onPressed: _toggleRail,
@@ -415,8 +408,8 @@ class _HomeScreenState extends State<HomeScreen>
     return Padding(
       padding: const EdgeInsets.only(bottom: 40.0),
       child: Wrap(
-        spacing: 12.0, 
-        runSpacing: 12.0, 
+        spacing: 12.0,
+        runSpacing: 12.0,
         children: [
           _buildActionButton(
             context,
@@ -473,25 +466,18 @@ class _HomeScreenState extends State<HomeScreen>
 
     return OutlinedButton.icon(
       icon: Icon(icon, size: 18, color: metroBlue),
-      label: Text(
-        label,
-        style: const TextStyle(color: metroBlue),
-      ),
+      label: Text(label, style: const TextStyle(color: metroBlue)),
       onPressed: onPressed,
       style: OutlinedButton.styleFrom(
         padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
         side: const BorderSide(color: metroBlue),
-        shape: RoundedRectangleBorder(
-          borderRadius: BorderRadius.circular(10),
-        ),
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
       ),
     );
   }
 
-
   /// O Grid de cards, agora mais responsivo e preenchido
   Widget _buildHomeGrid() {
-
     return LayoutBuilder(
       builder: (context, constraints) {
         final int crossAxisCount;
@@ -505,7 +491,8 @@ class _HomeScreenState extends State<HomeScreen>
 
         final double childAspectRatio;
         if (crossAxisCount == 1) {
-          const double desiredCardHeight = 430; // Altura fixa para evitar overflow em telas estreitas
+          const double desiredCardHeight =
+              430; // Altura fixa para evitar overflow em telas estreitas
           childAspectRatio = constraints.maxWidth / desiredCardHeight;
         } else if (crossAxisCount == 2) {
           childAspectRatio = 1.4;
@@ -528,9 +515,7 @@ class _HomeScreenState extends State<HomeScreen>
             _buildEstoqueCard(
               () => Navigator.push(
                 context,
-                MaterialPageRoute(
-                  builder: (_) => const ToolPage(),
-                ),
+                MaterialPageRoute(builder: (_) => const ToolPage()),
               ),
             ),
 
@@ -559,9 +544,9 @@ class _HomeScreenState extends State<HomeScreen>
               Colors.orange,
               () {},
               content: _buildStatContent(
-                "3", 
+                "3",
                 "Precisam de atenção",
-                Colors.orange.shade800
+                Colors.orange.shade800,
               ),
             ),
 
@@ -576,13 +561,16 @@ class _HomeScreenState extends State<HomeScreen>
                   MaterialPageRoute(builder: (_) => const MovimentacoesPage()),
                 );
               },
-              
+
               // AQUI É A MÁGICA:
               // Trocamos o _buildStatContent por um widget que ouve o repositório
               content: ValueListenableBuilder<List<Movimentacao>>(
-                valueListenable: MovimentacaoRepository.instance.movimentacoesNotifier,
-                builder: (context, _, child) { // O _ indica que não vamos usar a lista diretamente aqui
-                  final listaMovimentacoes = MovimentacaoRepository.instance.getMovimentacoesParaDashboard();
+                valueListenable:
+                    MovimentacaoRepository.instance.movimentacoesNotifier,
+                builder: (context, _, child) {
+                  // O _ indica que não vamos usar a lista diretamente aqui
+                  final listaMovimentacoes = MovimentacaoRepository.instance
+                      .getMovimentacoesParaDashboard();
 
                   if (listaMovimentacoes.isEmpty) {
                     return const Center(
@@ -593,7 +581,7 @@ class _HomeScreenState extends State<HomeScreen>
                       ),
                     );
                   }
-                  
+
                   // Se tiver itens, constrói a lista
                   return ListView.builder(
                     padding: const EdgeInsets.only(top: 8.0),
@@ -619,9 +607,9 @@ class _HomeScreenState extends State<HomeScreen>
               },
               color2: Colors.blue.shade200,
               content: _buildStatContent(
-                "8", 
+                "8",
                 "Usuários ativos",
-                Colors.blue.shade800
+                Colors.blue.shade800,
               ),
             ),
 
@@ -638,9 +626,9 @@ class _HomeScreenState extends State<HomeScreen>
               },
               color2: const Color.fromARGB(255, 219, 193, 153),
               content: _buildStatContent(
-                "5", 
+                "5",
                 "Relatórios salvos",
-                const Color.fromARGB(255, 184, 99, 0)
+                const Color.fromARGB(255, 184, 99, 0),
               ),
             ),
           ],
@@ -667,10 +655,7 @@ class _HomeScreenState extends State<HomeScreen>
             ),
             TextSpan(
               text: '\n$label',
-              style: const TextStyle(
-                fontSize: 16,
-                color: Colors.black54,
-              ),
+              style: const TextStyle(fontSize: 16, color: Colors.black54),
             ),
           ],
         ),
@@ -707,10 +692,8 @@ class _HomeScreenState extends State<HomeScreen>
     );
   }
 
-
   // Card de Estoque com gráfico e estatísticas (FUNCIONAL)
   Widget _buildEstoqueCard(VoidCallback onTap) {
-    
     final List<EstoqueMaterial> todosMateriais = [
       ...(_materiaisGiro ?? materiaisGiro),
       ...(_materiaisConsumo ?? materiaisConsumo),
@@ -724,7 +707,7 @@ class _HomeScreenState extends State<HomeScreen>
     final int materiaisEmFalta = todosMateriais
         .where((m) => m.quantidade <= 0)
         .length;
-    
+
     final double porcentagemDisponivel = totalMateriais > 0
         ? (materiaisDisponiveis / totalMateriais) * 100
         : 0.0;
@@ -861,7 +844,7 @@ class _HomeScreenState extends State<HomeScreen>
                           child: CustomPaint(
                             painter: PieChartPainter(
                               // Prevenção de divisão por zero
-                              disponivel: totalMateriais > 0 
+                              disponivel: totalMateriais > 0
                                   ? materiaisDisponiveis / totalMateriais
                                   : 0,
                               emFalta: totalMateriais > 0
@@ -889,8 +872,9 @@ class _HomeScreenState extends State<HomeScreen>
             ),
           ),
         ),
-      ));
-    }
+      ),
+    );
+  }
 
   // Widget para mostrar uma estatística no card de estoque
   Widget _buildEstoqueStat(
@@ -940,7 +924,7 @@ class _HomeScreenState extends State<HomeScreen>
     VoidCallback onTap, {
     bool hasAlert = false,
     Color? color2,
-    int? alertCount, 
+    int? alertCount,
     Widget? content,
   }) {
     final gradientColor = color2 ?? color.withAlpha((0.6 * 255).round());
@@ -1027,31 +1011,30 @@ class _HomeScreenState extends State<HomeScreen>
                   ],
                 ),
                 const SizedBox(height: 16),
-                
+
                 Expanded(
                   // O 'content' agora é dinâmico
-                  child: content ?? const Center(
-                    child: Text(
-                      'Dados do card vão aqui',
-                      style: TextStyle(color: Colors.black54),
-                    ),
-                  ),
+                  child:
+                      content ??
+                      const Center(
+                        child: Text(
+                          'Dados do card vão aqui',
+                          style: TextStyle(color: Colors.black54),
+                        ),
+                      ),
                 ),
-                
+
                 Align(
                   alignment: Alignment.bottomRight,
-                  child: CardActionButton(
-                    borderColor: color,
-                    onPressed: onTap,
-                  ),
+                  child: CardActionButton(borderColor: color, onPressed: onTap),
                 ),
               ],
             ),
           ),
         ),
-      ));
-    }
-
+      ),
+    );
+  }
 
   // *** INÍCIO DOS NOVOS HELPERS ***
 
@@ -1095,10 +1078,7 @@ class _HomeScreenState extends State<HomeScreen>
               children: [
                 Text(
                   label,
-                  style: TextStyle(
-                    fontSize: 12,
-                    color: Colors.grey.shade600,
-                  ),
+                  style: TextStyle(fontSize: 12, color: Colors.grey.shade600),
                 ),
                 Text(
                   value,
@@ -1158,7 +1138,11 @@ class _HomeScreenState extends State<HomeScreen>
             ),
             child: Text(
               'P: ${a.severity}', // P: Prioridade
-              style: TextStyle(color: color, fontSize: 11, fontWeight: FontWeight.bold),
+              style: TextStyle(
+                color: color,
+                fontSize: 11,
+                fontWeight: FontWeight.bold,
+              ),
             ),
           ),
         ],
@@ -1186,7 +1170,7 @@ class _HomeScreenState extends State<HomeScreen>
         final sortedAlerts = List<AlertItem>.from(allAlerts);
         sortedAlerts.sort((a, b) => b.severity.compareTo(a.severity));
         // Limitar a 3 ou 4 itens para não sobrecarregar o card
-        final topAlerts = sortedAlerts.take(3).toList(); 
+        final topAlerts = sortedAlerts.take(3).toList();
 
         return Column(
           crossAxisAlignment: CrossAxisAlignment.start,
@@ -1224,7 +1208,6 @@ class _HomeScreenState extends State<HomeScreen>
             ),
             const SizedBox(height: 12),
             const Divider(height: 16), // Linha divisória
-
             // 4. Lista de Alertas Urgentes
             if (topAlerts.isEmpty)
               Padding(
@@ -1232,7 +1215,11 @@ class _HomeScreenState extends State<HomeScreen>
                 child: Column(
                   mainAxisAlignment: MainAxisAlignment.center,
                   children: const [
-                    Icon(Icons.check_circle_outline, color: Colors.green, size: 28),
+                    Icon(
+                      Icons.check_circle_outline,
+                      color: Colors.green,
+                      size: 28,
+                    ),
                     SizedBox(height: 6),
                     Text(
                       'Nenhum alerta ativo.',
@@ -1256,8 +1243,6 @@ class _HomeScreenState extends State<HomeScreen>
     );
   }
 }
-
-
 
 // Botão de ação com apenas o ícone de seta
 class CardActionButton extends StatefulWidget {

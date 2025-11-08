@@ -59,7 +59,6 @@ class _GerenciarUsuariosState extends State<GerenciarUsuarios>
     }
   }
 
-
   Future<void> _loadCurrentUserId() async {
     try {
       const secure = FlutterSecureStorage();
@@ -256,7 +255,8 @@ class _GerenciarUsuariosState extends State<GerenciarUsuarios>
               borderRadius: BorderRadius.circular(12),
             ),
             title: const Text('Adicionar membro'),
-            content: SizedBox( // --- MUDANÇA 1 (LARGURA DO DIÁLOGO) ---
+            content: SizedBox(
+              // --- MUDANÇA 1 (LARGURA DO DIÁLOGO) ---
               width: dialogWidth,
               child: Form(
                 key: formKey,
@@ -291,7 +291,9 @@ class _GerenciarUsuariosState extends State<GerenciarUsuarios>
                         controller: cpfCtrl,
                         decoration: _buildDialogInputDecoration('CPF *'),
                         keyboardType: TextInputType.number,
-                        inputFormatters: [FilteringTextInputFormatter.digitsOnly],
+                        inputFormatters: [
+                          FilteringTextInputFormatter.digitsOnly,
+                        ],
                         maxLength: 11,
                         validator: (v) {
                           if (v == null || v.isEmpty) return 'Informe o CPF';
@@ -307,10 +309,13 @@ class _GerenciarUsuariosState extends State<GerenciarUsuarios>
                         controller: phoneCtrl,
                         decoration: _buildDialogInputDecoration('Telefone *'),
                         keyboardType: TextInputType.phone,
-                        inputFormatters: [FilteringTextInputFormatter.digitsOnly],
+                        inputFormatters: [
+                          FilteringTextInputFormatter.digitsOnly,
+                        ],
                         maxLength: 11,
                         validator: (v) {
-                          if (v == null || v.isEmpty) return 'Informe o telefone';
+                          if (v == null || v.isEmpty)
+                            return 'Informe o telefone';
                           final digits = v.replaceAll(RegExp(r'\D'), '');
                           if (digits.length < 10 || digits.length > 11) {
                             return 'Telefone deve conter DDD + número (10 ou 11 dígitos)';
@@ -322,7 +327,10 @@ class _GerenciarUsuariosState extends State<GerenciarUsuarios>
                       DropdownButtonFormField<String>(
                         initialValue: selectedRole,
                         items: const [
-                          DropdownMenuItem(value: 'admin', child: Text('Admin')),
+                          DropdownMenuItem(
+                            value: 'admin',
+                            child: Text('Admin'),
+                          ),
                           DropdownMenuItem(
                             value: 'gestor',
                             child: Text('Gestor'),
@@ -417,7 +425,8 @@ class _GerenciarUsuariosState extends State<GerenciarUsuarios>
               borderRadius: BorderRadius.circular(12),
             ),
             title: const Text('Editar membro'),
-            content: SizedBox( // --- MUDANÇA 1 (LARGURA DO DIÁLOGO) ---
+            content: SizedBox(
+              // --- MUDANÇA 1 (LARGURA DO DIÁLOGO) ---
               width: dialogWidth,
               child: Form(
                 key: formKey,
@@ -444,7 +453,9 @@ class _GerenciarUsuariosState extends State<GerenciarUsuarios>
                         controller: cpfCtrl,
                         decoration: _buildDialogInputDecoration('CPF *'),
                         keyboardType: TextInputType.number,
-                        inputFormatters: [FilteringTextInputFormatter.digitsOnly],
+                        inputFormatters: [
+                          FilteringTextInputFormatter.digitsOnly,
+                        ],
                         maxLength: 11,
                         validator: (v) {
                           if (v == null || v.isEmpty) return 'Informe o CPF';
@@ -460,10 +471,13 @@ class _GerenciarUsuariosState extends State<GerenciarUsuarios>
                         controller: phoneCtrl,
                         decoration: _buildDialogInputDecoration('Telefone *'),
                         keyboardType: TextInputType.phone,
-                        inputFormatters: [FilteringTextInputFormatter.digitsOnly],
+                        inputFormatters: [
+                          FilteringTextInputFormatter.digitsOnly,
+                        ],
                         maxLength: 11,
                         validator: (v) {
-                          if (v == null || v.isEmpty) return 'Informe o telefone';
+                          if (v == null || v.isEmpty)
+                            return 'Informe o telefone';
                           final digits = v.replaceAll(RegExp(r'\D'), '');
                           if (digits.length < 10 || digits.length > 11) {
                             return 'Telefone deve conter DDD + número (10 ou 11 dígitos)';
@@ -475,7 +489,10 @@ class _GerenciarUsuariosState extends State<GerenciarUsuarios>
                       DropdownButtonFormField<String>(
                         initialValue: selectedRole,
                         items: const [
-                          DropdownMenuItem(value: 'admin', child: Text('Admin')),
+                          DropdownMenuItem(
+                            value: 'admin',
+                            child: Text('Admin'),
+                          ),
                           DropdownMenuItem(
                             value: 'gestor',
                             child: Text('Gestor'),
@@ -658,32 +675,31 @@ class _GerenciarUsuariosState extends State<GerenciarUsuarios>
                     child: Padding(
                       padding: const EdgeInsets.all(16.0),
                       child: Row(
-                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                    children: [
-                      Text(
-                        'Membros da equipe',
-                        style: TextStyle(
-                          fontSize: 18,
-                          fontWeight: FontWeight.bold,
-                          color: Colors.grey.shade800, // "Preto/Cinza"
-                        ),
-                      ),
-                      if (_currentRole == 'admin')
-                        ElevatedButton.icon(
-                          style: ElevatedButton.styleFrom(
-                            backgroundColor: metroBlue, // "Metro Blue"
-                            foregroundColor: Colors.white, // "Branco"
-                            shape: RoundedRectangleBorder(
-                              borderRadius: BorderRadius.circular(8),
+                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                        children: [
+                          Text(
+                            'Membros da equipe',
+                            style: TextStyle(
+                              fontSize: 18,
+                              fontWeight: FontWeight.bold,
+                              color: Colors.grey.shade800, // "Preto/Cinza"
                             ),
                           ),
-                          onPressed: _showAddDialog,
-                          icon: const Icon(Icons.person_add, size: 18),
-                          label: const Text('Adicionar'),
-                        ),
-                    ],
-                  ),
-
+                          if (_currentRole == 'admin')
+                            ElevatedButton.icon(
+                              style: ElevatedButton.styleFrom(
+                                backgroundColor: metroBlue, // "Metro Blue"
+                                foregroundColor: Colors.white, // "Branco"
+                                shape: RoundedRectangleBorder(
+                                  borderRadius: BorderRadius.circular(8),
+                                ),
+                              ),
+                              onPressed: _showAddDialog,
+                              icon: const Icon(Icons.person_add, size: 18),
+                              label: const Text('Adicionar'),
+                            ),
+                        ],
+                      ),
                     ),
                   ),
                 ),
@@ -710,7 +726,9 @@ class _GerenciarUsuariosState extends State<GerenciarUsuarios>
                           Text(
                             _errorMessage!,
                             textAlign: TextAlign.center,
-                            style: const TextStyle(color: Colors.black87), // "Preto"
+                            style: const TextStyle(
+                              color: Colors.black87,
+                            ), // "Preto"
                           ),
                           const SizedBox(height: 16),
                           ElevatedButton(
@@ -730,7 +748,9 @@ class _GerenciarUsuariosState extends State<GerenciarUsuarios>
                     child: Center(
                       child: Text(
                         'Nenhum usuário cadastrado',
-                        style: TextStyle(color: Colors.black54), // "Preto/Cinza"
+                        style: TextStyle(
+                          color: Colors.black54,
+                        ), // "Preto/Cinza"
                       ),
                     ),
                   )
@@ -761,25 +781,107 @@ class _GerenciarUsuariosState extends State<GerenciarUsuarios>
                                     ),
                                     dividerThickness: 1,
                                     columns: [
-                                      DataColumn(label: Text('Nome', style: TextStyle(fontWeight: FontWeight.bold, color: metroBlue))),
-                                      DataColumn(label: Text('Email', style: TextStyle(fontWeight: FontWeight.bold, color: metroBlue))),
-                                      DataColumn(label: Text('CPF', style: TextStyle(fontWeight: FontWeight.bold, color: metroBlue))),
-                                      DataColumn(label: Text('Telefone', style: TextStyle(fontWeight: FontWeight.bold, color: metroBlue))),
-                                      DataColumn(label: Text('Cargo', style: TextStyle(fontWeight: FontWeight.bold, color: metroBlue))),
-                                      DataColumn(label: Text('Ações', style: TextStyle(fontWeight: FontWeight.bold, color: metroBlue))),
+                                      DataColumn(
+                                        label: Text(
+                                          'Nome',
+                                          style: TextStyle(
+                                            fontWeight: FontWeight.bold,
+                                            color: metroBlue,
+                                          ),
+                                        ),
+                                      ),
+                                      DataColumn(
+                                        label: Text(
+                                          'Email',
+                                          style: TextStyle(
+                                            fontWeight: FontWeight.bold,
+                                            color: metroBlue,
+                                          ),
+                                        ),
+                                      ),
+                                      DataColumn(
+                                        label: Text(
+                                          'CPF',
+                                          style: TextStyle(
+                                            fontWeight: FontWeight.bold,
+                                            color: metroBlue,
+                                          ),
+                                        ),
+                                      ),
+                                      DataColumn(
+                                        label: Text(
+                                          'Telefone',
+                                          style: TextStyle(
+                                            fontWeight: FontWeight.bold,
+                                            color: metroBlue,
+                                          ),
+                                        ),
+                                      ),
+                                      DataColumn(
+                                        label: Text(
+                                          'Cargo',
+                                          style: TextStyle(
+                                            fontWeight: FontWeight.bold,
+                                            color: metroBlue,
+                                          ),
+                                        ),
+                                      ),
+                                      DataColumn(
+                                        label: Text(
+                                          'Ações',
+                                          style: TextStyle(
+                                            fontWeight: FontWeight.bold,
+                                            color: metroBlue,
+                                          ),
+                                        ),
+                                      ),
                                     ],
-
 
                                     rows: _members.map((user) {
                                       return DataRow(
-                                        color: WidgetStateProperty.all(Colors.white), // "Branco"
+                                        color: WidgetStateProperty.all(
+                                          Colors.white,
+                                        ), // "Branco"
                                         cells: [
-                                          DataCell(Text(user.nome, style: const TextStyle(color: Colors.black87))),
-                                          DataCell(Text(user.email, style: const TextStyle(color: Colors.black87))),
-                                          DataCell(Text(user.cpf ?? '-', style: const TextStyle(color: Colors.black87))),
-                                          DataCell(Text(user.telefone ?? '-', style: const TextStyle(color: Colors.black87))),
                                           DataCell(
-                                            Text(_getRoleDisplay(user.role), style: const TextStyle(color: Colors.black87)),
+                                            Text(
+                                              user.nome,
+                                              style: const TextStyle(
+                                                color: Colors.black87,
+                                              ),
+                                            ),
+                                          ),
+                                          DataCell(
+                                            Text(
+                                              user.email,
+                                              style: const TextStyle(
+                                                color: Colors.black87,
+                                              ),
+                                            ),
+                                          ),
+                                          DataCell(
+                                            Text(
+                                              user.cpf ?? '-',
+                                              style: const TextStyle(
+                                                color: Colors.black87,
+                                              ),
+                                            ),
+                                          ),
+                                          DataCell(
+                                            Text(
+                                              user.telefone ?? '-',
+                                              style: const TextStyle(
+                                                color: Colors.black87,
+                                              ),
+                                            ),
+                                          ),
+                                          DataCell(
+                                            Text(
+                                              _getRoleDisplay(user.role),
+                                              style: const TextStyle(
+                                                color: Colors.black87,
+                                              ),
+                                            ),
                                           ),
                                           DataCell(
                                             Row(
@@ -787,7 +889,8 @@ class _GerenciarUsuariosState extends State<GerenciarUsuarios>
                                                 IconButton(
                                                   icon: Icon(
                                                     Icons.edit,
-                                                    color: metroBlue, // "Metro Blue"
+                                                    color:
+                                                        metroBlue, // "Metro Blue"
                                                   ),
                                                   onPressed: () =>
                                                       _showEditDialog(user),
@@ -803,11 +906,11 @@ class _GerenciarUsuariosState extends State<GerenciarUsuarios>
                                                       child: SizedBox(
                                                         width: 20,
                                                         height: 20,
-                                                        child:
-                                                            CircularProgressIndicator(
-                                                              strokeWidth: 2,
-                                                              color: metroBlue, // "Metro Blue"
-                                                            ),
+                                                        child: CircularProgressIndicator(
+                                                          strokeWidth: 2,
+                                                          color:
+                                                              metroBlue, // "Metro Blue"
+                                                        ),
                                                       ),
                                                     ),
                                                   )
@@ -815,7 +918,8 @@ class _GerenciarUsuariosState extends State<GerenciarUsuarios>
                                                   IconButton(
                                                     icon: const Icon(
                                                       Icons.delete,
-                                                      color: Colors.red, // Semântico
+                                                      color: Colors
+                                                          .red, // Semântico
                                                     ),
                                                     onPressed:
                                                         (user.id != null &&
@@ -866,7 +970,6 @@ class _GerenciarUsuariosState extends State<GerenciarUsuarios>
                                                               _removeMember(
                                                                 user.id!,
                                                               );
-
                                                             }
                                                           }
                                                         : null,

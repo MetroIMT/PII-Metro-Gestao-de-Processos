@@ -6,7 +6,8 @@ class MaterialPatrimoniadoPage extends StatefulWidget {
   const MaterialPatrimoniadoPage({super.key});
 
   @override
-  State<MaterialPatrimoniadoPage> createState() => _MaterialPatrimoniadoPageState();
+  State<MaterialPatrimoniadoPage> createState() =>
+      _MaterialPatrimoniadoPageState();
 }
 
 class _MaterialPatrimoniadoPageState extends State<MaterialPatrimoniadoPage> {
@@ -43,6 +44,8 @@ class _MaterialPatrimoniadoPageState extends State<MaterialPatrimoniadoPage> {
       title: 'Material Patrimoniado',
       materiais: _materiais!,
       tipo: 'patrimoniado',
+      withSidebar: true,
+      sidebarSelectedIndex: 1,
     );
   }
 }

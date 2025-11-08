@@ -134,7 +134,7 @@ class _LoginPageState extends State<LoginPage> {
                       'assets/LogoMetro.png',
                       width: 140,
                       height: 140,
-                      fit: BoxFit.contain,                    
+                      fit: BoxFit.contain,
                     ),
                   ),
                   Center(
@@ -150,7 +150,7 @@ class _LoginPageState extends State<LoginPage> {
                             fontWeight: FontWeight.bold,
                           ),
                         ),
-                      
+
                         const SizedBox(height: 20),
                         Container(
                           width: 80,
@@ -172,10 +172,7 @@ class _LoginPageState extends State<LoginPage> {
                         const SizedBox(height: 28),
                         const Text(
                           '© 2025 Metrô | Todos os direitos reservados',
-                          style: TextStyle(
-                            fontSize: 12,
-                            color: Colors.white70,
-                          ),
+                          style: TextStyle(fontSize: 12, color: Colors.white70),
                         ),
                       ],
                     ),
@@ -187,10 +184,7 @@ class _LoginPageState extends State<LoginPage> {
           Expanded(
             flex: 4,
             child: Container(
-              padding: const EdgeInsets.symmetric(
-                horizontal: 48,
-                vertical: 48,
-              ),
+              padding: const EdgeInsets.symmetric(horizontal: 48, vertical: 48),
               color: Colors.white,
               child: Column(
                 mainAxisAlignment: MainAxisAlignment.center,
@@ -463,7 +457,10 @@ class _LoginPageState extends State<LoginPage> {
                 textInputAction: TextInputAction.next,
                 decoration: InputDecoration(
                   hintText: 'seu@email.com',
-                  prefixIcon: Icon(Icons.email_outlined, color: Colors.grey[600]),
+                  prefixIcon: Icon(
+                    Icons.email_outlined,
+                    color: Colors.grey[600],
+                  ),
                   filled: true,
                   fillColor: Colors.grey[100],
                   border: OutlineInputBorder(
@@ -478,7 +475,10 @@ class _LoginPageState extends State<LoginPage> {
                     borderRadius: BorderRadius.circular(10),
                     borderSide: BorderSide(color: metroBlue, width: 2),
                   ),
-                  contentPadding: const EdgeInsets.symmetric(vertical: 14, horizontal: 12),
+                  contentPadding: const EdgeInsets.symmetric(
+                    vertical: 14,
+                    horizontal: 12,
+                  ),
                 ),
                 style: const TextStyle(fontSize: 16),
               ),
@@ -503,7 +503,9 @@ class _LoginPageState extends State<LoginPage> {
                   prefixIcon: Icon(Icons.lock_outline, color: Colors.grey[600]),
                   suffixIcon: IconButton(
                     icon: Icon(
-                      _obscurePassword ? Icons.visibility_off : Icons.visibility,
+                      _obscurePassword
+                          ? Icons.visibility_off
+                          : Icons.visibility,
                       color: Colors.grey[600],
                     ),
                     onPressed: () {
@@ -526,7 +528,10 @@ class _LoginPageState extends State<LoginPage> {
                     borderRadius: BorderRadius.circular(10),
                     borderSide: BorderSide(color: metroBlue, width: 2),
                   ),
-                  contentPadding: const EdgeInsets.symmetric(vertical: 14, horizontal: 12),
+                  contentPadding: const EdgeInsets.symmetric(
+                    vertical: 14,
+                    horizontal: 12,
+                  ),
                 ),
                 style: const TextStyle(fontSize: 16),
               ),
@@ -556,10 +561,7 @@ class _LoginPageState extends State<LoginPage> {
                       const SizedBox(width: 8),
                       Text(
                         'Lembrar',
-                        style: TextStyle(
-                          fontSize: 13,
-                          color: Colors.grey[700],
-                        ),
+                        style: TextStyle(fontSize: 13, color: Colors.grey[700]),
                       ),
                     ],
                   ),
@@ -626,10 +628,7 @@ class _LoginPageState extends State<LoginPage> {
                   children: [
                     Text(
                       'Precisa de ajuda?',
-                      style: TextStyle(
-                        fontSize: 13,
-                        color: Colors.grey[600],
-                      ),
+                      style: TextStyle(fontSize: 13, color: Colors.grey[600]),
                     ),
                     const SizedBox(height: 6),
                     TextButton(
@@ -682,10 +681,7 @@ class _LoginPageState extends State<LoginPage> {
               Center(
                 child: Text(
                   '© 2025 Metrô | Todos os direitos reservados',
-                  style: TextStyle(
-                    fontSize: 11,
-                    color: Colors.grey[500],
-                  ),
+                  style: TextStyle(fontSize: 11, color: Colors.grey[500]),
                   textAlign: TextAlign.center,
                 ),
               ),

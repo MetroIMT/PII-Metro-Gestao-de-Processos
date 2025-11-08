@@ -26,8 +26,9 @@ void main() {
       expect(find.byType(Image), findsWidgets);
     });
 
-    testWidgets('Não chama o controller quando os campos estão vazios',
-        (tester) async {
+    testWidgets('Não chama o controller quando os campos estão vazios', (
+      tester,
+    ) async {
       final controller = _MockLoginController();
       await tester.pumpWidget(buildLoginPage(controller: controller));
       await tester.pumpAndSettle();
@@ -68,29 +69,31 @@ void main() {
       expect(find.byIcon(Icons.visibility_off), findsOneWidget);
     });
 
-    testWidgets('Checkbox "Lembrar credenciais" pode ser marcado e desmarcado',
-        (tester) async {
-      await tester.pumpWidget(buildLoginPage());
-      await tester.pumpAndSettle();
+    testWidgets(
+      'Checkbox "Lembrar credenciais" pode ser marcado e desmarcado',
+      (tester) async {
+        await tester.pumpWidget(buildLoginPage());
+        await tester.pumpAndSettle();
 
-      final checkboxFinder = find.byType(Checkbox);
-      expect(checkboxFinder, findsOneWidget);
+        final checkboxFinder = find.byType(Checkbox);
+        expect(checkboxFinder, findsOneWidget);
 
-      Checkbox checkbox = tester.widget(checkboxFinder);
-      expect(checkbox.value, false);
+        Checkbox checkbox = tester.widget(checkboxFinder);
+        expect(checkbox.value, false);
 
-      await tester.tap(checkboxFinder);
-      await tester.pump();
+        await tester.tap(checkboxFinder);
+        await tester.pump();
 
-      checkbox = tester.widget(checkboxFinder);
-      expect(checkbox.value, true);
+        checkbox = tester.widget(checkboxFinder);
+        expect(checkbox.value, true);
 
-      await tester.tap(checkboxFinder);
-      await tester.pump();
+        await tester.tap(checkboxFinder);
+        await tester.pump();
 
-      checkbox = tester.widget(checkboxFinder);
-      expect(checkbox.value, false);
-    });
+        checkbox = tester.widget(checkboxFinder);
+        expect(checkbox.value, false);
+      },
+    );
 
     testWidgets('Exibe textos de boas-vindas', (tester) async {
       await tester.pumpWidget(buildLoginPage());
@@ -100,8 +103,9 @@ void main() {
       expect(find.text('de volta!'), findsOneWidget);
     });
 
-    testWidgets('Botão "Contate o suporte" está presente e clicável',
-        (tester) async {
+    testWidgets('Botão "Contate o suporte" está presente e clicável', (
+      tester,
+    ) async {
       await tester.pumpWidget(buildLoginPage());
       await tester.pumpAndSettle();
 

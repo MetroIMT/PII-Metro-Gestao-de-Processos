@@ -29,10 +29,7 @@ class PdfService {
           margin: const pw.EdgeInsets.only(top: 16),
           child: pw.Text(
             'Página ${context.pageNumber} de ${context.pagesCount}',
-            style: pw.TextStyle(
-              fontSize: 8,
-              color: PdfColors.grey600,
-            ),
+            style: pw.TextStyle(fontSize: 8, color: PdfColors.grey600),
           ),
         ),
       ),
@@ -61,12 +58,12 @@ class PdfService {
     DateTime startDate,
     DateTime endDate,
   ) {
-    final dataInicio =
-        '${_dd(startDate)}/${_mm(startDate)}/${startDate.year}';
+    final dataInicio = '${_dd(startDate)}/${_mm(startDate)}/${startDate.year}';
     final dataFim = '${_dd(endDate)}/${_mm(endDate)}/${endDate.year}';
 
     final now = DateTime.now();
-    final horaExportacao = '${_dd(now)}/${_mm(now)}/${now.year} ${now.hour.toString().padLeft(2, '0')}:${now.minute.toString().padLeft(2, '0')}';
+    final horaExportacao =
+        '${_dd(now)}/${_mm(now)}/${now.year} ${now.hour.toString().padLeft(2, '0')}:${now.minute.toString().padLeft(2, '0')}';
 
     return pw.Column(
       crossAxisAlignment: pw.CrossAxisAlignment.center,
@@ -76,10 +73,7 @@ class PdfService {
           alignment: pw.Alignment.centerRight,
           child: pw.Text(
             'Gerado em: $horaExportacao',
-            style: pw.TextStyle(
-              fontSize: 9,
-              color: PdfColors.grey700,
-            ),
+            style: pw.TextStyle(fontSize: 9, color: PdfColors.grey700),
           ),
         ),
         pw.SizedBox(height: 8),
@@ -88,10 +82,7 @@ class PdfService {
         pw.Text(
           title,
           textAlign: pw.TextAlign.center,
-          style: pw.TextStyle(
-            fontSize: 16,
-            fontWeight: pw.FontWeight.bold,
-          ),
+          style: pw.TextStyle(fontSize: 16, fontWeight: pw.FontWeight.bold),
         ),
 
         pw.SizedBox(height: 4),
@@ -100,10 +91,7 @@ class PdfService {
         pw.Text(
           'Relatório de $dataInicio a $dataFim',
           textAlign: pw.TextAlign.center,
-          style: pw.TextStyle(
-            fontSize: 11,
-            color: PdfColors.grey700,
-          ),
+          style: pw.TextStyle(fontSize: 11, color: PdfColors.grey700),
         ),
 
         pw.SizedBox(height: 12),
@@ -119,10 +107,7 @@ class PdfService {
       color: PdfColors.grey800,
     );
 
-    final cellStyle = pw.TextStyle(
-      fontSize: 9,
-      color: PdfColors.grey800,
-    );
+    final cellStyle = pw.TextStyle(fontSize: 9, color: PdfColors.grey800);
 
     return pw.Table(
       border: pw.TableBorder.symmetric(
@@ -148,7 +133,11 @@ class PdfService {
             _headerCell('Data', headerStyle),
             _headerCell('Item', headerStyle),
             _headerCell('Categoria', headerStyle),
-            _headerCell('Quantidade', headerStyle, align: pw.Alignment.centerRight),
+            _headerCell(
+              'Quantidade',
+              headerStyle,
+              align: pw.Alignment.centerRight,
+            ),
             _headerCell('Usuário', headerStyle),
           ],
         ),
@@ -165,8 +154,9 @@ class PdfService {
     pw.TextStyle baseStyle,
     int index,
   ) {
-    final bgColor =
-        index.isEven ? PdfColors.white : const PdfColor(0.97, 0.97, 0.97);
+    final bgColor = index.isEven
+        ? PdfColors.white
+        : const PdfColor(0.97, 0.97, 0.97);
 
     final qtdStr = row['quantidade'] ?? '';
     final qtdNum = int.tryParse(qtdStr.replaceAll(',', '.')) ?? 0;
@@ -174,8 +164,8 @@ class PdfService {
     final qtdColor = qtdNum < 0
         ? PdfColors.red
         : qtdNum > 0
-            ? PdfColors.green
-            : PdfColors.black;
+        ? PdfColors.green
+        : PdfColors.black;
 
     return pw.TableRow(
       decoration: pw.BoxDecoration(color: bgColor),
@@ -186,7 +176,7 @@ class PdfService {
         _cell(row['categoria'] ?? '', baseStyle),
         _cell(
           qtdStr,
-          baseStyle.copyWith(color: qtdColor),  // Quantidade
+          baseStyle.copyWith(color: qtdColor), // Quantidade
           align: pw.Alignment.centerRight,
         ),
         _cell(row['usuario'] ?? '', baseStyle),
@@ -204,10 +194,7 @@ class PdfService {
     return pw.Container(
       alignment: align,
       padding: const pw.EdgeInsets.symmetric(vertical: 6, horizontal: 6),
-      child: pw.Text(
-        text,
-        style: style,
-      ),
+      child: pw.Text(text, style: style),
     );
   }
 

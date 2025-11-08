@@ -43,6 +43,8 @@ class _MaterialGiroPageState extends State<MaterialGiroPage> {
       title: 'Material de Giro',
       materiais: _materiais!,
       tipo: 'giro',
+      withSidebar: true,
+      sidebarSelectedIndex: 1,
     );
   }
 }

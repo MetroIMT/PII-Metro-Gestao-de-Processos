@@ -25,10 +25,7 @@ void main() {
                     key: Key('quantidade_field'),
                     decoration: InputDecoration(labelText: 'Quantidade'),
                   ),
-                  ElevatedButton(
-                    onPressed: () {},
-                    child: const Text('Salvar'),
-                  ),
+                  ElevatedButton(onPressed: () {}, child: const Text('Salvar')),
                 ],
               ),
             ),

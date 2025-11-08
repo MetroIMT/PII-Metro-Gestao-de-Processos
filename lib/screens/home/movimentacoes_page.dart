@@ -11,7 +11,8 @@ class MovimentacoesPage extends StatefulWidget {
   State<MovimentacoesPage> createState() => _MovimentacoesPageState();
 }
 
-class _MovimentacoesPageState extends State<MovimentacoesPage> with SingleTickerProviderStateMixin {
+class _MovimentacoesPageState extends State<MovimentacoesPage>
+    with SingleTickerProviderStateMixin {
   // --- Sidebar ---
   String? _filterTipo;
   bool _isRailExtended = false;
@@ -33,11 +34,13 @@ class _MovimentacoesPageState extends State<MovimentacoesPage> with SingleTicker
       vsync: this,
       duration: const Duration(milliseconds: 300),
     );
-    
+
     _movimentacoes = MovimentacaoRepository.instance.getMovimentacoes();
     _filteredMovimentacoes = _movimentacoes;
 
-    MovimentacaoRepository.instance.movimentacoesNotifier.addListener(_updateMovimentacoes);
+    MovimentacaoRepository.instance.movimentacoesNotifier.addListener(
+      _updateMovimentacoes,
+    );
 
     _searchController.addListener(() {
       setState(() {
@@ -50,7 +53,9 @@ class _MovimentacoesPageState extends State<MovimentacoesPage> with SingleTicker
   @override
   void dispose() {
     _animationController.dispose();
-    MovimentacaoRepository.instance.movimentacoesNotifier.removeListener(_updateMovimentacoes);
+    MovimentacaoRepository.instance.movimentacoesNotifier.removeListener(
+      _updateMovimentacoes,
+    );
     _searchController.dispose();
     super.dispose();
   }
@@ -79,7 +84,8 @@ class _MovimentacoesPageState extends State<MovimentacoesPage> with SingleTicker
     _filteredMovimentacoes = _movimentacoes.where((mov) {
       final term = _searchTerm.toLowerCase();
 
-      final matchesSearch = term.isEmpty ||
+      final matchesSearch =
+          term.isEmpty ||
           mov.descricao.toLowerCase().contains(term) ||
           mov.codigoMaterial.toLowerCase().contains(term) ||
           mov.tipo.toLowerCase().contains(term) ||
@@ -92,13 +98,12 @@ class _MovimentacoesPageState extends State<MovimentacoesPage> with SingleTicker
     }).toList();
   }
 
-
   @override
   Widget build(BuildContext context) {
     final isMobile = MediaQuery.of(context).size.width < 600;
 
     return Scaffold(
-      backgroundColor: Colors.grey.shade100, 
+      backgroundColor: Colors.grey.shade100,
       key: _scaffoldKey,
       appBar: isMobile
           ? AppBar(
@@ -116,10 +121,7 @@ class _MovimentacoesPageState extends State<MovimentacoesPage> with SingleTicker
               ),
               title: Text(
                 'Histórico de Movimentações',
-                style: TextStyle(
-                  color: metroBlue,
-                  fontWeight: FontWeight.bold,
-                ),
+                style: TextStyle(color: metroBlue, fontWeight: FontWeight.bold),
               ),
               centerTitle: true,
               actions: [
@@ -145,7 +147,7 @@ class _MovimentacoesPageState extends State<MovimentacoesPage> with SingleTicker
               width: _isRailExtended ? 180 : 70,
               child: Sidebar(expanded: _isRailExtended, selectedIndex: 2),
             ),
-          
+
           AnimatedPadding(
             duration: const Duration(milliseconds: 300),
             padding: EdgeInsets.only(
@@ -193,7 +195,8 @@ class _MovimentacoesPageState extends State<MovimentacoesPage> with SingleTicker
                         if (isMobile)
                           Text(
                             'Histórico de Movimentações',
-                            style: Theme.of(context).textTheme.headlineMedium?.copyWith(
+                            style: Theme.of(context).textTheme.headlineMedium
+                                ?.copyWith(
                                   fontWeight: FontWeight.bold,
                                   color: metroBlue,
                                 ),
@@ -204,9 +207,7 @@ class _MovimentacoesPageState extends State<MovimentacoesPage> with SingleTicker
                           style: TextStyle(fontSize: 16, color: Colors.black54),
                         ),
                         const SizedBox(height: 24),
-                        Expanded(
-                          child: _buildMovimentacoesCard(),
-                        ),
+                        Expanded(child: _buildMovimentacoesCard()),
                       ],
                     ),
                   ),
@@ -218,7 +219,6 @@ class _MovimentacoesPageState extends State<MovimentacoesPage> with SingleTicker
       ),
     );
   }
-
 
   Widget _buildMovimentacoesCard() {
     return Card(
@@ -281,7 +281,9 @@ class _MovimentacoesPageState extends State<MovimentacoesPage> with SingleTicker
                   backgroundColor: Colors.white,
                   side: const BorderSide(color: Colors.grey),
                   labelStyle: TextStyle(
-                    color: _filterTipo == 'Entrada' ? Colors.green : Colors.black,
+                    color: _filterTipo == 'Entrada'
+                        ? Colors.green
+                        : Colors.black,
                     fontWeight: FontWeight.w500,
                   ),
                   onSelected: (_) {
@@ -312,7 +314,6 @@ class _MovimentacoesPageState extends State<MovimentacoesPage> with SingleTicker
               ],
             ),
 
-
             const SizedBox(height: 16),
 
             Expanded(child: _buildMovimentacoesTable()),
@@ -337,10 +338,18 @@ class _MovimentacoesPageState extends State<MovimentacoesPage> with SingleTicker
       child: SingleChildScrollView(
         scrollDirection: Axis.horizontal,
         child: ConstrainedBox(
-          constraints: BoxConstraints(minWidth: MediaQuery.of(context).size.width - ( _isRailExtended ? 180 : 70) - 48 - 32),
+          constraints: BoxConstraints(
+            minWidth:
+                MediaQuery.of(context).size.width -
+                (_isRailExtended ? 180 : 70) -
+                48 -
+                32,
+          ),
           child: DataTable(
             dataRowHeight: 60,
-            headingRowColor: MaterialStateProperty.all(const Color.fromARGB(255, 255, 255, 255)),
+            headingRowColor: MaterialStateProperty.all(
+              const Color.fromARGB(255, 255, 255, 255),
+            ),
             headingTextStyle: const TextStyle(
               fontWeight: FontWeight.bold,
               color: Colors.black87,
@@ -360,10 +369,7 @@ class _MovimentacoesPageState extends State<MovimentacoesPage> with SingleTicker
                 cells: [
                   DataCell(Text(mov.codigoMaterial)),
                   DataCell(
-                    Text(
-                      mov.descricao,
-                      overflow: TextOverflow.ellipsis,
-                    ),
+                    Text(mov.descricao, overflow: TextOverflow.ellipsis),
                   ),
                   DataCell(Text(mov.quantidade.toString())),
                   DataCell(
@@ -381,7 +387,9 @@ class _MovimentacoesPageState extends State<MovimentacoesPage> with SingleTicker
                       ],
                     ),
                   ),
-                  DataCell(Text(DateFormat('dd/MM/yy HH:mm').format(mov.timestamp))),
+                  DataCell(
+                    Text(DateFormat('dd/MM/yy HH:mm').format(mov.timestamp)),
+                  ),
                   DataCell(Text(mov.usuario)),
                   DataCell(Text(mov.local)),
                 ],

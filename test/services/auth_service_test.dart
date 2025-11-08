@@ -81,24 +81,26 @@ void main() {
       expect(result, false);
     });
 
-    test('Login com email fora do domínio deve retornar false sem POST',
-        () async {
-      var called = false;
-      final client = MockClient((request) async {
-        called = true;
-        return http.Response('Ok', 200);
-      });
+    test(
+      'Login com email fora do domínio deve retornar false sem POST',
+      () async {
+        var called = false;
+        final client = MockClient((request) async {
+          called = true;
+          return http.Response('Ok', 200);
+        });
 
-      final authService = AuthService(client: client);
+        final authService = AuthService(client: client);
 
-      final result = await authService.login(
-        email: 'teste@gmail.com',
-        senha: 'senha123',
-      );
+        final result = await authService.login(
+          email: 'teste@gmail.com',
+          senha: 'senha123',
+        );
 
-      expect(called, false);
-      expect(result, false);
-    });
+        expect(called, false);
+        expect(result, false);
+      },
+    );
 
     test('Login com email vazio deve retornar false sem POST', () async {
       var called = false;
@@ -109,10 +111,7 @@ void main() {
 
       final authService = AuthService(client: client);
 
-      final result = await authService.login(
-        email: '',
-        senha: 'senha123',
-      );
+      final result = await authService.login(email: '', senha: 'senha123');
 
       expect(called, false);
       expect(result, false);
