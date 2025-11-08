@@ -35,7 +35,7 @@ class _RelatoriosPageState extends State<RelatoriosPage>
   final Color backgroundColor = const Color(0xFFFFFFFF);
   final Color metroBlue = const Color(0xFF001489);
 
-  // Mock data
+  // Mock data - movimentação geral
   final List<Map<String, dynamic>> _allData = [
     {
       'codigo': 'ITM-00123',
@@ -46,6 +46,7 @@ class _RelatoriosPageState extends State<RelatoriosPage>
       'sub_categoria_id': null,
       'quantidade': -5,
       'usuario': 'João Pereira',
+      'base': 'WJA - Jabaquara',
       'base_id': 'WJA',
     },
     {
@@ -57,6 +58,7 @@ class _RelatoriosPageState extends State<RelatoriosPage>
       'sub_categoria_id': 'instrumento',
       'quantidade': 1,
       'usuario': 'Ana Silva',
+      'base': 'PSO - Paraiso',
       'base_id': 'PSO',
     },
     {
@@ -68,6 +70,7 @@ class _RelatoriosPageState extends State<RelatoriosPage>
       'sub_categoria_id': null,
       'quantidade': -20,
       'usuario': 'Carlos Souza',
+      'base': 'WJA - Jabaquara',
       'base_id': 'WJA',
     },
     {
@@ -79,7 +82,60 @@ class _RelatoriosPageState extends State<RelatoriosPage>
       'sub_categoria_id': 'ferramenta',
       'quantidade': 1,
       'usuario': 'Ana Silva',
+      'base': 'TUC - Tucuruvi',
       'base_id': 'TUC',
+    },
+  ];
+
+  // Mock data - movimentações por usuário
+  final List<Map<String, dynamic>> _userData = [
+    {
+      'usuario': 'João Pereira',
+      'codigo': 'ITM-00123',
+      'item': 'Cabo Elétrico',
+      'quantidade': -5,
+      'data': DateTime(2025, 10, 21),
+      'categoria_id': 'consumo',
+      'categoria': 'Material de Consumo',
+      'sub_categoria_id': null,
+      'base': 'WJA - Jabaquara',
+      'base_id': 'WJA',
+    },
+    {
+      'usuario': 'Ana Silva',
+      'codigo': 'ITM-00234',
+      'item': 'Multímetro XYZ',
+      'quantidade': 2,
+      'data': DateTime(2025, 10, 22),
+      'categoria_id': 'patrimoniado',
+      'categoria': 'Material Patrimoniado',
+      'sub_categoria_id': 'instrumento',
+      'base': 'PSO - Paraiso',
+      'base_id': 'PSO',
+    },
+    {
+      'usuario': 'Ana Silva',
+      'codigo': 'ITM-00456',
+      'item': 'Furadeira 220V',
+      'quantidade': 1,
+      'data': DateTime(2025, 10, 24),
+      'categoria_id': 'patrimoniado',
+      'categoria': 'Material Patrimoniado',
+      'sub_categoria_id': 'ferramenta',
+      'base': 'TUC - Tucuruvi',
+      'base_id': 'TUC',
+    },
+    {
+      'usuario': 'Carlos Souza',
+      'codigo': 'ITM-00345',
+      'item': 'Rolamento 6203',
+      'quantidade': -8,
+      'data': DateTime(2025, 10, 25),
+      'categoria_id': 'giro',
+      'categoria': 'Material de Giro',
+      'sub_categoria_id': null,
+      'base': 'WJA - Jabaquara',
+      'base_id': 'WJA',
     },
   ];
 
@@ -93,6 +149,7 @@ class _RelatoriosPageState extends State<RelatoriosPage>
       vsync: this,
       duration: const Duration(milliseconds: 300),
     );
+    // inicia com o tipo padrão (Movimentação Geral)
     _filteredData = List<Map<String, dynamic>>.from(_allData);
   }
 
@@ -115,11 +172,15 @@ class _RelatoriosPageState extends State<RelatoriosPage>
     });
   }
 
+  List<Map<String, dynamic>> get _currentSource =>
+      _selectedReportType == 'Movimentações por Usuário'
+          ? _userData
+          : _allData;
+
   /// Aplica filtros
   void _applyFilters() {
-    List<Map<String, dynamic>> tempResults = List<Map<String, dynamic>>.from(
-      _allData,
-    );
+    List<Map<String, dynamic>> tempResults =
+        List<Map<String, dynamic>>.from(_currentSource);
 
     if (_selectedStartDate != null) {
       tempResults = tempResults.where((row) {
@@ -167,7 +228,7 @@ class _RelatoriosPageState extends State<RelatoriosPage>
       _selectedBase = null;
       _startDateController.clear();
       _endDateController.clear();
-      _filteredData = List<Map<String, dynamic>>.from(_allData);
+      _filteredData = List<Map<String, dynamic>>.from(_currentSource);
     });
   }
 
@@ -209,6 +270,7 @@ class _RelatoriosPageState extends State<RelatoriosPage>
         'item': row['item'].toString(),
         'categoria': row['categoria'].toString(),
         'quantidade': row['quantidade'].toString(),
+        'base': row['base'].toString(),
         'usuario': row['usuario'].toString(),
       };
     }).toList();
@@ -235,6 +297,7 @@ class _RelatoriosPageState extends State<RelatoriosPage>
         'item': row['item'].toString(),
         'categoria': row['categoria'].toString(),
         'quantidade': row['quantidade'].toString(),
+        'base': row['base'].toString(),
         'usuario': row['usuario'].toString(),
       };
     }).toList();
@@ -399,32 +462,28 @@ class _RelatoriosPageState extends State<RelatoriosPage>
                               Stack(
                                 children: [
                                   _buildReportCard(),
-                                    Positioned(
-                                      top: 12,
-                                      right: 12,
-                                      child: Material(
-                                        elevation: 4,
-                                        shape: RoundedRectangleBorder(
-                                          borderRadius: BorderRadius.circular(
-                                            10,
-                                          ),
-                                        ),
-                                        child: InkWell(
-                                          onTap: _openFilterDialog,
-                                          borderRadius: BorderRadius.circular(
-                                            10,
-                                          ),
-                                          child: SizedBox(
-                                            width: 44,
-                                            height: 44,
-                                            child: Icon(
-                                              Icons.filter_list,
-                                              color: metroBlue,
-                                            ),
+                                  Positioned(
+                                    top: 12,
+                                    right: 12,
+                                    child: Material(
+                                      elevation: 4,
+                                      shape: RoundedRectangleBorder(
+                                        borderRadius: BorderRadius.circular(10),
+                                      ),
+                                      child: InkWell(
+                                        onTap: _openFilterDialog,
+                                        borderRadius: BorderRadius.circular(10),
+                                        child: SizedBox(
+                                          width: 44,
+                                          height: 44,
+                                          child: Icon(
+                                            Icons.filter_list,
+                                            color: metroBlue,
                                           ),
                                         ),
                                       ),
                                     ),
+                                  ),
                                 ],
                               ),
                               const SizedBox(height: 16),
@@ -633,121 +692,106 @@ class _RelatoriosPageState extends State<RelatoriosPage>
 
   // ---------- CARD GERAR RELATÓRIO ----------
 
-Widget _buildReportCard() {
-  int totalItems = _filteredData.length;
-  int totalSaidas = _filteredData
-      .where((r) => r['quantidade'] < 0)
-      .fold(0, (prev, r) => prev + (r['quantidade'] as int).abs());
-  int totalEntradas = _filteredData
-      .where((r) => r['quantidade'] > 0)
-      .fold(0, (prev, r) => prev + (r['quantidade'] as int));
+  Widget _buildReportCard() {
+    int totalItems = _filteredData.length;
+    int totalSaidas = _filteredData
+        .where((r) => r['quantidade'] < 0)
+        .fold(0, (prev, r) => prev + (r['quantidade'] as int).abs());
+    int totalEntradas = _filteredData
+        .where((r) => r['quantidade'] > 0)
+        .fold(0, (prev, r) => prev + (r['quantidade'] as int));
 
-  return Card(
-    elevation: 2,
-    color: Colors.white,
-    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-    child: Padding(
-      padding: const EdgeInsets.all(16.0),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
+    // por enquanto só usamos os números se você quiser exibir depois
+    totalItems;
+    totalSaidas;
+    totalEntradas;
+
+    return Card(
+      elevation: 2,
+      color: Colors.white,
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+      child: Padding(
+        padding: const EdgeInsets.all(16.0),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text(
+              'Gerar Relatório',
+              style: TextStyle(
+                fontSize: 18,
+                fontWeight: FontWeight.bold,
+                color: metroBlue,
+              ),
+            ),
+            const SizedBox(height: 12),
+            const Text(
+              'Escolha o tipo de relatório para ser gerado:',
+              style: TextStyle(fontSize: 14, color: Colors.black87),
+            ),
+            const SizedBox(height: 8),
+            Wrap(
+              spacing: 8,
+              runSpacing: 8,
+              children: [
+                _reportTypeButton('Movimentações por Usuário', Icons.person),
+                _reportTypeButton('Movimentação Geral', Icons.all_inclusive),
+              ],
+            ),
+            const SizedBox(height: 16),
+            const Divider(),
+            const SizedBox(height: 8),
+            Wrap(
+              spacing: 8,
+              children: [
+                ElevatedButton.icon(
+                  onPressed: _exportPdf,
+                  icon: const Icon(Icons.picture_as_pdf_outlined),
+                  label: const Text('Exportar PDF'),
+                ),
+                ElevatedButton.icon(
+                  onPressed: _exportExcel,
+                  icon: const Icon(Icons.table_chart_outlined),
+                  label: const Text('Exportar Excel'),
+                ),
+              ],
+            ),
+            const SizedBox(height: 12),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _reportTypeButton(String label, IconData icon) {
+    final bool isSelected = _selectedReportType == label;
+
+    return ChoiceChip(
+      showCheckmark: false,
+      selected: isSelected,
+      selectedColor: metroBlue,
+      backgroundColor: Colors.grey.shade100,
+      labelPadding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+      label: Row(
+        mainAxisSize: MainAxisSize.min,
         children: [
+          Icon(icon, size: 18, color: isSelected ? Colors.white : metroBlue),
+          const SizedBox(width: 6),
           Text(
-            'Gerar Relatório',
+            label,
             style: TextStyle(
-              fontSize: 18,
-              fontWeight: FontWeight.bold,
-              color: metroBlue,
+              color: isSelected ? Colors.white : Colors.black87,
+              fontWeight: FontWeight.w500,
             ),
           ),
-          const SizedBox(height: 12),
-          const Text(
-            'Escolha o tipo de relatório para ser gerado:',
-            style: TextStyle(fontSize: 14, color: Colors.black87),
-          ),
-          const SizedBox(height: 8),
-
-          Wrap(
-            spacing: 8,
-            runSpacing: 8,
-            children: [
-              _reportTypeButton('Movimentações por Usuário', Icons.person),
-              _reportTypeButton('Movimentação Geral', Icons.all_inclusive),
-            ],
-          ),
-
-          const SizedBox(height: 16),
-
-          // BOTÕES DE EXPORTAÇÃO
-          const Divider(),
-          const SizedBox(height: 8),
-          Wrap(
-            spacing: 8,
-            children: [
-              ElevatedButton.icon(
-                onPressed: _exportPdf,
-                icon: const Icon(Icons.picture_as_pdf_outlined),
-                label: const Text('Exportar PDF'),
-              ),
-              ElevatedButton.icon(
-                onPressed: _exportExcel,
-                icon: const Icon(Icons.table_chart_outlined),
-                label: const Text('Exportar Excel'),
-              ),
-            ],
-          ),
-
-          const SizedBox(height: 12),
         ],
       ),
-    ),
-  );
-}
-
-Widget _reportTypeButton(String label, IconData icon) {
-  final bool isSelected = _selectedReportType == label;
-
-  return ChoiceChip(
-    showCheckmark: false,
-    selected: isSelected,
-    selectedColor: metroBlue,
-    backgroundColor: Colors.grey.shade100,
-    labelPadding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-    label: Row(
-      mainAxisSize: MainAxisSize.min,
-      children: [
-        Icon(icon, size: 18, color: isSelected ? Colors.white : metroBlue),
-        const SizedBox(width: 6),
-        Text(
-          label,
-          style: TextStyle(
-            color: isSelected ? Colors.white : Colors.black87,
-            fontWeight: FontWeight.w500,
-          ),
-        ),
-      ],
-    ),
-    onSelected: (_) {
-      setState(() {
-        _selectedReportType = label;
-      });
-    },
-  );
-}
-
-  Widget _smallInfoTile(String title, String value) {
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Text(
-          title,
-          style: const TextStyle(fontSize: 12, color: Colors.black54),
-        ),
-        const SizedBox(height: 4),
-        Text(
-          value,
-          style: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
-        ),
-      ],
+      onSelected: (_) {
+        setState(() {
+          _selectedReportType = label;
+          _filteredData =
+              List<Map<String, dynamic>>.from(_currentSource); // troca fonte
+        });
+      },
     );
   }
 
@@ -777,6 +821,7 @@ Widget _reportTypeButton(String label, IconData icon) {
                 ),
               ),
             ),
+            DataCell(Text(row['base'])),
             DataCell(Text(row['usuario'])),
           ],
         );
@@ -819,6 +864,12 @@ Widget _reportTypeButton(String label, IconData icon) {
               DataColumn(
                 label: Text(
                   'Quantidade',
+                  style: TextStyle(fontWeight: FontWeight.bold),
+                ),
+              ),
+              DataColumn(
+                label: Text(
+                  'Base',
                   style: TextStyle(fontWeight: FontWeight.bold),
                 ),
               ),
