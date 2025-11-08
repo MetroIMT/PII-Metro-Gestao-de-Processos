@@ -2,7 +2,10 @@ import 'package:flutter/material.dart';
 import '../../widgets/sidebar.dart';
 import 'dart:io';
 import 'package:image_picker/image_picker.dart';
-
+import '../../services/user_service.dart';
+import '../../models/user.dart';
+import 'package:flutter_secure_storage/flutter_secure_storage.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 
 class AdminPage extends StatefulWidget {
   const AdminPage({super.key});
@@ -28,7 +31,7 @@ class _AdminPageState extends State<AdminPage>
   final TextEditingController _confirmPasswordController =
       TextEditingController();
 
-  bool _isEditingName = false;
+  // name editing removed from UI
 
   // Toggle de visibilidade das senhas no diálogo
   bool _obscureCurrent = true;
@@ -43,25 +46,18 @@ class _AdminPageState extends State<AdminPage>
   File? _avatarFile;
   String? _avatarUrl;
 
-  // Sessões ativas (simulação)
-  List<Map<String, dynamic>> _sessions = [
-    {
-      'id': 's1',
-      'device': 'Chrome · Windows 11',
-      'ip': '192.168.0.12',
-      'lastSeen': DateTime.now().subtract(const Duration(hours: 2)),
-    },
-    {
-      'id': 's2',
-      'device': 'Safari · iPhone',
-      'ip': '192.168.1.7',
-      'lastSeen': DateTime.now().subtract(const Duration(days: 1, hours: 3)),
-    },
-  ];
+  // Sessões ativas (vão ser carregadas do backend quando disponível)
+  List<Map<String, dynamic>> _sessions = [];
 
   bool _isRailExtended = false;
   late AnimationController _animationController;
   final GlobalKey<ScaffoldState> _scaffoldKey = GlobalKey<ScaffoldState>();
+
+  // Estado do profile carregado do servidor
+  final UserService _userService = UserService();
+  User? _user;
+  bool _isLoadingProfile = false;
+  String? _profileError;
 
   @override
   void initState() {
@@ -70,6 +66,8 @@ class _AdminPageState extends State<AdminPage>
       vsync: this,
       duration: const Duration(milliseconds: 300),
     );
+    // Carrega profile do servidor ao iniciar
+    _fetchProfile();
   }
 
   @override
@@ -151,8 +149,14 @@ class _AdminPageState extends State<AdminPage>
             autofocus: true,
           ),
           actions: [
-            TextButton(onPressed: () => Navigator.pop(context, false), child: const Text('Cancelar')),
-            ElevatedButton(onPressed: () => Navigator.pop(context, true), child: const Text('OK')),
+            TextButton(
+              onPressed: () => Navigator.pop(context, false),
+              child: const Text('Cancelar'),
+            ),
+            ElevatedButton(
+              onPressed: () => Navigator.pop(context, true),
+              child: const Text('OK'),
+            ),
           ],
         );
       },
@@ -160,26 +164,206 @@ class _AdminPageState extends State<AdminPage>
 
     if (ok == true) {
       setState(() {
-        _avatarUrl = controller.text.trim().isEmpty ? null : controller.text.trim();
+        _avatarUrl = controller.text.trim().isEmpty
+            ? null
+            : controller.text.trim();
         _avatarFile = null; // prioriza URL quando definida
       });
     }
   }
 
   void _removeAvatar() {
-    setState(() {
-      _avatarUrl = null;
-      _avatarFile = null;
+    // Persist a remoção no backend (PATCH { avatarUrl: null })
+    final Future<String?> userIdFuture = _user?.id != null
+        ? Future.value(_user!.id)
+        : _getStoredUserId();
+    userIdFuture.then((userId) async {
+      if (userId == null) {
+        setState(() {
+          _avatarUrl = null;
+          _avatarFile = null;
+        });
+        if (!mounted) return;
+        _showSnackbar('Avatar removido localmente');
+        return;
+      }
+
+      try {
+        final updated = await _userService.removeAvatar(userId);
+        if (!mounted) return;
+        setState(() {
+          _user = updated;
+          _avatarUrl = updated.avatarUrl;
+          _avatarFile = null;
+        });
+        _showSnackbar('Avatar removido com sucesso');
+      } catch (e) {
+        if (!mounted) return;
+        _showSnackbar('Erro ao remover avatar: $e');
+      }
     });
   }
 
-  void _revokeSession(String id) {
-    setState(() {
-      _sessions.removeWhere((s) => s['id'] == id);
-    });
-    ScaffoldMessenger.of(context).showSnackBar(
-      const SnackBar(content: Text('Sessão encerrada'), behavior: SnackBarBehavior.floating),
+  Future<void> _fetchSessions() async {
+    final id = _user?.id ?? await _getStoredUserId();
+    if (id == null) return;
+
+    try {
+      final list = await _userService.getSessions(id);
+      final parsed = list.map((s) {
+        DateTime? last;
+        final raw = s['lastSeen'];
+        if (raw is String) {
+          try {
+            last = DateTime.parse(raw);
+          } catch (_) {
+            last = null;
+          }
+        } else if (raw is DateTime) {
+          last = raw;
+        }
+        return {
+          'id': s['id']?.toString(),
+          'device': s['device'] ?? 'Desconhecido',
+          'ip': s['ip'],
+          'lastSeen': last ?? DateTime.now(),
+        };
+      }).toList();
+      if (!mounted) return;
+      setState(() {
+        _sessions = parsed;
+      });
+    } catch (e) {
+      // se falhar, mantemos sessões locais e silenciosamente falhamos
+      // (a lista de sessões não é crítica)
+    }
+  }
+
+  // Helper seguro para exibir SnackBars sem usar diretamente `context` após awaits
+  void _showSnackbar(
+    String message, {
+    Color? backgroundColor,
+    SnackBarBehavior? behavior,
+  }) {
+    final ctx = _scaffoldKey.currentContext;
+    if (ctx == null) return;
+    ScaffoldMessenger.of(ctx).showSnackBar(
+      SnackBar(
+        content: Text(message),
+        backgroundColor: backgroundColor,
+        behavior: behavior,
+      ),
     );
+  }
+
+  Future<void> _uploadAvatar() async {
+    if (_avatarFile == null) return;
+    final id = _user?.id ?? await _getStoredUserId();
+    if (id == null) {
+      if (!mounted) return;
+      _showSnackbar('Usuário não autenticado');
+      return;
+    }
+
+    try {
+      final updated = await _userService.uploadAvatar(id, _avatarFile!);
+      if (!mounted) return;
+      setState(() {
+        _user = updated;
+        _avatarUrl = updated.avatarUrl;
+        _avatarFile = null;
+      });
+      if (!mounted) return;
+      _showSnackbar('Avatar enviado com sucesso');
+    } catch (e) {
+      if (!mounted) return;
+      _showSnackbar('Erro ao enviar avatar: $e');
+    }
+  }
+
+  Future<String?> _getStoredUserId() async {
+    final secure = const FlutterSecureStorage();
+    try {
+      final id = await secure.read(key: 'userId');
+      if (id != null && id.isNotEmpty) return id;
+    } catch (_) {}
+
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      final id = prefs.getString('userId');
+      if (id != null && id.isNotEmpty) return id;
+    } catch (_) {}
+
+    return null;
+  }
+
+  Future<void> _fetchProfile() async {
+    setState(() {
+      _isLoadingProfile = true;
+      _profileError = null;
+    });
+
+    final id = await _getStoredUserId();
+    if (id == null) {
+      setState(() {
+        _profileError = 'Usuário não autenticado';
+        _isLoadingProfile = false;
+      });
+      return;
+    }
+
+    try {
+      final user = await _userService.getById(id);
+      setState(() {
+        _user = user;
+        _nameController.text = user.nome;
+        if (user.avatarUrl != null && user.avatarUrl!.isNotEmpty) {
+          _avatarUrl = user.avatarUrl;
+        }
+        _isLoadingProfile = false;
+      });
+      // carrega sessões do backend (se disponível)
+      await _fetchSessions();
+    } catch (e) {
+      setState(() {
+        _profileError = e.toString();
+        _isLoadingProfile = false;
+      });
+    }
+  }
+
+  // name editing removed; no local save function
+
+  void _revokeSession(String id) {
+    // Tenta revogar no backend, se possível
+    final Future<String?> userIdFuture = _user?.id != null
+        ? Future.value(_user!.id)
+        : _getStoredUserId();
+    userIdFuture.then((userId) async {
+      if (userId == null) {
+        setState(() {
+          _sessions.removeWhere((s) => s['id'] == id);
+        });
+        if (!mounted) return;
+        _showSnackbar(
+          'Sessão local encerrada',
+          behavior: SnackBarBehavior.floating,
+        );
+        return;
+      }
+
+      try {
+        await _userService.revokeSession(userId, id);
+        if (!mounted) return;
+        setState(() {
+          _sessions.removeWhere((s) => s['id'] == id);
+        });
+        _showSnackbar('Sessão encerrada', behavior: SnackBarBehavior.floating);
+      } catch (e) {
+        if (!mounted) return;
+        _showSnackbar('Erro ao encerrar sessão: $e');
+      }
+    });
   }
 
   // PICKERS
@@ -196,11 +380,11 @@ class _AdminPageState extends State<AdminPage>
           _avatarFile = File(picked.path);
           _avatarUrl = null;
         });
+        // Após selecionar, envie para o backend
+        _uploadAvatar();
       }
     } catch (e) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Erro ao selecionar imagem: $e')),
-      );
+      _showSnackbar('Erro ao selecionar imagem: $e');
     }
   }
 
@@ -217,11 +401,11 @@ class _AdminPageState extends State<AdminPage>
           _avatarFile = File(picked.path);
           _avatarUrl = null;
         });
+        // Após tirar foto, envie para o backend
+        _uploadAvatar();
       }
     } catch (e) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Erro ao tirar foto: $e')),
-      );
+      _showSnackbar('Erro ao tirar foto: $e');
     }
   }
 
@@ -252,10 +436,7 @@ class _AdminPageState extends State<AdminPage>
               ),
               title: const Text(
                 'Perfil do Administrador',
-                style: TextStyle(
-                  color: metroBlue,
-                  fontWeight: FontWeight.bold,
-                ),
+                style: TextStyle(color: metroBlue, fontWeight: FontWeight.bold),
               ),
               centerTitle: true,
               actions: [
@@ -302,9 +483,7 @@ class _AdminPageState extends State<AdminPage>
                   child: Padding(
                     // Padding diferente para mobile e desktop
                     padding: EdgeInsets.all(isMobile ? 16 : 32),
-                    child: SingleChildScrollView(
-                      child: _buildProfileCard(),
-                    ),
+                    child: SingleChildScrollView(child: _buildProfileCard()),
                   ),
                 ),
               ],
@@ -352,7 +531,7 @@ class _AdminPageState extends State<AdminPage>
   Widget _buildProfileCard() {
     return Card(
       elevation: 4,
-      shadowColor: Colors.black.withOpacity(0.08),
+      shadowColor: Colors.black.withAlpha(20),
       color: Colors.white,
       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(18)),
       child: Padding(
@@ -361,14 +540,20 @@ class _AdminPageState extends State<AdminPage>
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             // Avatar + título
-            Row(
-              children: [
-                _avatarSection(),
-                const SizedBox(width: 16),
-              ],
-            ),
+            Row(children: [_avatarSection(), const SizedBox(width: 16)]),
 
             const SizedBox(height: 16),
+
+            if (_profileError != null) ...[
+              Padding(
+                padding: const EdgeInsets.symmetric(horizontal: 16.0),
+                child: Text(
+                  _profileError!,
+                  style: const TextStyle(color: Colors.red),
+                ),
+              ),
+              const SizedBox(height: 8),
+            ],
 
             // --- Nome ---
             ListTile(
@@ -377,42 +562,15 @@ class _AdminPageState extends State<AdminPage>
                 'Nome',
                 style: TextStyle(fontSize: 14, color: Colors.black54),
               ),
-              subtitle: _isEditingName
-                  ? TextField(
-                      // Aparece quando está editando
-                      controller: _nameController,
-                      autofocus: true,
-                      style: const TextStyle(
-                        fontSize: 18,
-                        fontWeight: FontWeight.w700,
-                      ),
-                      decoration: const InputDecoration(
-                        isDense: true,
-                        focusedBorder: UnderlineInputBorder(
-                          borderSide: BorderSide(color: metroBlue),
-                        ),
-                      ),
-                    )
-                  : Text(
-                      // Aparece quando não está editando
-                      _nameController.text,
-                      style: const TextStyle(
-                        fontSize: 18,
-                        fontWeight: FontWeight.w700,
-                        color: Colors.black87,
-                      ),
-                    ),
-              trailing: IconButton(
-                icon: Icon(
-                  _isEditingName ? Icons.check_rounded : Icons.edit_outlined,
-                  color: metroBlue,
-                  size: 20,
+              subtitle: Text(
+                _nameController.text,
+                style: const TextStyle(
+                  fontSize: 18,
+                  fontWeight: FontWeight.w700,
+                  color: Colors.black87,
                 ),
-                onPressed: () {
-                  setState(() => _isEditingName = !_isEditingName);
-                  // Aqui você salvaria o nome no banco de dados
-                },
               ),
+              // removed edit button per request
             ),
 
             const Divider(height: 24),
@@ -436,7 +594,55 @@ class _AdminPageState extends State<AdminPage>
                 onPressed: () {
                   _showChangePasswordDialog();
                 },
-                child: const Text('Alterar', style: TextStyle(color: metroBlue)),
+                child: const Text(
+                  'Alterar',
+                  style: TextStyle(color: metroBlue),
+                ),
+              ),
+            ),
+
+            const Divider(height: 24),
+            // --- CPF ---
+            ListTile(
+              leading: const Icon(Icons.credit_card, color: metroBlue),
+              title: const Text(
+                'CPF',
+                style: TextStyle(fontSize: 14, color: Colors.black54),
+              ),
+              subtitle: Text(
+                _user?.cpf ?? '—',
+                style: const TextStyle(
+                  fontSize: 18,
+                  fontWeight: FontWeight.w700,
+                  color: Colors.black87,
+                ),
+              ),
+              trailing: TextButton(
+                onPressed: _editCpf,
+                child: const Text('Editar'),
+              ),
+            ),
+
+            const SizedBox(height: 8),
+
+            // --- Telefone ---
+            ListTile(
+              leading: const Icon(Icons.phone, color: metroBlue),
+              title: const Text(
+                'Telefone',
+                style: TextStyle(fontSize: 14, color: Colors.black54),
+              ),
+              subtitle: Text(
+                _user?.telefone ?? '—',
+                style: const TextStyle(
+                  fontSize: 18,
+                  fontWeight: FontWeight.w700,
+                  color: Colors.black87,
+                ),
+              ),
+              trailing: TextButton(
+                onPressed: _editTelefone,
+                child: const Text('Editar'),
               ),
             ),
 
@@ -471,6 +677,24 @@ class _AdminPageState extends State<AdminPage>
   }
 
   Widget _avatarSection() {
+    if (_isLoadingProfile) {
+      return Row(
+        children: [
+          const SizedBox(
+            width: 80,
+            height: 80,
+            child: Center(child: CircularProgressIndicator()),
+          ),
+          const SizedBox(width: 8),
+          Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: const [
+              SizedBox(width: 200, child: Text('Carregando...')),
+            ],
+          ),
+        ],
+      );
+    }
     ImageProvider? image;
     if (_avatarFile != null) {
       image = FileImage(_avatarFile!);
@@ -502,13 +726,20 @@ class _AdminPageState extends State<AdminPage>
             const SizedBox(height: 6),
             Row(
               children: [
-                TextButton(onPressed: _showAvatarOptions, child: const Text('Alterar foto')),
-                if (_avatarFile != null || (_avatarUrl != null && _avatarUrl!.isNotEmpty))
-                  TextButton(onPressed: _removeAvatar, child: const Text('Remover')),
+                TextButton(
+                  onPressed: _showAvatarOptions,
+                  child: const Text('Alterar foto'),
+                ),
+                if (_avatarFile != null ||
+                    (_avatarUrl != null && _avatarUrl!.isNotEmpty))
+                  TextButton(
+                    onPressed: _removeAvatar,
+                    child: const Text('Remover'),
+                  ),
               ],
-            )
+            ),
           ],
-        )
+        ),
       ],
     );
   }
@@ -560,7 +791,10 @@ class _AdminPageState extends State<AdminPage>
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        const Text('Sessões ativas', style: TextStyle(fontWeight: FontWeight.bold)),
+        const Text(
+          'Sessões ativas',
+          style: TextStyle(fontWeight: FontWeight.bold),
+        ),
         const SizedBox(height: 8),
         Card(
           color: Colors.grey.shade50,
@@ -577,7 +811,9 @@ class _AdminPageState extends State<AdminPage>
                       return ListTile(
                         leading: const Icon(Icons.devices),
                         title: Text(s['device']),
-                        subtitle: Text('${s['ip']} • Último: ${_formatRelative(last)}'),
+                        subtitle: Text(
+                          '${s['ip']} • Último: ${_formatRelative(last)}',
+                        ),
                         trailing: TextButton(
                           onPressed: () => _revokeSession(s['id'] as String),
                           child: const Text('Encerrar'),
@@ -615,174 +851,266 @@ class _AdminPageState extends State<AdminPage>
     showDialog(
       context: context,
       barrierDismissible: !isProcessing,
-      builder: (context) {
-        return StatefulBuilder(builder: (context, setStateDialog) {
-          Future<void> _attemptChange() async {
-            // Validações
-            final current = _currentPasswordController.text;
-            final next = _newPasswordController.text;
-            final confirm = _confirmPasswordController.text;
+      builder: (dialogContext) {
+        return StatefulBuilder(
+          builder: (innerContext, setStateDialog) {
+            Future<void> attemptChange() async {
+              // Validações
+              final current = _currentPasswordController.text;
+              final next = _newPasswordController.text;
+              final confirm = _confirmPasswordController.text;
 
-            setStateDialog(() => errorText = null);
+              setStateDialog(() => errorText = null);
 
-            if (current.isEmpty || next.isEmpty || confirm.isEmpty) {
-              setStateDialog(() => errorText = 'Preencha todos os campos.');
-              return;
-            }
+              if (current.isEmpty || next.isEmpty || confirm.isEmpty) {
+                setStateDialog(() => errorText = 'Preencha todos os campos.');
+                return;
+              }
 
-            if (current != _storedPassword) {
-              setStateDialog(() => errorText = 'Senha atual incorreta.');
-              return;
-            }
+              if (current != _storedPassword) {
+                setStateDialog(() => errorText = 'Senha atual incorreta.');
+                return;
+              }
 
-            if (next.length < 6) {
-              setStateDialog(() => errorText = 'A nova senha deve ter ao menos 6 caracteres.');
-              return;
-            }
+              if (next.length < 6) {
+                setStateDialog(
+                  () => errorText =
+                      'A nova senha deve ter ao menos 6 caracteres.',
+                );
+                return;
+              }
 
-            if (next != confirm) {
-              setStateDialog(() => errorText = 'As senhas não coincidem.');
-              return;
-            }
+              if (next != confirm) {
+                setStateDialog(() => errorText = 'As senhas não coincidem.');
+                return;
+              }
 
-            // Simula processamento (substitua por chamada ao backend)
-            setStateDialog(() => isProcessing = true);
-            try {
-              await Future.delayed(const Duration(milliseconds: 800));
-              // Atualiza "senha" localmente
-              setState(() => _storedPassword = next);
+              // Simula processamento (substitua por chamada ao backend)
+              setStateDialog(() => isProcessing = true);
+              try {
+                final navigator = Navigator.of(dialogContext);
+                await Future.delayed(const Duration(milliseconds: 800));
+                // Atualiza "senha" localmente
+                setState(() => _storedPassword = next);
 
-              // Fecha diálogo
-              if (mounted) {
-                Navigator.of(context).pop();
-                ScaffoldMessenger.of(this.context).showSnackBar(
-                  const SnackBar(
-                    content: Text('Senha alterada com sucesso.'),
+                // Fecha diálogo
+                if (mounted) {
+                  navigator.pop();
+                  _showSnackbar(
+                    'Senha alterada com sucesso.',
                     backgroundColor: Colors.green,
                     behavior: SnackBarBehavior.floating,
-                  ),
-                );
+                  );
+                }
+              } catch (e) {
+                setStateDialog(() => errorText = 'Erro ao alterar senha.');
+              } finally {
+                setStateDialog(() => isProcessing = false);
               }
-            } catch (e) {
-              setStateDialog(() => errorText = 'Erro ao alterar senha.');
-            } finally {
-              setStateDialog(() => isProcessing = false);
             }
-          }
 
-          final strength = _passwordStrength(_newPasswordController.text);
+            final strength = _passwordStrength(_newPasswordController.text);
 
-          return AlertDialog(
-            title: const Text('Alterar senha'),
-            content: Column(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                // Campo senha atual
-                TextField(
-                  controller: _currentPasswordController,
-                  obscureText: _obscureCurrent,
-                  decoration: InputDecoration(
-                    labelText: 'Senha atual',
-                    suffixIcon: IconButton(
-                      icon: Icon(
-                        _obscureCurrent ? Icons.visibility : Icons.visibility_off,
-                      ),
-                      onPressed: () => setStateDialog(() => _obscureCurrent = !_obscureCurrent),
-                    ),
-                  ),
-                  onSubmitted: (_) => _attemptChange(),
-                ),
-                const SizedBox(height: 12),
-
-                // Nova senha
-                TextField(
-                  controller: _newPasswordController,
-                  obscureText: _obscureNew,
-                  decoration: InputDecoration(
-                    labelText: 'Nova senha',
-                    hintText: 'Mínimo 6 caracteres',
-                    suffixIcon: IconButton(
-                      icon: Icon(_obscureNew ? Icons.visibility : Icons.visibility_off),
-                      onPressed: () => setStateDialog(() => _obscureNew = !_obscureNew),
-                    ),
-                  ),
-                  onChanged: (_) => setStateDialog(() {}), // atualiza força
-                  onSubmitted: (_) => _attemptChange(),
-                ),
-
-                const SizedBox(height: 8),
-                // Indicador de força
-                Row(
-                  children: [
-                    Expanded(
-                      child: LinearProgressIndicator(
-                        value: (_passwordStrength(_newPasswordController.text)) / 4.0,
-                        minHeight: 6,
-                        color: _passwordStrengthColor(strength),
-                        backgroundColor: Colors.grey.shade200,
+            return AlertDialog(
+              title: const Text('Alterar senha'),
+              content: Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  // Campo senha atual
+                  TextField(
+                    controller: _currentPasswordController,
+                    obscureText: _obscureCurrent,
+                    decoration: InputDecoration(
+                      labelText: 'Senha atual',
+                      suffixIcon: IconButton(
+                        icon: Icon(
+                          _obscureCurrent
+                              ? Icons.visibility
+                              : Icons.visibility_off,
+                        ),
+                        onPressed: () => setStateDialog(
+                          () => _obscureCurrent = !_obscureCurrent,
+                        ),
                       ),
                     ),
-                    const SizedBox(width: 8),
-                    Text(
-                      _passwordStrengthLabel(strength),
-                      style: TextStyle(color: _passwordStrengthColor(strength)),
-                    )
-                  ],
-                ),
-
-                const SizedBox(height: 12),
-
-                // Confirmar nova senha
-                TextField(
-                  controller: _confirmPasswordController,
-                  obscureText: _obscureConfirm,
-                  decoration: InputDecoration(
-                    labelText: 'Confirmar nova senha',
-                    suffixIcon: IconButton(
-                      icon: Icon(_obscureConfirm ? Icons.visibility : Icons.visibility_off),
-                      onPressed: () => setStateDialog(() => _obscureConfirm = !_obscureConfirm),
-                    ),
+                    onSubmitted: (_) => attemptChange(),
                   ),
-                  onSubmitted: (_) => _attemptChange(),
-                ),
-
-                if (errorText != null) ...[
                   const SizedBox(height: 12),
+
+                  // Nova senha
+                  TextField(
+                    controller: _newPasswordController,
+                    obscureText: _obscureNew,
+                    decoration: InputDecoration(
+                      labelText: 'Nova senha',
+                      hintText: 'Mínimo 6 caracteres',
+                      suffixIcon: IconButton(
+                        icon: Icon(
+                          _obscureNew ? Icons.visibility : Icons.visibility_off,
+                        ),
+                        onPressed: () =>
+                            setStateDialog(() => _obscureNew = !_obscureNew),
+                      ),
+                    ),
+                    onChanged: (_) => setStateDialog(() {}), // atualiza força
+                    onSubmitted: (_) => attemptChange(),
+                  ),
+
+                  const SizedBox(height: 8),
+                  // Indicador de força
                   Row(
                     children: [
-                      const Icon(Icons.error_outline, color: Colors.red, size: 18),
-                      const SizedBox(width: 8),
                       Expanded(
-                        child: Text(
-                          errorText!,
-                          style: const TextStyle(color: Colors.red),
+                        child: LinearProgressIndicator(
+                          value:
+                              (_passwordStrength(_newPasswordController.text)) /
+                              4.0,
+                          minHeight: 6,
+                          color: _passwordStrengthColor(strength),
+                          backgroundColor: Colors.grey.shade200,
+                        ),
+                      ),
+                      const SizedBox(width: 8),
+                      Text(
+                        _passwordStrengthLabel(strength),
+                        style: TextStyle(
+                          color: _passwordStrengthColor(strength),
                         ),
                       ),
                     ],
                   ),
+
+                  const SizedBox(height: 12),
+
+                  // Confirmar nova senha
+                  TextField(
+                    controller: _confirmPasswordController,
+                    obscureText: _obscureConfirm,
+                    decoration: InputDecoration(
+                      labelText: 'Confirmar nova senha',
+                      suffixIcon: IconButton(
+                        icon: Icon(
+                          _obscureConfirm
+                              ? Icons.visibility
+                              : Icons.visibility_off,
+                        ),
+                        onPressed: () => setStateDialog(
+                          () => _obscureConfirm = !_obscureConfirm,
+                        ),
+                      ),
+                    ),
+                    onSubmitted: (_) => attemptChange(),
+                  ),
+
+                  if (errorText != null) ...[
+                    const SizedBox(height: 12),
+                    Row(
+                      children: [
+                        const Icon(
+                          Icons.error_outline,
+                          color: Colors.red,
+                          size: 18,
+                        ),
+                        const SizedBox(width: 8),
+                        Expanded(
+                          child: Text(
+                            errorText!,
+                            style: const TextStyle(color: Colors.red),
+                          ),
+                        ),
+                      ],
+                    ),
+                  ],
                 ],
+              ),
+              actions: [
+                TextButton(
+                  onPressed: isProcessing
+                      ? null
+                      : () => Navigator.of(dialogContext).pop(),
+                  child: const Text('Cancelar'),
+                ),
+                ElevatedButton(
+                  onPressed: isProcessing ? null : attemptChange,
+                  style: ElevatedButton.styleFrom(backgroundColor: metroBlue),
+                  child: isProcessing
+                      ? const SizedBox(
+                          width: 20,
+                          height: 20,
+                          child: CircularProgressIndicator(strokeWidth: 2),
+                        )
+                      : const Text('Salvar'),
+                ),
               ],
-            ),
-            actions: [
-              TextButton(
-                onPressed: isProcessing ? null : () => Navigator.of(context).pop(),
-                child: const Text('Cancelar'),
-              ),
-              ElevatedButton(
-                onPressed: isProcessing ? null : _attemptChange,
-                style: ElevatedButton.styleFrom(backgroundColor: metroBlue),
-                child: isProcessing
-                    ? const SizedBox(
-                        width: 20,
-                        height: 20,
-                        child: CircularProgressIndicator(strokeWidth: 2),
-                      )
-                    : const Text('Salvar'),
-              ),
-            ],
-          );
-        });
+            );
+          },
+        );
       },
     );
+  }
+
+  Future<String?> _showEditDialog(String title, String initial) async {
+    final controller = TextEditingController(text: initial);
+    final ok = await showDialog<bool?>(
+      context: context,
+      builder: (context) {
+        return AlertDialog(
+          title: Text('Editar $title'),
+          content: TextField(
+            controller: controller,
+            decoration: InputDecoration(hintText: title),
+            autofocus: true,
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.pop(context, false),
+              child: const Text('Cancelar'),
+            ),
+            ElevatedButton(
+              onPressed: () => Navigator.pop(context, true),
+              child: const Text('Salvar'),
+            ),
+          ],
+        );
+      },
+    );
+    if (ok == true) return controller.text.trim();
+    return null;
+  }
+
+  Future<void> _editCpf() async {
+    final current = _user?.cpf ?? '';
+    final value = await _showEditDialog('CPF', current);
+    if (value == null) return;
+    final id = _user?.id ?? await _getStoredUserId();
+    if (id == null) return;
+    try {
+      final updated = await _userService.update(id, cpf: value);
+      if (!mounted) return;
+      setState(() => _user = updated);
+      if (!mounted) return;
+      _showSnackbar('CPF atualizado');
+    } catch (e) {
+      if (!mounted) return;
+      _showSnackbar('Erro ao atualizar CPF: $e');
+    }
+  }
+
+  Future<void> _editTelefone() async {
+    final current = _user?.telefone ?? '';
+    final value = await _showEditDialog('Telefone', current);
+    if (value == null) return;
+    final id = _user?.id ?? await _getStoredUserId();
+    if (id == null) return;
+    try {
+      final updated = await _userService.update(id, telefone: value);
+      if (!mounted) return;
+      setState(() => _user = updated);
+      if (!mounted) return;
+      _showSnackbar('Telefone atualizado');
+    } catch (e) {
+      if (!mounted) return;
+      _showSnackbar('Erro ao atualizar telefone: $e');
+    }
   }
 }

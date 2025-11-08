@@ -3,8 +3,9 @@ class User {
   final String nome;
   final String email;
   final String? cpf;
-  final String? telefone; 
+  final String? telefone;
   final String role;
+  final String? avatarUrl;
   final bool ativo;
   final DateTime? criadoEm;
   final DateTime? atualizadoEm;
@@ -13,8 +14,9 @@ class User {
     this.id,
     required this.nome,
     required this.email,
-    this.cpf,       
-    this.telefone, 
+    this.cpf,
+    this.telefone,
+    this.avatarUrl,
     required this.role,
     this.ativo = true,
     this.criadoEm,
@@ -26,12 +28,17 @@ class User {
       id: json['_id']?.toString(),
       nome: json['nome'] ?? '',
       email: json['email'] ?? '',
-      cpf: json['cpf'],     
-      telefone: json['telefone'],  
+      cpf: json['cpf'],
+      telefone: json['telefone'],
+      avatarUrl: json['avatarUrl'],
       role: json['role'] ?? 'tecnico',
       ativo: json['ativo'] ?? true,
-      criadoEm: json['criadoEm'] != null ? DateTime.parse(json['criadoEm']) : null,
-      atualizadoEm: json['atualizadoEm'] != null ? DateTime.parse(json['atualizadoEm']) : null,
+      criadoEm: json['criadoEm'] != null
+          ? DateTime.parse(json['criadoEm'])
+          : null,
+      atualizadoEm: json['atualizadoEm'] != null
+          ? DateTime.parse(json['atualizadoEm'])
+          : null,
     );
   }
 
@@ -40,8 +47,9 @@ class User {
       if (id != null) '_id': id,
       'nome': nome,
       'email': email,
-      if (cpf != null) 'cpf': cpf,          
-      if (telefone != null) 'telefone': telefone,  
+      if (cpf != null) 'cpf': cpf,
+      if (telefone != null) 'telefone': telefone,
+      if (avatarUrl != null) 'avatarUrl': avatarUrl,
       'role': role,
       'ativo': ativo,
       if (criadoEm != null) 'criadoEm': criadoEm!.toIso8601String(),

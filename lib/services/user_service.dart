@@ -1,4 +1,5 @@
 import 'dart:convert';
+import 'dart:io';
 import 'package:http/http.dart' as http;
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
@@ -220,6 +221,7 @@ class UserService {
     String? cpf,
     String? telefone,
     String? role,
+    String? avatarUrl,
   }) async {
     try {
       final headers = await _getHeaders();
@@ -230,6 +232,8 @@ class UserService {
       if (cpf != null && cpf.isNotEmpty) body['cpf'] = cpf;
       if (telefone != null && telefone.isNotEmpty) body['telefone'] = telefone;
       if (role != null && role.isNotEmpty) body['role'] = role;
+      // avatarUrl can be explicitly null to request removal; check for != null
+      if (avatarUrl != null) body['avatarUrl'] = avatarUrl;
 
       final response = await _client
           .patch(
@@ -278,6 +282,68 @@ class UserService {
     }
   }
 
+  /// Upload de avatar: envia multipart/form-data para o backend e retorna o
+  /// usuário atualizado.
+  Future<User> uploadAvatar(String id, File file) async {
+    try {
+      final headers = await _getHeaders();
+      final uri = Uri.parse('$_baseUrl/usuarios/$id/avatar');
+      final request = http.MultipartRequest('POST', uri);
+      request.headers.addAll(headers);
+      request.files.add(await http.MultipartFile.fromPath('avatar', file.path));
+
+      final streamed = await request.send().timeout(
+        const Duration(seconds: 60),
+      );
+      final response = await http.Response.fromStream(streamed);
+
+      if (response.statusCode == 200) {
+        final decoded = _tryDecodeJson(response.body);
+        if (decoded is Map) {
+          return User.fromJson(Map<String, dynamic>.from(decoded));
+        }
+        final snippet = response.body.length > 200
+            ? '${response.body.substring(0, 200)}...'
+            : response.body;
+        throw Exception('Resposta inválida do servidor: $snippet');
+      } else if (response.statusCode == 401) {
+        final decoded = _tryDecodeJson(response.body);
+        await _clearToken();
+        if (decoded is Map && decoded.containsKey('error')) {
+          throw Exception(decoded['error']);
+        }
+        throw Exception('Token ausente ou inválido');
+      } else {
+        final snippet = response.body.length > 200
+            ? '${response.body.substring(0, 200)}...'
+            : response.body;
+        throw Exception(
+          'Erro ao enviar avatar: status=${response.statusCode}, body=$snippet',
+        );
+      }
+    } catch (e) {
+      throw Exception('Erro ao enviar avatar: $e');
+    }
+  }
+
+  /// Revoga sessão remota (chama endpoint do backend). Não lança se não ok.
+  Future<void> revokeSession(String userId, String sessionId) async {
+    try {
+      final headers = await _getHeaders();
+      final response = await _client
+          .post(
+            Uri.parse('$_baseUrl/usuarios/$userId/sessions/$sessionId/revoke'),
+            headers: headers,
+          )
+          .timeout(const Duration(seconds: 30));
+      if (response.statusCode == 200 || response.statusCode == 204) return;
+      // ok: mesmo que não exista, consideramos sucesso para a UI
+      return;
+    } catch (e) {
+      throw Exception('Erro ao revogar sessão: $e');
+    }
+  }
+
   Future<void> delete(String id) async {
     try {
       final headers = await _getHeaders();
@@ -312,7 +378,68 @@ class UserService {
     }
   }
 
+  /// Busca sessões ativas do usuário (se o backend expuser /usuarios/:id/sessions)
+  Future<List<Map<String, dynamic>>> getSessions(String userId) async {
+    try {
+      final headers = await _getHeaders();
+      final response = await _client
+          .get(
+            Uri.parse('$_baseUrl/usuarios/$userId/sessions'),
+            headers: headers,
+          )
+          .timeout(const Duration(seconds: 30));
+
+      if (response.statusCode == 200) {
+        final decoded = _tryDecodeJson(response.body);
+        if (decoded is List) {
+          return decoded
+              .map((e) => Map<String, dynamic>.from(e as Map))
+              .toList();
+        }
+        return [];
+      }
+
+      // qualquer outro status: retorna vazio para UI (lista não essencial)
+      return [];
+    } catch (e) {
+      // não falhar crítico: propagar erro para quem chamar se necessário
+      throw Exception('Erro ao buscar sessões: $e');
+    }
+  }
+
   void dispose() {
     _client.close();
+  }
+
+  /// Remove avatar persistentemente: envia PATCH { avatarUrl: null }
+  Future<User> removeAvatar(String id) async {
+    try {
+      final headers = await _getHeaders();
+      final response = await _client
+          .patch(
+            Uri.parse('$_baseUrl/usuarios/$id'),
+            headers: headers,
+            body: json.encode({'avatarUrl': null}),
+          )
+          .timeout(const Duration(seconds: 30));
+
+      if (response.statusCode == 200) {
+        final decoded = _tryDecodeJson(response.body);
+        if (decoded is Map) {
+          return User.fromJson(Map<String, dynamic>.from(decoded));
+        }
+        throw Exception('Resposta inválida do servidor ao remover avatar');
+      } else {
+        final decoded = _tryDecodeJson(response.body);
+        if (decoded is Map && decoded.containsKey('error')) {
+          throw Exception(decoded['error']);
+        }
+        throw Exception(
+          'Erro ao remover avatar: status=${response.statusCode}',
+        );
+      }
+    } catch (e) {
+      throw Exception('Erro ao remover avatar: $e');
+    }
   }
 }
