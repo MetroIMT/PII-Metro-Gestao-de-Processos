@@ -5,12 +5,14 @@ import 'alerts_page.dart';
 import 'reports_page.dart';
 import 'estoque_categorias_page.dart';
 import 'movimentacoes_page.dart'; // Importar a nova página
+import 'tool_page.dart';
 import '../../repositories/alert_repository.dart'; // Importa AlertRepository, AlertItem e AlertType
 import '../../repositories/movimentacao_repository.dart';
 import '../../models/movimentacao.dart';
 import 'package:intl/intl.dart';
 import 'gerenciar_usuarios.dart';
 import '../../widgets/sidebar.dart';
+import '../../services/material_service.dart';
 
 // Classe PieChartPainter (Sem alterações)
 // ... (seu código do PieChartPainter)
@@ -113,6 +115,35 @@ class _HomeScreenState extends State<HomeScreen>
     
     // Adicionar listener para o novo repositório
     MovimentacaoRepository.instance.movimentacoesNotifier.addListener(_onAlertsCountChanged);
+    // carregar materiais do backend para atualizar o card de estoque
+    _loadMateriais();
+  }
+
+  final MaterialService _materialService = MaterialService();
+  List<EstoqueMaterial>? _materiaisGiro;
+  List<EstoqueMaterial>? _materiaisConsumo;
+  List<EstoqueMaterial>? _materiaisPatrimoniado;
+  String? _materiaisError;
+
+  Future<void> _loadMateriais() async {
+    try {
+      final results = await Future.wait([
+        _materialService.getByTipo('giro'),
+        _materialService.getByTipo('consumo'),
+        _materialService.getByTipo('patrimoniado'),
+      ]);
+
+      if (mounted) {
+        setState(() {
+          _materiaisGiro = results[0];
+          _materiaisConsumo = results[1];
+          _materiaisPatrimoniado = results[2];
+          _materiaisError = null;
+        });
+      }
+    } catch (e) {
+      if (mounted) setState(() => _materiaisError = e.toString());
+    }
   }
 
   void _onAlertsCountChanged() {
@@ -498,7 +529,7 @@ class _HomeScreenState extends State<HomeScreen>
               () => Navigator.push(
                 context,
                 MaterialPageRoute(
-                  builder: (_) => const EstoqueCategoriasPage(),
+                  builder: (_) => const ToolPage(),
                 ),
               ),
             ),
@@ -681,9 +712,9 @@ class _HomeScreenState extends State<HomeScreen>
   Widget _buildEstoqueCard(VoidCallback onTap) {
     
     final List<EstoqueMaterial> todosMateriais = [
-      ...materiaisGiro,
-      ...materiaisConsumo,
-      ...materiaisPatrimoniado,
+      ...(_materiaisGiro ?? materiaisGiro),
+      ...(_materiaisConsumo ?? materiaisConsumo),
+      ...(_materiaisPatrimoniado ?? materiaisPatrimoniado),
     ];
 
     final int totalMateriais = todosMateriais.length;
