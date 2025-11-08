@@ -1,44 +1,48 @@
 import 'package:flutter/material.dart';
 import 'estoque_page.dart'; // Reutiliza a estrutura da página de estoque e o modelo de dados
+import '../../services/material_service.dart';
 
-class MaterialGiroPage extends StatelessWidget {
+class MaterialGiroPage extends StatefulWidget {
   const MaterialGiroPage({super.key});
 
   @override
+  State<MaterialGiroPage> createState() => _MaterialGiroPageState();
+}
+
+class _MaterialGiroPageState extends State<MaterialGiroPage> {
+  final MaterialService _service = MaterialService();
+  List<EstoqueMaterial>? _materiais;
+  String? _error;
+
+  @override
+  void initState() {
+    super.initState();
+    _load();
+  }
+
+  Future<void> _load() async {
+    try {
+      final list = await _service.getByTipo('giro');
+      setState(() => _materiais = list);
+    } catch (e) {
+      setState(() => _error = e.toString());
+    }
+  }
+
+  @override
   Widget build(BuildContext context) {
-    // Dados de exemplo para esta categoria.
-    // Em uma aplicação real, estes dados viriam de um serviço ou banco de dados.
-    final List<EstoqueMaterial> materiaisGiro = [
-      EstoqueMaterial(
-        codigo: 'G001',
-        nome: 'Rolamento 6203',
-        quantidade: 50,
-        local: 'Almoxarifado A',
-        vencimento: DateTime(2025, 12, 31),
-      ),
-      EstoqueMaterial(
-        codigo: 'G002',
-        nome: 'Correia em V AX-45',
-        quantidade: 20,
-        local: 'Almoxarifado B',
-      ),
-      EstoqueMaterial(
-        codigo: 'G003',
-        nome: 'Filtro de Ar Motor X',
-        quantidade: 0,
-        local: 'Almoxarifado A',
-      ),
-      EstoqueMaterial(
-        codigo: 'G004',
-        nome: 'Selo Mecânico 1.5"',
-        quantidade: 5,
-        local: 'Oficina Mecânica',
-      ),
-    ];
+    if (_error != null) {
+      return Center(child: Text('Erro: $_error'));
+    }
+
+    if (_materiais == null) {
+      return const Center(child: CircularProgressIndicator());
+    }
 
     return EstoquePage(
       title: 'Material de Giro',
-      materiais: materiaisGiro,
+      materiais: _materiais!,
+      tipo: 'giro',
     );
   }
 }

@@ -3,6 +3,7 @@
 import 'package:flutter/material.dart';
 // NOVO: Importar o repositório que acabamos de criar
 import '../../repositories/movimentacao_repository.dart'; 
+import '../../services/material_service.dart';
 
 class EstoqueMaterial {
   final String codigo;
@@ -27,11 +28,14 @@ class EstoquePage extends StatefulWidget {
   // ... (resto do seu EstoquePage e _EstoquePageState sem alterações)
   final String title;
   final List<EstoqueMaterial> materiais;
+  // opcional: tipo que será usado ao criar um material (ex: 'giro','consumo','patrimoniado')
+  final String? tipo;
 
   const EstoquePage({
     super.key,
     this.title = 'Estoque',
     required this.materiais,
+    this.tipo,
   });
 
   @override
@@ -42,6 +46,7 @@ class _EstoquePageState extends State<EstoquePage> {
   final TextEditingController _searchController = TextEditingController();
   String _searchQuery = '';
   late List<EstoqueMaterial> _materiais;
+  final MaterialService _materialService = MaterialService();
 
   @override
   void initState() {
@@ -310,7 +315,7 @@ class _EstoquePageState extends State<EstoquePage> {
                         borderRadius: BorderRadius.circular(12),
                       ),
                     ),
-                    onPressed: () {
+                    onPressed: () async {
                       // Validar entradas
                       if (codigoController.text.isEmpty ||
                           nomeController.text.isEmpty ||
@@ -340,61 +345,81 @@ class _EstoquePageState extends State<EstoquePage> {
                         );
                         return;
                       }
-                      
-                      // Criar o novo material
-                      final novoMaterial = EstoqueMaterial(
-                        codigo: codigoController.text,
-                        nome: nomeController.text,
-                        quantidade: quantidade,
-                        local: localController.text,
-                        vencimento: selectedVencimento,
+                      // Chamar a API para criar o material (usa widget.tipo se fornecido)
+                      // Mostra indicador de progresso modal enquanto aguarda
+                      showDialog(
+                        context: context,
+                        barrierDismissible: false,
+                        builder: (_) => const Center(child: CircularProgressIndicator()),
                       );
 
-                      // Adicionar o novo material à lista
-                      setState(() {
-                        _materiais.add(novoMaterial);
-                      });
+                      try {
+                        final created = await _materialService.create(
+                          codigo: codigoController.text,
+                          nome: nomeController.text,
+                          quantidade: quantidade,
+                          local: localController.text,
+                          vencimento: selectedVencimento,
+                          tipo: widget.tipo,
+                        );
 
-                      // NOVO: Adicionar a movimentação ao repositório
-                      MovimentacaoRepository.instance.addMovimentacao(
-                        codigoMaterial: novoMaterial.codigo,
-                        descricao: "Adicionado: ${novoMaterial.nome}",
-                        quantidade: novoMaterial.quantidade,
-                        tipo: 'adicao',
-                        usuario: 'Sistema',
-                        local: novoMaterial.local,
-                      );
+                        setState(() {
+                          _materiais.add(created);
+                        });
 
-                      // Fechar o diálogo
-                      Navigator.pop(context);
+                        MovimentacaoRepository.instance.addMovimentacao(
+                          codigoMaterial: created.codigo,
+                          descricao: "Adicionado: ${created.nome}",
+                          quantidade: created.quantidade,
+                          tipo: 'adicao',
+                          usuario: 'Sistema',
+                          local: created.local,
+                        );
 
-                      // Mostrar confirmação
-                      ScaffoldMessenger.of(context).showSnackBar(
-                      // ... (lógica do snackbar sem alterações)
-                        SnackBar(
-                          content: Row(
-                            children: [
-                              const Icon(
-                                Icons.check_circle,
-                                color: Colors.white,
-                              ),
-                              const SizedBox(width: 16),
-                              Expanded(
-                                child: Text(
-                                  'Material ${nomeController.text} adicionado com sucesso',
-                                  style: const TextStyle(fontSize: 16),
+                        // Fechar indicador de progresso e diálogo de formulário
+                        Navigator.of(context).pop(); // fecha o CircularProgressIndicator
+                        Navigator.of(context).pop(); // fecha o diálogo de adicionar
+
+                        // Mostrar confirmação
+                        ScaffoldMessenger.of(context).showSnackBar(
+                          SnackBar(
+                            content: Row(
+                              children: [
+                                const Icon(
+                                  Icons.check_circle,
+                                  color: Colors.white,
                                 ),
-                              ),
-                            ],
+                                const SizedBox(width: 16),
+                                Expanded(
+                                  child: Text(
+                                    'Material ${created.nome} adicionado com sucesso',
+                                    style: const TextStyle(fontSize: 16),
+                                  ),
+                                ),
+                              ],
+                            ),
+                            backgroundColor: Colors.green.shade700,
+                            behavior: SnackBarBehavior.floating,
+                            shape: RoundedRectangleBorder(
+                              borderRadius: BorderRadius.circular(10),
+                            ),
+                            duration: const Duration(seconds: 4),
                           ),
-                          backgroundColor: Colors.green.shade700,
-                          behavior: SnackBarBehavior.floating,
-                          shape: RoundedRectangleBorder(
-                            borderRadius: BorderRadius.circular(10),
+                        );
+                      } catch (e) {
+                        // Fechar indicador de progresso se aberto
+                        try {
+                          Navigator.of(context).pop();
+                        } catch (_) {}
+
+                        // Mostrar erro
+                        ScaffoldMessenger.of(context).showSnackBar(
+                          SnackBar(
+                            content: Text('Erro ao criar material: $e'),
+                            backgroundColor: Colors.red.shade700,
                           ),
-                          duration: const Duration(seconds: 4),
-                        ),
-                      );
+                        );
+                      }
                     },
                     child: Row(
                     // ... (botão adicionar sem alterações)
