@@ -11,6 +11,7 @@ Este documento complementa o README principal com:
 ---
 
 ## Estrutura do projeto
+
 ```
 PII-Metro-Gestao-de-Processos/
 ├─ .dart_tool/
@@ -97,6 +98,7 @@ PII-Metro-Gestao-de-Processos/
 │  └─ settings.gradle.kts
 ├─ api/
 │  ├─ scripts/
+│  │  ├─ add_cpf_telefone.js
 │  │  └─ hash.js
 │  ├─ src/
 │  │  ├─ middlewares/
@@ -104,12 +106,15 @@ PII-Metro-Gestao-de-Processos/
 │  │  ├─ routes/
 │  │  │  ├─ auth.routes.js
 │  │  │  ├─ itens.routes.js
+│  │  │  ├─ materiais.routes.js
 │  │  │  ├─ movimentos.routes.js
 │  │  │  └─ usuarios.routes.js
 │  │  ├─ config.js
 │  │  ├─ db.js
 │  │  ├─ index.js
 │  │  └─ indexes.js
+│  ├─ uploads/
+│  │  └─ (avatars de usuários)
 │  ├─ .env
 │  ├─ package-lock.json
 │  └─ package.json
@@ -210,19 +215,27 @@ PII-Metro-Gestao-de-Processos/
 ├─ lib/
 │  ├─ screens/
 │  │  ├─ home/
-│  │  │  ├─ calendar_page.dart
-│  │  │  ├─ estoque_page.dart
 │  │  │  ├─ home_screen.dart
-│  │  │  ├─ info_page.dart
-│  │  │  ├─ people_page.dart
-│  │  │  ├─ settings_page.dart
-│  │  │  └─ tool_page.dart
+│  │  │  └─ widgets/
+│  │  │     ├─ carousel.dart
+│  │  │     ├─ estoque_item.dart
+│  │  │     ├─ movimentacao_card.dart
+│  │  │     └─ movimentacao_modal.dart
 │  │  └─ login/
-│  │     ├─ esqueceuasenha_popup.dart
-│  │     ├─ login_controller.dart
 │  │     └─ login_screen.dart
 │  ├─ services/
-│  │  └─ auth_service.dart
+│  │  ├─ auth_service.dart
+│  │  ├─ excel_service.dart
+│  │  ├─ pdf_service.dart
+│  │  └─ user_service.dart
+│  ├─ models/
+│  │  ├─ movimentacao.dart
+│  │  └─ user.dart
+│  ├─ repositories/
+│  │  ├─ alert_repository.dart
+│  │  └─ movimentacao_repository.dart
+│  ├─ widgets/
+│  │  └─ sidebar.dart
 │  └─ main.dart
 ├─ linux/
 │  ├─ flutter/
@@ -356,77 +369,221 @@ PII-Metro-Gestao-de-Processos/
 └─ README.md
 
 ```
+
 ---
 
 ## Linguagens e tecnologias
 
-- Front-end: Flutter (Dart)
-  - Flutter Secure Storage, Material 3, navegação com Navigator
-- Back-end: Node.js (ES Modules) + Express 5
-  - mongodb (driver oficial), bcryptjs, jsonwebtoken, dotenv, cors
-- Banco de dados: MongoDB (Atlas ou local)
-- Plataforma: macOS/Linux/Windows, iOS/Android/Web/Desktop
+### Front-end
+
+- **Flutter (Dart)**: Framework multiplataforma para UI responsiva
+- **Material Design 3**: Design system moderno com tema personalizado Metro SP
+- **Flutter Secure Storage**: Armazenamento criptografado de tokens e credenciais
+- **HTTP Client**: Comunicação REST com o backend
+- **Provider/State Management**: Gerenciamento de estado reativo
+- **Navigator 2.0**: Navegação declarativa entre telas
+
+### Back-end
+
+- **Node.js (ES Modules) + Express 5**: Servidor HTTP e API REST
+- **MongoDB**: Banco de dados NoSQL com suporte a índices e agregações
+- **bcryptjs**: Hash seguro de senhas com salt
+- **jsonwebtoken (JWT)**: Autenticação stateless baseada em tokens
+- **Multer**: Middleware para upload de arquivos (avatars)
+- **dotenv**: Gerenciamento de variáveis de ambiente
+- **cors**: Controle de acesso cross-origin
+
+### Infraestrutura
+
+- **MongoDB Atlas ou Local**: Banco de dados em nuvem ou on-premise
+- **Plataformas suportadas**: macOS, Linux, Windows, iOS, Android, Web
+- **DevTools**: Dart & Flutter DevTools para debugging e análise de performance
 
 ---
 
 ## Principais partes do código (back-end)
 
-- api/src/index.js: inicialização do servidor Express, conexão com DB, montagem das rotas e health check
+- api/src/index.js: inicialização do servidor Express, conexão com DB, montagem das rotas e health check, configuração de upload de arquivos
 - api/src/config.js: leitura das variáveis de ambiente (MONGODB_URI, MONGODB_DB, JWT_SECRET, BCRYPT_ROUNDS)
 - api/src/db.js: conexão com MongoDB e helpers (getDB, getClient)
 - api/src/indexes.js: criação de índices (usuarios/email único, instrumentos/codigoInterno, etc.) na inicialização
-- api/src/middlewares/auth.js: autenticação via JWT e guardas de role (requireRole)
+- api/src/middlewares/auth.js: autenticação via JWT, guardas de role (requireRole), e atualização automática de sessões (lastSeen)
 - api/src/routes/
-  - auth.routes.js: POST /auth/login (gera JWT com expiração, compara senha com bcrypt)
+  - auth.routes.js: POST /auth/login (gera JWT com expiração, compara senha com bcrypt, cria sessão no banco)
   - itens.routes.js: CRUD básico de itens, buscar por código, alertas de calibração
+  - materiais.routes.js: CRUD completo de materiais (GET, POST, PUT, DELETE) por tipo (giro, patrimoniado, consumo)
   - movimentos.routes.js: registro de retirada/devolução por itemId ou por código; evita saldo negativo
-  - usuarios.routes.js: CRUD de usuários com regras por perfil (admin, gestor, tecnico)
+  - usuarios.routes.js: CRUD de usuários com regras por perfil (admin, gestor, tecnico), upload de avatar, gerenciamento de sessões, revogação de sessões
 - api/scripts/hash.js: gera hash bcrypt para popular senhaHash na base
+- api/uploads/: diretório para armazenamento de avatars de usuários
 
 ## Principais partes do código (front-end)
 
 - lib/main.dart: setup da aplicação (tema, rotas iniciais)
-- lib/services/auth_service.dart: login/logout, armazenamento seguro de token e dados do usuário
-- lib/screens/login/login_screen.dart: tela de login
-- lib/screens/home/home_screen.dart: shell principal com menu lateral, botão Sair com limpeza de sessão e navegação para Login
-- lib/screens/home/\*: páginas dummy (estoque, pessoas, ferramentas, etc.)
+- lib/services/
+  - auth_service.dart: login/logout, armazenamento seguro de token, sessionId e dados do usuário
+  - user_service.dart: gerenciamento de usuários, upload/remoção de avatar, listagem e revogação de sessões
+  - material_service.dart: CRUD de materiais com comunicação HTTP ao backend
+  - pdf_service.dart: geração de relatórios em PDF com formatação personalizada
+- lib/models/
+  - user.dart: modelo de usuário com suporte a avatar e role
+  - material.dart: modelo de material para estoque
+  - movimentacao.dart: modelo de movimentação de materiais
+- lib/screens/login/
+  - login_screen.dart: tela de login com validações
+  - login_controller.dart: lógica de controle do login
+- lib/screens/home/
+  - home_screen.dart: shell principal com menu lateral, dashboard com cards interativos, integração com backend
+  - admin_page.dart: página de administração com gerenciamento de perfil, avatar, sessões ativas e troca de senha
+  - estoque_page.dart: página de estoque com sidebar responsiva, suporte a desktop/mobile
+  - material_giro_page.dart: gerenciamento de materiais de giro conectado ao backend
+  - material_consumo_page.dart: gerenciamento de materiais de consumo conectado ao backend
+  - material_patrimoniado_page.dart: gerenciamento de materiais patrimoniados conectado ao backend
+  - movimentacoes_page.dart: histórico e controle de movimentações
+  - reports_page.dart: geração de relatórios com filtros avançados e mapa de desempenho
+  - alerts_page.dart: gerenciamento de alertas e notificações
+- lib/widgets/
+  - sidebar.dart: componente de navegação lateral responsivo (rail para desktop, drawer para mobile)
+- lib/repositories/
+  - movimentacao_repository.dart: gerenciamento local de movimentações
 
 ---
 
 ## Como rodar o back-end (API Node.js)
 
 1. Instalar e subir a API:
+
 ```
    cd api
    npm install
    npm run dev
 ```
+
 2. Health check (opcional):
+
 ```
    curl http://localhost:8080/health
 ```
+
 ---
 
 ## Como rodar o front-end (Flutter)
 
 1. Instalação de dependências (raiz do projeto):
+
 ```
    flutter pub get
 ```
+
 2. Executar com hot reload (escolha um device):
+
 ```
    flutter run -d chrome # Web
    flutter run -d ios # iOS Simulator
    flutter run -d android # Android Emulator/Device
    flutter run -d macos # Desktop macOS
 ```
+
 Dicas: r = hot reload, R = hot restart.
 
 ---
 
+## Endpoints da API
+
+### Autenticação e Sessões
+
+```
+POST /auth/login
+  Body: { email, senha }
+  Retorna: { token, sessionId, usuario }
+  Cria sessão no MongoDB com informações de dispositivo e IP
+```
+
+### Usuários
+
+```
+GET /usuarios/:id
+  Headers: Authorization Bearer <token>
+  Retorna dados do usuário (sem senhaHash)
+
+PATCH /usuarios/:id
+  Body: { nome, cpf, telefone, role, avatarUrl, senha, current }
+  Atualiza perfil (admin ou próprio usuário)
+
+POST /usuarios/:id/avatar
+  Content-Type: multipart/form-data
+  Field: avatar (arquivo de imagem)
+  Faz upload e atualiza avatarUrl, deletando avatar anterior
+
+DELETE /usuarios/:id/avatar
+  Remove avatar e deleta arquivo do sistema
+
+GET /usuarios/:id/sessions
+  Lista todas as sessões ativas do usuário
+
+POST /usuarios/:id/sessions/:sessionId/revoke
+  Revoga uma sessão específica
+```
+
+### Materiais
+
+```
+GET /materiais?tipo=giro|consumo|patrimoniado
+  Lista materiais por tipo
+
+POST /materiais
+  Body: { nome, codigo, tipo, quantidade, local, vencimento }
+  Cria novo material
+
+PUT /materiais/:id
+  Atualiza material existente
+
+DELETE /materiais/:id
+  Remove material do estoque
+```
+
+### Itens e Movimentos
+
+```
+GET /itens
+  Lista todos os itens/instrumentos
+
+POST /movimentos
+  Body: { itemId, tipo, responsavel, destino }
+  Registra movimentação (retirada/devolução)
+```
+
 ## Observações e dicas
 
-- Se o script de hash falhar quando executado da raiz, rode dentro de api/.
-- Se o login falhar, verifique JWT_SECRET no .env e os usuários no MongoDB.
-- Movimentos e itens exigem autenticação via Bearer Token (JWT) retornado em /auth/login.
-- Indíces de movimentos recomendados (no MongoDB): { itemId: 1, dataHora: -1 } e { codigoInterno: 1, dataHora: -1 }.
+### Configuração Inicial
+
+- Se o script de hash falhar quando executado da raiz, rode dentro de api/
+- Certifique-se que JWT_SECRET está definido no .env
+- Verifique se os usuários no MongoDB possuem senhaHash válido
+
+### Autenticação
+
+- Todos os endpoints (exceto /auth/login e /health) exigem Bearer Token (JWT)
+- Token retornado em /auth/login tem expiração de 24h
+- sessionId é opcional no header X-Session-Id, mas permite rastreamento de atividade
+
+### Upload de Arquivos
+
+- Certifique-se que a pasta api/uploads/ existe e tem permissões adequadas
+- Avatars são servidos estaticamente via /uploads/
+- Formato suportado: JPEG, PNG (validação no frontend)
+- Tamanho máximo recomendado: 5MB
+
+### Banco de Dados
+
+- Índices recomendados no MongoDB:
+  - `{ itemId: 1, dataHora: -1 }` para movimentos
+  - `{ codigoInterno: 1, dataHora: -1 }` para consultas por código
+  - `{ userId: 1, criadoEm: -1 }` para sessões
+- Coleções principais: usuarios, materiais, itens, movimentos, sessions
+
+### Interface Responsiva
+
+- Sidebar é habilitada com `withSidebar: true` nas páginas de materiais
+- Layout adaptativo detecta largura < 600px para mobile
+- NavigationRail (desktop) e Drawer (mobile) compartilham mesma lógica

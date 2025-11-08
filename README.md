@@ -26,7 +26,7 @@ Desenvolver soluções digitais acessíveis por desktop e mobile que:
 
 ## Requisitos Funcionais
 
-### Sistema de Estoque (Materiais de Consumo e Giro)
+### Sistema de Estoque (Materiais de Consumo, Giro e Patrimoniado)
 
 - Registro de entrada e saída de materiais, por código único
 - Controle de saldos por base, veículo, tipo de material e localização
@@ -34,6 +34,10 @@ Desenvolver soluções digitais acessíveis por desktop e mobile que:
 - Inclusão de códigos de patrimônio e rastreabilidade por item
 - Emissão de alertas de estoque mínimo
 - Geração de relatórios e gráficos por base, equipe e tipo de item
+- **CRUD completo de materiais** integrado com banco de dados MongoDB
+- **Interface responsiva** com sidebar adaptável para desktop e mobile
+- **Filtros avançados** por categoria, data e usuário
+- **Integração backend-frontend** via API REST
 
 ### Sistema de Instrumentos Técnicos
 
@@ -42,12 +46,22 @@ Desenvolver soluções digitais acessíveis por desktop e mobile que:
 - Avisos de validade de calibração e pendências por instrumento
 - Histórico completo de uso por instrumento e por funcionário
 
-### Segurança e Governança
+### Sistema de Autenticação e Sessões
 
 - Acesso diferenciado por perfil (Administrador e Usuário)
+- **Rastreamento de sessões** com informações de dispositivo, IP e última atividade
+- **Controle de sessões ativas** com visualização e revogação por usuário
+- **Middleware de atualização automática** do lastSeen das sessões
+- **Gerenciamento de perfil** com upload e remoção de avatar
+- Armazenamento seguro de tokens JWT e sessionId
+
+### Segurança e Governança
+
 - Rastreabilidade completa (quem retirou, quando retirou, quando devolveu, posição atual)
 - Geração de alertas de vencimento da calibração
 - Responsabilização automática em caso de extravio
+- **Sistema de roles** com permissões diferenciadas
+- **Auditoria de sessões** com histórico de acessos
 
 ## Benefícios Esperados
 
@@ -56,6 +70,32 @@ Desenvolver soluções digitais acessíveis por desktop e mobile que:
 - Rastreabilidade por item, base, destino e responsável
 - Eficiência na logística e suporte à manutenção
 - Geração de dados confiáveis para auditorias e relatórios operacionais
+
+## Tecnologias Utilizadas
+
+### Frontend
+
+- **Flutter/Dart**: Framework multiplataforma para desenvolvimento de interfaces responsivas
+- **Material Design 3**: Design system seguindo padrões do Material You
+- **Flutter Secure Storage**: Armazenamento seguro de tokens e credenciais
+- **HTTP Client**: Comunicação com API REST
+- **Provider/State Management**: Gerenciamento de estado da aplicação
+
+### Backend
+
+- **Node.js + Express 5**: Servidor HTTP e API REST
+- **MongoDB**: Banco de dados NoSQL para persistência
+- **JWT (jsonwebtoken)**: Autenticação e autorização baseada em tokens
+- **bcryptjs**: Hash seguro de senhas
+- **Multer**: Upload de arquivos (avatars)
+- **CORS**: Controle de acesso entre origens
+
+### DevOps e Qualidade
+
+- **Flutter Test**: Framework de testes unitários e de integração
+- **TDD/BDD**: Metodologias de desenvolvimento orientado a testes
+- **Git/GitHub**: Controle de versão e colaboração
+- **VS Code**: Ambiente de desenvolvimento integrado
 
 ## Sobre o Desenvolvimento
 
@@ -67,7 +107,7 @@ Este projeto é comum aos três cursos:
 
 O projeto será apresentado aos técnicos e engenheiros do Metrô de São Paulo, com potencial de implementação real em suas operações.
 
-## 🧪 Testes e TDD
+## Testes e TDD
 
 Este projeto implementa **Test Driven Development (TDD)** com cobertura de ~93% no sistema de login.
 
@@ -89,10 +129,20 @@ flutter test
 flutter test test/services/auth_service_test.dart
 flutter test test/controllers/login_controller_test.dart
 flutter test test/widgets/login_screen_test.dart
+
+# Testes TDD
+flutter test test/tdd/
+
+# Testes BDD
+flutter test test/bdd/
 ```
 
 ### Documentação
 
 📖 **[Guia Completo de Testes TDD](./docs/TDD_GUIDE.md)**
+
+📖 **[Guia Completo de Testes BDD](./docs/BDD_GUIDE.md)**
+
+📖 **[Guia Técnico Completo sobre este projeto](./docs/PROJECT_GUIDE.md)**
 
 ---

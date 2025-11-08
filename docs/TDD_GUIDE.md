@@ -13,6 +13,16 @@ flutter test test/services/auth_service_test.dart
 flutter test test/controllers/login_controller_test.dart
 flutter test test/widgets/login_screen_test.dart
 
+# Executar testes TDD de cenários
+flutter test test/tdd/scenarios/autenticacao_test.dart
+flutter test test/tdd/scenarios/gestao_usuarios_test.dart
+
+# Executar todos os testes TDD
+flutter test test/tdd/
+
+# Executar todos os testes BDD
+flutter test test/bdd/
+
 # Ver cobertura
 flutter test --coverage
 
@@ -24,16 +34,32 @@ flutter test --reporter=expanded
 
 ```
 test/
+├── bdd/
+│   ├── features/                    # Arquivos .feature (Gherkin)
+│   ├── mocks/
+│   │   └── mock_auth_service.dart  # Mocks para testes BDD
+│   └── bdd_suite.dart              # Suite completa BDD
+├── tdd/
+│   └── scenarios/                   # Testes de cenários TDD
+│       ├── autenticacao_test.dart
+│       ├── gestao_ferramentas_test.dart
+│       ├── gestao_instrumentos_test.dart
+│       ├── gestao_usuarios_test.dart
+│       └── movimentacoes_test.dart
 ├── services/
-│   └── auth_service_test.dart       # testes de integração de chamada HTTP (mockada)
+│   └── auth_service_test.dart      # Testes de integração HTTP (mockada)
 ├── controllers/
-│   └── login_controller_test.dart   # validação + orquestração com AuthService
+│   └── login_controller_test.dart  # Validação + orquestração com AuthService
 ├── widgets/
-│   └── login_screen_test.dart       # testes de widget/UX
-└── widget_test.dart                 # padrão do Flutter (placeholder)
+│   └── login_screen_test.dart      # Testes de widget/UX
+└── widget_test.dart                # Padrão do Flutter (placeholder)
 ```
 
-Observação: os arquivos gerados via codegen do Mockito (mocks.dart) foram removidos. Não usamos mais build_runner para testes.
+**Observações importantes:**
+
+- Os arquivos gerados via codegen do Mockito (mocks.dart) foram removidos. Não usamos mais build_runner para testes.
+- A partir do commit `40bf4f7`, houve reorganização da estrutura de testes com separação clara entre BDD e TDD.
+- Testes de cenários agora ficam em `test/tdd/scenarios/` ao invés de `test/bdd/scenarios/`.
 
 ## 🎯 TDD em 3 passos
 
@@ -188,10 +214,42 @@ test('descrição', () async {
 - Elementos fora da tela
   - Use `await tester.ensureVisible(finder);` antes de interagir
 
+## 🆕 Mudanças Recentes no Projeto
+
+### Reorganização de Testes (Commit 40bf4f7)
+
+- **Separação BDD/TDD**: Testes de cenários movidos de `test/bdd/scenarios/` para `test/tdd/scenarios/`
+- **Features BDD**: Mantidas em `test/bdd/features/` com sintaxe Gherkin
+- **Mocks**: Consolidados em `test/bdd/mocks/` para reutilização
+
+### Novas Funcionalidades Testadas
+
+- **Sistema de Sessões**: Testes de criação, listagem e revogação de sessões
+- **Upload de Avatar**: Testes de upload multipart e remoção de arquivos
+- **CRUD de Materiais**: Testes completos para materiais de giro, consumo e patrimoniado
+- **Relatórios**: Testes de geração de PDF com filtros e formatação
+
+### Atualizações na Suite de Testes
+
+```
+Testes Adicionados Recentemente:
+✅ Autenticação com sessões
+✅ Gerenciamento de usuários com avatar
+✅ CRUD de materiais por tipo
+✅ Filtros de relatórios por usuário
+✅ Movimentações de estoque
+```
+
+### Cobertura Atual
+
+- **Login/Autenticação**: ~93%
+- **Controllers**: Alta cobertura com mocks
+- **Widgets**: Testes de UI e interação
+- **Services**: HTTP mockado para testes rápidos
+
 ## 📚 Referências
 
 - https://docs.flutter.dev/testing
 - https://pub.dev/packages/http (MockClient)
 - https://pub.dev/packages/mockito
 - https://martinfowler.com/bliki/TestDrivenDevelopment.html
-
