@@ -13,6 +13,7 @@ import 'package:intl/intl.dart';
 import 'gerenciar_usuarios.dart';
 import '../../widgets/sidebar.dart';
 import '../../services/material_service.dart';
+import '../../services/movimentacao_service.dart';
 
 // Classe PieChartPainter (Sem alterações)
 // ... (seu código do PieChartPainter)
@@ -117,9 +118,15 @@ class _HomeScreenState extends State<HomeScreen>
     );
     // carregar materiais do backend para atualizar o card de estoque
     _loadMateriais();
+    // carregar últimas movimentações do backend para o card do dashboard
+    _loadRecentMovimentacoes();
   }
 
   final MaterialService _materialService = MaterialService();
+  final MovimentacaoService _movimentacaoService = MovimentacaoService();
+  List<Movimentacao> _recentMovimentacoes = [];
+  bool _isLoadingRecent = true;
+  String? _recentError;
   List<EstoqueMaterial>? _materiaisGiro;
   List<EstoqueMaterial>? _materiaisConsumo;
   List<EstoqueMaterial>? _materiaisPatrimoniado;
@@ -150,6 +157,28 @@ class _HomeScreenState extends State<HomeScreen>
     if (mounted) setState(() {});
   }
 
+  Future<void> _loadRecentMovimentacoes() async {
+    setState(() {
+      _isLoadingRecent = true;
+      _recentError = null;
+    });
+
+    try {
+      final list = await _movimentacaoService.getAllMovimentacoes(limit: 5);
+      if (mounted) {
+        setState(() {
+          _recentMovimentacoes = list;
+          _isLoadingRecent = false;
+        });
+      }
+    } catch (e) {
+      if (mounted) setState(() {
+        _recentError = e.toString();
+        _isLoadingRecent = false;
+      });
+    }
+  }
+
   @override
   void dispose() {
     AlertRepository.instance.countNotifier.removeListener(
@@ -160,6 +189,8 @@ class _HomeScreenState extends State<HomeScreen>
       _onAlertsCountChanged,
     );
     _animationController.dispose();
+    // Fechar cliente HTTP do serviço de movimentações
+    _movimentacaoService.dispose();
     super.dispose();
   }
 
@@ -561,36 +592,8 @@ class _HomeScreenState extends State<HomeScreen>
                 );
               },
 
-              // AQUI É A MÁGICA:
-              // Trocamos o _buildStatContent por um widget que ouve o repositório
-              content: ValueListenableBuilder<List<Movimentacao>>(
-                valueListenable:
-                    MovimentacaoRepository.instance.movimentacoesNotifier,
-                builder: (context, _, child) {
-                  // O _ indica que não vamos usar a lista diretamente aqui
-                  final listaMovimentacoes = MovimentacaoRepository.instance
-                      .getMovimentacoesParaDashboard();
-
-                  if (listaMovimentacoes.isEmpty) {
-                    return const Center(
-                      child: Text(
-                        'Nenhuma movimentação registrada ainda.',
-                        textAlign: TextAlign.center,
-                        style: TextStyle(color: Colors.black54),
-                      ),
-                    );
-                  }
-
-                  // Se tiver itens, constrói a lista
-                  return ListView.builder(
-                    padding: const EdgeInsets.only(top: 8.0),
-                    itemCount: listaMovimentacoes.length,
-                    itemBuilder: (context, index) {
-                      return _buildMovimentacaoRow(listaMovimentacoes[index]);
-                    },
-                  );
-                },
-              ),
+              // Conteúdo carregado a partir do backend (últimas 5 movimentações)
+              content: _buildRecentMovimentacoesContent(),
             ),
 
             // Card Gerenciar Usuários
@@ -691,6 +694,44 @@ class _HomeScreenState extends State<HomeScreen>
     );
   }
 
+  Widget _buildRecentMovimentacoesContent() {
+    if (_isLoadingRecent) {
+      return const Center(child: CircularProgressIndicator());
+    }
+
+    if (_recentError != null) {
+      return Center(
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            Text('Erro ao carregar movimentações: $_recentError', style: const TextStyle(color: Colors.red)),
+            const SizedBox(height: 8),
+            ElevatedButton(
+              onPressed: _loadRecentMovimentacoes,
+              child: const Text('Tentar novamente'),
+            ),
+          ],
+        ),
+      );
+    }
+
+    if (_recentMovimentacoes.isEmpty) {
+      return const Center(
+        child: Text(
+          'Nenhuma movimentação registrada ainda.',
+          textAlign: TextAlign.center,
+          style: TextStyle(color: Colors.black54),
+        ),
+      );
+    }
+
+    return ListView.builder(
+      padding: const EdgeInsets.only(top: 8.0),
+      itemCount: _recentMovimentacoes.length,
+      itemBuilder: (context, index) => _buildMovimentacaoRow(_recentMovimentacoes[index]),
+    );
+  }
+
   // Card de Estoque com gráfico e estatísticas (FUNCIONAL)
   Widget _buildEstoqueCard(VoidCallback onTap) {
     final List<EstoqueMaterial> todosMateriais = [
@@ -711,7 +752,7 @@ class _HomeScreenState extends State<HomeScreen>
         ? (materiaisDisponiveis / totalMateriais) * 100
         : 0.0;
 
-    final metroLightBlue = const Color.fromARGB(255, 5, 59, 158);
+    
 
     return Material(
       elevation: 4,
@@ -926,7 +967,7 @@ class _HomeScreenState extends State<HomeScreen>
     int? alertCount,
     Widget? content,
   }) {
-    final gradientColor = color2 ?? color.withAlpha((0.6 * 255).round());
+    
 
     return Material(
       elevation: 4,
