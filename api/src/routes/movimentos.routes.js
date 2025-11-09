@@ -5,22 +5,20 @@ import { getClient, getDB } from "../db.js";
 
 const router = Router();
 
-router.get("/", auth(), async (req, res) => {
+router.get("/", async (req, res) => {
   const { itemId } = req.query;
   const filtro = {};
 
   if (itemId) {
-    if (!ObjectId.isValid(itemId)) {
-      return res.status(400).json({ error: "itemId inválido" });
-    }
-    filtro.itemId = new ObjectId(itemId);
+    // A busca por `codigo` não precisa de `ObjectId`
+    filtro.codigoMaterial = itemId;
   }
 
   const db = getDB();
   const docs = await db
     .collection("movimentos")
     .find(filtro)
-    .sort({ dataHora: -1 })
+    .sort({ data: -1 }) // Ordenar por 'data'
     .limit(200)
     .toArray();
 
@@ -71,7 +69,7 @@ router.post("/", auth(), async (req, res) => {
 
   try {
     await session.withTransaction(async () => {
-      await db.collection("movimentos").insertOne(
+      await db.collection("movimentos_estoque").insertOne(
         {
           tipo,
           itemTipo,
@@ -190,7 +188,7 @@ router.post("/by-code", auth(), async (req, res) => {
             : undefined
           : undefined;
 
-      await db.collection("movimentos").insertOne(
+      await db.collection("movimentos_estoque").insertOne(
         {
           tipo,
           itemTipo,
@@ -231,3 +229,25 @@ router.post("/by-code", auth(), async (req, res) => {
 });
 
 export default router;
+
+// GET /movimentos/estoque - retorna documentos da coleção 'movimentos_estoque'
+router.get('/estoque', async (req, res) => {
+  try {
+    const db = getDB();
+    const filtro = {};
+    // opcional: permitir filtro por codigo via query ?codigo=...
+    if (req.query.codigo) filtro.codigoMaterial = req.query.codigo;
+
+    const docs = await db
+      .collection('movimentos_estoque')
+      .find(filtro)
+      .sort({ data: -1 })
+      .limit(1000)
+      .toArray();
+
+    res.json(docs);
+  } catch (err) {
+    console.error('Erro ao listar movimentos_estoque', err);
+    res.status(500).json({ error: 'Erro ao listar movimentos_estoque' });
+  }
+});

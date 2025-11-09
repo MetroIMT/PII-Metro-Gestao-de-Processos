@@ -2,7 +2,7 @@
 
 import 'package:flutter/material.dart';
 // NOVO: Importar o repositório que acabamos de criar
-import '../../repositories/movimentacao_repository.dart';
+// import '../../repositories/movimentacao_repository.dart';
 import '../../services/material_service.dart';
 import '../../widgets/sidebar.dart';
 
@@ -396,14 +396,14 @@ class _EstoquePageState extends State<EstoquePage>
                           _materiais.add(created);
                         });
 
-                        MovimentacaoRepository.instance.addMovimentacao(
-                          codigoMaterial: created.codigo,
-                          descricao: "Adicionado: ${created.nome}",
-                          quantidade: created.quantidade,
-                          tipo: 'adicao',
-                          usuario: 'Sistema',
-                          local: created.local,
-                        );
+                        // MovimentacaoRepository.instance.addMovimentacao(
+                        //   codigoMaterial: created.codigo,
+                        //   descricao: "Adicionado: ${created.nome}",
+                        //   quantidade: created.quantidade,
+                        //   tipo: 'adicao',
+                        //   usuario: 'Sistema',
+                        //   local: created.local,
+                        // );
 
                         // Fechar indicador de progresso e diálogo de formulário
                         Navigator.of(
@@ -475,7 +475,142 @@ class _EstoquePageState extends State<EstoquePage>
             ],
           ),
         ),
-      ),
+      ));
+  }
+
+  // Método para mostrar o diálogo de movimentação de material
+  void _showMovimentarDialog(BuildContext context, EstoqueMaterial material) {
+    final quantidadeController = TextEditingController();
+    String tipoMovimento = 'saida'; // 'saida' ou 'entrada'
+
+    showDialog(
+      context: context,
+      builder: (context) {
+        return StatefulBuilder(
+          builder: (context, setDialogState) {
+            return AlertDialog(
+              title: Text('Movimentar ${material.nome}'),
+              content: Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Text('Estoque atual: ${material.quantidade}'),
+                  const SizedBox(height: 16),
+                  Row(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: [
+                      ChoiceChip(
+                        label: const Text('Saída'),
+                        selected: tipoMovimento == 'saida',
+                        onSelected: (selected) {
+                          if (selected) {
+                            setDialogState(() => tipoMovimento = 'saida');
+                          }
+                        },
+                        selectedColor: Colors.red.shade100,
+                      ),
+                      const SizedBox(width: 8),
+                      ChoiceChip(
+                        label: const Text('Entrada'),
+                        selected: tipoMovimento == 'entrada',
+                        onSelected: (selected) {
+                          if (selected) {
+                            setDialogState(() => tipoMovimento = 'entrada');
+                          }
+                        },
+                        selectedColor: Colors.green.shade100,
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: 16),
+                  TextField(
+                    controller: quantidadeController,
+                    keyboardType: TextInputType.number,
+                    decoration: const InputDecoration(
+                      labelText: 'Quantidade',
+                      border: OutlineInputBorder(),
+                    ),
+                  ),
+                ],
+              ),
+              actions: [
+                TextButton(
+                  onPressed: () => Navigator.pop(context),
+                  child: const Text('Cancelar'),
+                ),
+                ElevatedButton(
+                  onPressed: () async {
+                    final quantidade = int.tryParse(quantidadeController.text);
+                    if (quantidade == null || quantidade <= 0) {
+                      ScaffoldMessenger.of(context).showSnackBar(
+                        const SnackBar(
+                          content: Text('Por favor, insira uma quantidade válida.'),
+                          backgroundColor: Colors.orange,
+                        ),
+                      );
+                      return;
+                    }
+
+                    // Mostrar indicador de progresso
+                    showDialog(
+                      context: context,
+                      barrierDismissible: false,
+                      builder: (_) => const Center(child: CircularProgressIndicator()),
+                    );
+
+                    try {
+                      await _materialService.movimentar(
+                        codigo: material.codigo,
+                        tipo: tipoMovimento,
+                        quantidade: quantidade,
+                        usuario: 'admin', // TODO: Substituir pelo usuário logado
+                        local: material.local,
+                      );
+
+                      // Atualizar o estado local
+                      setState(() {
+                        final index = _materiais.indexWhere((m) => m.codigo == material.codigo);
+                        if (index != -1) {
+                          final oldMaterial = _materiais[index];
+                          final novaQuantidade = tipoMovimento == 'saida'
+                              ? oldMaterial.quantidade - quantidade
+                              : oldMaterial.quantidade + quantidade;
+
+                          _materiais[index] = EstoqueMaterial(
+                            codigo: oldMaterial.codigo,
+                            nome: oldMaterial.nome,
+                            quantidade: novaQuantidade,
+                            local: oldMaterial.local,
+                            vencimento: oldMaterial.vencimento,
+                          );
+                        }
+                      });
+
+                      Navigator.of(context).pop(); // Fecha o progresso
+                      Navigator.of(context).pop(); // Fecha o diálogo
+
+                      ScaffoldMessenger.of(context).showSnackBar(
+                        SnackBar(
+                          content: Text('Movimentação de ${material.nome} realizada com sucesso!'),
+                          backgroundColor: Colors.green,
+                        ),
+                      );
+                    } catch (e) {
+                      Navigator.of(context).pop(); // Fecha o progresso
+                      ScaffoldMessenger.of(context).showSnackBar(
+                        SnackBar(
+                          content: Text('Erro: $e'),
+                          backgroundColor: Colors.red,
+                        ),
+                      );
+                    }
+                  },
+                  child: const Text('Confirmar'),
+                ),
+              ],
+            );
+          },
+        );
+      },
     );
   }
 
@@ -761,7 +896,8 @@ class _EstoquePageState extends State<EstoquePage>
                                             ),
                                           ),
                                           onPressed: () {
-                                            // Implementar movimentação de material
+                                            _showMovimentarDialog(
+                                                context, material);
                                           },
                                         ),
                                       ],
@@ -1014,7 +1150,8 @@ class _EstoquePageState extends State<EstoquePage>
                                             color: const Color(0xFF253250),
                                             tooltip: "Movimentar",
                                             onPressed: () {
-                                              // Implementar movimentação
+                                              _showMovimentarDialog(
+                                                  context, material);
                                             },
                                           ),
                                         ],
