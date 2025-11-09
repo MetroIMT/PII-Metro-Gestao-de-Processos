@@ -92,5 +92,45 @@ class MaterialService {
     );
   }
 
+  Future<void> movimentar({
+    required String codigo,
+    required String tipo, // 'entrada' ou 'saida'
+    required int quantidade,
+    required String usuario,
+    required String local,
+  }) async {
+    final uri = Uri.parse('$_baseUrl/materiais/movimentar');
+    final body = {
+      'codigo': codigo,
+      'tipo': tipo,
+      'quantidade': quantidade,
+      'usuario': usuario,
+      'local': local,
+    };
+
+    final resp = await _client
+        .post(
+          uri,
+          headers: {'Content-Type': 'application/json'},
+          body: json.encode(body),
+        )
+        .timeout(const Duration(seconds: 30));
+
+    if (resp.statusCode != 200) {
+      // Tenta decodificar o erro do corpo da resposta
+      String errorMessage = 'Falha ao movimentar material: ${resp.statusCode}';
+      try {
+        final errorBody = json.decode(resp.body);
+        if (errorBody['error'] != null) {
+          errorMessage = errorBody['error'];
+        }
+      } catch (_) {
+        // se o corpo não for um json válido, usa a mensagem padrão
+        errorMessage += ' ${resp.body}';
+      }
+      throw Exception(errorMessage);
+    }
+  }
+
   void dispose() => _client.close();
 }

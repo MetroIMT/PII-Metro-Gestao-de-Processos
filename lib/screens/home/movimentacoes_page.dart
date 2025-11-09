@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 import '../../models/movimentacao.dart';
-import '../../repositories/movimentacao_repository.dart';
+import '../../services/movimentacao_service.dart'; // Alterado
 import '../../widgets/sidebar.dart';
 
 class MovimentacoesPage extends StatefulWidget {
@@ -13,16 +13,21 @@ class MovimentacoesPage extends StatefulWidget {
 
 class _MovimentacoesPageState extends State<MovimentacoesPage>
     with SingleTickerProviderStateMixin {
+  // --- Service ---
+  final MovimentacaoService _movimentacaoService = MovimentacaoService();
+
   // --- Sidebar ---
   String? _filterTipo;
   bool _isRailExtended = false;
   late AnimationController _animationController;
   final GlobalKey<ScaffoldState> _scaffoldKey = GlobalKey<ScaffoldState>();
 
-  late List<Movimentacao> _movimentacoes;
+  List<Movimentacao> _movimentacoes = [];
   List<Movimentacao> _filteredMovimentacoes = [];
   String _searchTerm = '';
   final TextEditingController _searchController = TextEditingController();
+  bool _isLoading = true;
+  String? _error;
 
   final Color backgroundColor = const Color.fromARGB(255, 255, 255, 255);
   final Color metroBlue = const Color(0xFF001489);
@@ -35,12 +40,7 @@ class _MovimentacoesPageState extends State<MovimentacoesPage>
       duration: const Duration(milliseconds: 300),
     );
 
-    _movimentacoes = MovimentacaoRepository.instance.getMovimentacoes();
-    _filteredMovimentacoes = _movimentacoes;
-
-    MovimentacaoRepository.instance.movimentacoesNotifier.addListener(
-      _updateMovimentacoes,
-    );
+    _loadMovimentacoes();
 
     _searchController.addListener(() {
       setState(() {
@@ -50,13 +50,27 @@ class _MovimentacoesPageState extends State<MovimentacoesPage>
     });
   }
 
+  Future<void> _loadMovimentacoes() async {
+    try {
+      final movimentacoes = await _movimentacaoService.getAllMovimentacoes();
+      setState(() {
+        _movimentacoes = movimentacoes;
+        _filteredMovimentacoes = _movimentacoes;
+        _isLoading = false;
+      });
+    } catch (e) {
+      setState(() {
+        _error = e.toString();
+        _isLoading = false;
+      });
+    }
+  }
+
   @override
   void dispose() {
     _animationController.dispose();
-    MovimentacaoRepository.instance.movimentacoesNotifier.removeListener(
-      _updateMovimentacoes,
-    );
     _searchController.dispose();
+    _movimentacaoService.dispose();
     super.dispose();
   }
 
@@ -72,13 +86,9 @@ class _MovimentacoesPageState extends State<MovimentacoesPage>
   }
 
   void _updateMovimentacoes() {
-    if (mounted) {
-      setState(() {
-        _movimentacoes = MovimentacaoRepository.instance.getMovimentacoes();
-        _filterMovimentacoes();
-      });
-    }
+    _loadMovimentacoes();
   }
+
 
   void _filterMovimentacoes() {
     _filteredMovimentacoes = _movimentacoes.where((mov) {
