@@ -6,8 +6,9 @@ class MovimentacaoService {
   static const String _baseUrl = 'http://localhost:8080';
   final http.Client _client = http.Client();
 
-  Future<List<Movimentacao>> getAllMovimentacoes() async {
-  final uri = Uri.parse('$_baseUrl/movimentos');
+  Future<List<Movimentacao>> getAllMovimentacoes({int? limit}) async {
+    final qs = limit != null ? '?limit=$limit' : '';
+    final uri = Uri.parse('$_baseUrl/movimentos$qs');
     try {
       final resp = await _client.get(uri).timeout(const Duration(seconds: 30));
 

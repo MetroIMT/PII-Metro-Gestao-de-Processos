@@ -6,7 +6,7 @@ import { getClient, getDB } from "../db.js";
 const router = Router();
 
 router.get("/", async (req, res) => {
-  const { itemId } = req.query;
+  const { itemId, limit } = req.query;
   const filtro = {};
 
   if (itemId) {
@@ -14,12 +14,15 @@ router.get("/", async (req, res) => {
     filtro.codigoMaterial = itemId;
   }
 
+  const max = Math.min(Math.max(Number(limit) || 200, 1), 1000); // 1..1000
+
   const db = getDB();
+  // Ordena por várias chaves possíveis, para maior compatibilidade
   const docs = await db
     .collection("movimentos")
     .find(filtro)
-    .sort({ data: -1 }) // Ordenar por 'data'
-    .limit(200)
+    .sort({ data: -1, dataHora: -1, createdAt: -1, _id: -1 })
+    .limit(max)
     .toArray();
 
   res.json(docs);
