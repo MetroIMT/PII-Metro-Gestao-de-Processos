@@ -230,6 +230,7 @@ class _GerenciarUsuariosState extends State<GerenciarUsuarios>
     );
   }
 
+  // --- FUNÇÃO DE ADICIONAR MODIFICADA ---
   Future<void> _showAddDialog() async {
     final formKey = GlobalKey<FormState>();
     final nameCtrl = TextEditingController();
@@ -244,19 +245,41 @@ class _GerenciarUsuariosState extends State<GerenciarUsuarios>
       builder: (dialogContext) {
         bool isSubmitting = false;
 
-        // --- MUDANÇA 1 (LARGURA DO DIÁLOGO) ---
         final double dialogWidth = MediaQuery.of(dialogContext).size.width > 550
             ? 500.0 // Largura fixa (500px) para desktop/telas largas
             : MediaQuery.of(dialogContext).size.width * 0.95; // 95% para mobile
 
         return StatefulBuilder(
           builder: (context, setDialogState) => AlertDialog(
+            backgroundColor: Colors.white,
+            surfaceTintColor: Colors.white,
+
             shape: RoundedRectangleBorder(
               borderRadius: BorderRadius.circular(12),
             ),
-            title: const Text('Adicionar membro'),
+
+            titlePadding: const EdgeInsets.fromLTRB(24, 24, 24, 16),
+            title: Row(
+              children: [
+                Icon(Icons.person_add_alt_1_rounded,
+                    color: metroBlue, size: 28),
+                const SizedBox(width: 12),
+                Text(
+                  'Adicionar membro',
+                  style: TextStyle(
+                    color: metroBlue,
+                    fontWeight: FontWeight.bold,
+                    fontSize: 20,
+                  ),
+                ),
+              ],
+            ),
+
+            // --- MUDANÇA: Aumento do padding do conteúdo ---
+            contentPadding: const EdgeInsets.fromLTRB(24, 24, 24, 24),
+            // --- FIM MUDANÇA ---
+
             content: SizedBox(
-              // --- MUDANÇA 1 (LARGURA DO DIÁLOGO) ---
               width: dialogWidth,
               child: Form(
                 key: formKey,
@@ -314,8 +337,9 @@ class _GerenciarUsuariosState extends State<GerenciarUsuarios>
                         ],
                         maxLength: 11,
                         validator: (v) {
-                          if (v == null || v.isEmpty)
+                          if (v == null || v.isEmpty) {
                             return 'Informe o telefone';
+                          }
                           final digits = v.replaceAll(RegExp(r'\D'), '');
                           if (digits.length < 10 || digits.length > 11) {
                             return 'Telefone deve conter DDD + número (10 ou 11 dígitos)';
@@ -326,6 +350,9 @@ class _GerenciarUsuariosState extends State<GerenciarUsuarios>
                       const SizedBox(height: 12),
                       DropdownButtonFormField<String>(
                         initialValue: selectedRole,
+                        // --- MUDANÇA: Fundo branco para o dropdown ---
+                        dropdownColor: Colors.white,
+                        // --- FIM MUDANÇA ---
                         items: const [
                           DropdownMenuItem(
                             value: 'admin',
@@ -350,6 +377,8 @@ class _GerenciarUsuariosState extends State<GerenciarUsuarios>
                 ),
               ),
             ),
+
+            actionsPadding: const EdgeInsets.fromLTRB(24, 0, 24, 24),
             actions: [
               TextButton(
                 onPressed: () => Navigator.of(dialogContext).pop(),
@@ -401,6 +430,7 @@ class _GerenciarUsuariosState extends State<GerenciarUsuarios>
     });
   }
 
+  // --- FUNÇÃO DE EDITAR MODIFICADA ---
   Future<void> _showEditDialog(User user) async {
     final formKey = GlobalKey<FormState>();
     final nameCtrl = TextEditingController(text: user.nome);
@@ -414,19 +444,40 @@ class _GerenciarUsuariosState extends State<GerenciarUsuarios>
       builder: (dialogContext) {
         bool isSubmitting = false;
 
-        // --- MUDANÇA 1 (LARGURA DO DIÁLOGO) ---
         final double dialogWidth = MediaQuery.of(dialogContext).size.width > 550
             ? 500.0 // Largura fixa (500px) para desktop/telas largas
             : MediaQuery.of(dialogContext).size.width * 0.95; // 95% para mobile
 
         return StatefulBuilder(
           builder: (context, setDialogState) => AlertDialog(
+            backgroundColor: Colors.white,
+            surfaceTintColor: Colors.white,
+
             shape: RoundedRectangleBorder(
               borderRadius: BorderRadius.circular(12),
             ),
-            title: const Text('Editar membro'),
+
+            titlePadding: const EdgeInsets.fromLTRB(24, 24, 24, 16),
+            title: Row(
+              children: [
+                Icon(Icons.edit_note_rounded, color: metroBlue, size: 28),
+                const SizedBox(width: 12),
+                Text(
+                  'Editar membro',
+                  style: TextStyle(
+                    color: metroBlue,
+                    fontWeight: FontWeight.bold,
+                    fontSize: 20,
+                  ),
+                ),
+              ],
+            ),
+
+            // --- MUDANÇA: Aumento do padding do conteúdo ---
+            contentPadding: const EdgeInsets.fromLTRB(24, 24, 24, 24),
+            // --- FIM MUDANÇA ---
+
             content: SizedBox(
-              // --- MUDANÇA 1 (LARGURA DO DIÁLOGO) ---
               width: dialogWidth,
               child: Form(
                 key: formKey,
@@ -476,8 +527,9 @@ class _GerenciarUsuariosState extends State<GerenciarUsuarios>
                         ],
                         maxLength: 11,
                         validator: (v) {
-                          if (v == null || v.isEmpty)
+                          if (v == null || v.isEmpty) {
                             return 'Informe o telefone';
+                          }
                           final digits = v.replaceAll(RegExp(r'\D'), '');
                           if (digits.length < 10 || digits.length > 11) {
                             return 'Telefone deve conter DDD + número (10 ou 11 dígitos)';
@@ -488,6 +540,9 @@ class _GerenciarUsuariosState extends State<GerenciarUsuarios>
                       const SizedBox(height: 12),
                       DropdownButtonFormField<String>(
                         initialValue: selectedRole,
+                        // --- MUDANÇA: Fundo branco para o dropdown ---
+                        dropdownColor: Colors.white,
+                        // --- FIM MUDANÇA ---
                         items: const [
                           DropdownMenuItem(
                             value: 'admin',
@@ -512,6 +567,8 @@ class _GerenciarUsuariosState extends State<GerenciarUsuarios>
                 ),
               ),
             ),
+
+            actionsPadding: const EdgeInsets.fromLTRB(24, 0, 24, 24),
             actions: [
               TextButton(
                 onPressed: () => Navigator.of(dialogContext).pop(),
@@ -581,16 +638,16 @@ class _GerenciarUsuariosState extends State<GerenciarUsuarios>
 
     return Scaffold(
       key: _scaffoldKey,
-      backgroundColor: backgroundColor, // "Branco"
+      backgroundColor: backgroundColor,
       appBar: isMobile
           ? AppBar(
               elevation: 0,
-              backgroundColor: Colors.white, // "Branco"
+              backgroundColor: Colors.white,
               leading: IconButton(
                 icon: AnimatedIcon(
                   icon: AnimatedIcons.menu_close,
                   progress: _animationController,
-                  color: metroBlue, // "Metro Blue"
+                  color: metroBlue,
                 ),
                 onPressed: () {
                   _scaffoldKey.currentState?.openDrawer();
@@ -599,7 +656,7 @@ class _GerenciarUsuariosState extends State<GerenciarUsuarios>
               title: const Text(
                 'Gerenciar Usuários',
                 style: TextStyle(
-                  color: Color(0xFF001489), // "Metro Blue"
+                  color: Color(0xFF001489),
                   fontWeight: FontWeight.bold,
                 ),
               ),
@@ -645,7 +702,7 @@ class _GerenciarUsuariosState extends State<GerenciarUsuarios>
                             IconButton(
                               icon: Icon(
                                 _isRailExtended ? Icons.menu_open : Icons.menu,
-                                color: metroBlue, // "Metro Blue"
+                                color: metroBlue,
                               ),
                               onPressed: _toggleRail,
                             ),
@@ -655,7 +712,7 @@ class _GerenciarUsuariosState extends State<GerenciarUsuarios>
                               style: TextStyle(
                                 fontSize: 24,
                                 fontWeight: FontWeight.bold,
-                                color: Color(0xFF001489), // "Metro Blue"
+                                color: Color(0xFF001489),
                               ),
                             ),
                           ],
@@ -671,7 +728,7 @@ class _GerenciarUsuariosState extends State<GerenciarUsuarios>
                     shape: RoundedRectangleBorder(
                       borderRadius: BorderRadius.circular(12),
                     ),
-                    color: Colors.white, // "Branco"
+                    color: Colors.white,
                     child: Padding(
                       padding: const EdgeInsets.all(16.0),
                       child: Row(
@@ -682,14 +739,14 @@ class _GerenciarUsuariosState extends State<GerenciarUsuarios>
                             style: TextStyle(
                               fontSize: 18,
                               fontWeight: FontWeight.bold,
-                              color: Colors.grey.shade800, // "Preto/Cinza"
+                              color: Colors.grey.shade800,
                             ),
                           ),
                           if (_currentRole == 'admin')
                             ElevatedButton.icon(
                               style: ElevatedButton.styleFrom(
-                                backgroundColor: metroBlue, // "Metro Blue"
-                                foregroundColor: Colors.white, // "Branco"
+                                backgroundColor: metroBlue,
+                                foregroundColor: Colors.white,
                                 shape: RoundedRectangleBorder(
                                   borderRadius: BorderRadius.circular(8),
                                 ),
@@ -707,7 +764,7 @@ class _GerenciarUsuariosState extends State<GerenciarUsuarios>
                   Expanded(
                     child: Center(
                       child: CircularProgressIndicator(
-                        color: metroBlue, // "Metro Blue"
+                        color: metroBlue,
                       ),
                     ),
                   )
@@ -720,7 +777,7 @@ class _GerenciarUsuariosState extends State<GerenciarUsuarios>
                           const Icon(
                             Icons.error_outline,
                             size: 48,
-                            color: Colors.red, // Cor semântica mantida
+                            color: Colors.red,
                           ),
                           const SizedBox(height: 16),
                           Text(
@@ -728,14 +785,14 @@ class _GerenciarUsuariosState extends State<GerenciarUsuarios>
                             textAlign: TextAlign.center,
                             style: const TextStyle(
                               color: Colors.black87,
-                            ), // "Preto"
+                            ),
                           ),
                           const SizedBox(height: 16),
                           ElevatedButton(
                             onPressed: _loadMembers,
                             style: ElevatedButton.styleFrom(
-                              backgroundColor: metroBlue, // "Metro Blue"
-                              foregroundColor: Colors.white, // "Branco"
+                              backgroundColor: metroBlue,
+                              foregroundColor: Colors.white,
                             ),
                             child: const Text('Tentar novamente'),
                           ),
@@ -750,7 +807,7 @@ class _GerenciarUsuariosState extends State<GerenciarUsuarios>
                         'Nenhum usuário cadastrado',
                         style: TextStyle(
                           color: Colors.black54,
-                        ), // "Preto/Cinza"
+                        ),
                       ),
                     ),
                   )
@@ -775,9 +832,8 @@ class _GerenciarUsuariosState extends State<GerenciarUsuarios>
                                   ),
                                   clipBehavior: Clip.antiAlias,
                                   child: DataTable(
-                                    // --- MUDANÇA 2 (COR DO HEADER) ---
                                     headingRowColor: WidgetStateProperty.all(
-                                      Colors.grey.shade100, // "Cinza"
+                                      Colors.grey.shade100,
                                     ),
                                     dividerThickness: 1,
                                     columns: [
@@ -836,12 +892,11 @@ class _GerenciarUsuariosState extends State<GerenciarUsuarios>
                                         ),
                                       ),
                                     ],
-
                                     rows: _members.map((user) {
                                       return DataRow(
                                         color: WidgetStateProperty.all(
                                           Colors.white,
-                                        ), // "Branco"
+                                        ),
                                         cells: [
                                           DataCell(
                                             Text(
@@ -889,8 +944,7 @@ class _GerenciarUsuariosState extends State<GerenciarUsuarios>
                                                 IconButton(
                                                   icon: Icon(
                                                     Icons.edit,
-                                                    color:
-                                                        metroBlue, // "Metro Blue"
+                                                    color: metroBlue,
                                                   ),
                                                   onPressed: () =>
                                                       _showEditDialog(user),
@@ -906,10 +960,10 @@ class _GerenciarUsuariosState extends State<GerenciarUsuarios>
                                                       child: SizedBox(
                                                         width: 20,
                                                         height: 20,
-                                                        child: CircularProgressIndicator(
+                                                        child:
+                                                            CircularProgressIndicator(
                                                           strokeWidth: 2,
-                                                          color:
-                                                              metroBlue, // "Metro Blue"
+                                                          color: metroBlue,
                                                         ),
                                                       ),
                                                     ),
@@ -918,18 +972,21 @@ class _GerenciarUsuariosState extends State<GerenciarUsuarios>
                                                   IconButton(
                                                     icon: const Icon(
                                                       Icons.delete,
-                                                      color: Colors
-                                                          .red, // Semântico
+                                                      color: Colors.red,
                                                     ),
-                                                    onPressed:
-                                                        (user.id != null &&
+                                                    onPressed: (user.id !=
+                                                                null &&
                                                             user.id !=
                                                                 _currentUserId)
                                                         ? () async {
-                                                            final confirm = await showDialog<bool>(
+                                                            final confirm =
+                                                                await showDialog<
+                                                                    bool>(
                                                               context: context,
-                                                              builder: (_) => AlertDialog(
-                                                                title: const Text(
+                                                              builder: (_) =>
+                                                                  AlertDialog(
+                                                                title:
+                                                                    const Text(
                                                                   'Remover membro',
                                                                 ),
                                                                 content: Text(
@@ -937,28 +994,30 @@ class _GerenciarUsuariosState extends State<GerenciarUsuarios>
                                                                 ),
                                                                 actions: [
                                                                   TextButton(
-                                                                    onPressed: () =>
-                                                                        Navigator.of(
-                                                                          context,
-                                                                        ).pop(
-                                                                          false,
-                                                                        ),
+                                                                    onPressed:
+                                                                        () =>
+                                                                            Navigator.of(
+                                                                              context,
+                                                                            ).pop(
+                                                                      false,
+                                                                    ),
                                                                     child:
                                                                         const Text(
-                                                                          'Não',
-                                                                        ),
+                                                                      'Não',
+                                                                    ),
                                                                   ),
                                                                   TextButton(
-                                                                    onPressed: () =>
-                                                                        Navigator.of(
-                                                                          context,
-                                                                        ).pop(
-                                                                          true,
-                                                                        ),
+                                                                    onPressed:
+                                                                        () =>
+                                                                            Navigator.of(
+                                                                              context,
+                                                                            ).pop(
+                                                                      true,
+                                                                    ),
                                                                     child:
                                                                         const Text(
-                                                                          'Sim',
-                                                                        ),
+                                                                      'Sim',
+                                                                    ),
                                                                   ),
                                                                 ],
                                                               ),
@@ -973,8 +1032,8 @@ class _GerenciarUsuariosState extends State<GerenciarUsuarios>
                                                             }
                                                           }
                                                         : null,
-                                                    tooltip:
-                                                        (user.id != null &&
+                                                    tooltip: (user.id !=
+                                                                null &&
                                                             user.id ==
                                                                 _currentUserId)
                                                         ? 'Não é possível remover o usuário atual'
