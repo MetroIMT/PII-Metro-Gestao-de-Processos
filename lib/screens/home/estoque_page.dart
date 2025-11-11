@@ -35,6 +35,8 @@ class EstoquePage extends StatefulWidget {
   final bool withSidebar;
   // índice selecionado no sidebar (por padrão 1 = Estoque)
   final int sidebarSelectedIndex;
+  // Se true, mostra o botão de voltar ao lado do menu
+  final bool showBackButton;
 
   const EstoquePage({
     super.key,
@@ -43,6 +45,7 @@ class EstoquePage extends StatefulWidget {
     this.tipo,
     this.withSidebar = false,
     this.sidebarSelectedIndex = 1,
+    this.showBackButton = false,
   });
 
   @override
@@ -475,7 +478,8 @@ class _EstoquePageState extends State<EstoquePage>
             ],
           ),
         ),
-      ));
+      ),
+    );
   }
 
   // Método para mostrar o diálogo de movimentação de material
@@ -543,7 +547,9 @@ class _EstoquePageState extends State<EstoquePage>
                     if (quantidade == null || quantidade <= 0) {
                       ScaffoldMessenger.of(context).showSnackBar(
                         const SnackBar(
-                          content: Text('Por favor, insira uma quantidade válida.'),
+                          content: Text(
+                            'Por favor, insira uma quantidade válida.',
+                          ),
                           backgroundColor: Colors.orange,
                         ),
                       );
@@ -554,7 +560,8 @@ class _EstoquePageState extends State<EstoquePage>
                     showDialog(
                       context: context,
                       barrierDismissible: false,
-                      builder: (_) => const Center(child: CircularProgressIndicator()),
+                      builder: (_) =>
+                          const Center(child: CircularProgressIndicator()),
                     );
 
                     try {
@@ -562,13 +569,16 @@ class _EstoquePageState extends State<EstoquePage>
                         codigo: material.codigo,
                         tipo: tipoMovimento,
                         quantidade: quantidade,
-                        usuario: 'admin', // TODO: Substituir pelo usuário logado
+                        usuario:
+                            'admin', // TODO: Substituir pelo usuário logado
                         local: material.local,
                       );
 
                       // Atualizar o estado local
                       setState(() {
-                        final index = _materiais.indexWhere((m) => m.codigo == material.codigo);
+                        final index = _materiais.indexWhere(
+                          (m) => m.codigo == material.codigo,
+                        );
                         if (index != -1) {
                           final oldMaterial = _materiais[index];
                           final novaQuantidade = tipoMovimento == 'saida'
@@ -590,7 +600,9 @@ class _EstoquePageState extends State<EstoquePage>
 
                       ScaffoldMessenger.of(context).showSnackBar(
                         SnackBar(
-                          content: Text('Movimentação de ${material.nome} realizada com sucesso!'),
+                          content: Text(
+                            'Movimentação de ${material.nome} realizada com sucesso!',
+                          ),
                           backgroundColor: Colors.green,
                         ),
                       );
@@ -897,7 +909,9 @@ class _EstoquePageState extends State<EstoquePage>
                                           ),
                                           onPressed: () {
                                             _showMovimentarDialog(
-                                                context, material);
+                                              context,
+                                              material,
+                                            );
                                           },
                                         ),
                                       ],
@@ -1151,7 +1165,9 @@ class _EstoquePageState extends State<EstoquePage>
                                             tooltip: "Movimentar",
                                             onPressed: () {
                                               _showMovimentarDialog(
-                                                  context, material);
+                                                context,
+                                                material,
+                                              );
                                             },
                                           ),
                                         ],
@@ -1236,17 +1252,35 @@ class _EstoquePageState extends State<EstoquePage>
           ? AppBar(
               elevation: 0,
               backgroundColor: Colors.white,
-              leading: IconButton(
-                icon: AnimatedIcon(
-                  icon: AnimatedIcons.menu_close,
-                  progress: _animationController,
-                  color: metroBlue,
-                ),
-                onPressed: () => _scaffoldKey.currentState?.openDrawer(),
-              ),
-              title: Text(
-                widget.title,
-                style: TextStyle(fontWeight: FontWeight.bold, color: metroBlue),
+              leading: widget.showBackButton
+                  ? IconButton(
+                      icon: Icon(Icons.arrow_back, color: metroBlue),
+                      onPressed: () => Navigator.pop(context),
+                    )
+                  : IconButton(
+                      icon: AnimatedIcon(
+                        icon: AnimatedIcons.menu_close,
+                        progress: _animationController,
+                        color: metroBlue,
+                      ),
+                      onPressed: () => _scaffoldKey.currentState?.openDrawer(),
+                    ),
+              title: Row(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  if (widget.showBackButton && isMobile)
+                    IconButton(
+                      icon: Icon(Icons.menu, color: metroBlue),
+                      onPressed: () => _scaffoldKey.currentState?.openDrawer(),
+                    ),
+                  Text(
+                    widget.title,
+                    style: TextStyle(
+                      fontWeight: FontWeight.bold,
+                      color: metroBlue,
+                    ),
+                  ),
+                ],
               ),
               centerTitle: true,
               actions: [
@@ -1297,6 +1331,12 @@ class _EstoquePageState extends State<EstoquePage>
                       children: [
                         Row(
                           children: [
+                            if (widget.showBackButton)
+                              IconButton(
+                                icon: Icon(Icons.arrow_back, color: metroBlue),
+                                onPressed: () => Navigator.pop(context),
+                                tooltip: 'Voltar',
+                              ),
                             IconButton(
                               icon: Icon(
                                 _isRailExtended ? Icons.menu_open : Icons.menu,
