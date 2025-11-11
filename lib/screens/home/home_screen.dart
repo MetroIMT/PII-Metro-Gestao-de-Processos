@@ -16,8 +16,6 @@ import '../../services/material_service.dart';
 import '../../services/movimentacao_service.dart';
 
 // Classe PieChartPainter (Sem alterações)
-// ... (seu código do PieChartPainter)
-// Classe PieChartPainter (Sem alterações)
 class PieChartPainter extends CustomPainter {
   final double disponivel;
   final double emFalta;
@@ -394,7 +392,7 @@ class _HomeScreenState extends State<HomeScreen>
                       ),
                     ),
                   _buildWelcomeHeader(isMobile),
-                  _buildQuickActions(isMobile),
+                  // --- MUDANÇA: AÇÕES RÁPIDAS REMOVIDAS ---
                   _buildHomeGrid(),
                 ],
               ),
@@ -433,79 +431,6 @@ class _HomeScreenState extends State<HomeScreen>
     );
   }
 
-  /// Seção de Ações Rápidas
-  Widget _buildQuickActions(bool isMobile) {
-    return Padding(
-      padding: const EdgeInsets.only(bottom: 40.0),
-      child: Wrap(
-        spacing: 12.0,
-        runSpacing: 12.0,
-        children: [
-          _buildActionButton(
-            context,
-            icon: Icons.search,
-            label: 'Buscar Material',
-            onPressed: () {
-              // TODO: Implementar navegação para busca
-            },
-          ),
-          _buildActionButton(
-            context,
-            icon: Icons.add_shopping_cart,
-            label: 'Registrar Entrada',
-            onPressed: () {
-              // TODO: Implementar navegação
-            },
-          ),
-          _buildActionButton(
-            context,
-            icon: Icons.shopping_cart_checkout,
-            label: 'Registrar Saída',
-            onPressed: () {
-              // TODO: Implementar navegação
-            },
-          ),
-        ],
-      ),
-    );
-  }
-
-  /// Helper para os botões de ação
-  Widget _buildActionButton(
-    BuildContext context, {
-    required IconData icon,
-    required String label,
-    required VoidCallback onPressed,
-    bool isPrimary = false,
-  }) {
-    if (isPrimary) {
-      return ElevatedButton.icon(
-        icon: Icon(icon, size: 18),
-        label: Text(label),
-        onPressed: onPressed,
-        style: ElevatedButton.styleFrom(
-          backgroundColor: metroBlue,
-          foregroundColor: Colors.white,
-          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-          shape: RoundedRectangleBorder(
-            borderRadius: BorderRadius.circular(10),
-          ),
-        ),
-      );
-    }
-
-    return OutlinedButton.icon(
-      icon: Icon(icon, size: 18, color: metroBlue),
-      label: Text(label, style: const TextStyle(color: metroBlue)),
-      onPressed: onPressed,
-      style: OutlinedButton.styleFrom(
-        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-        side: const BorderSide(color: metroBlue),
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
-      ),
-    );
-  }
-
   /// O Grid de cards, agora mais responsivo e preenchido
   Widget _buildHomeGrid() {
     return LayoutBuilder(
@@ -525,9 +450,13 @@ class _HomeScreenState extends State<HomeScreen>
               430; // Altura fixa para evitar overflow em telas estreitas
           childAspectRatio = constraints.maxWidth / desiredCardHeight;
         } else if (crossAxisCount == 2) {
-          childAspectRatio = 1.4;
+          // --- MUDANÇA: Ajuste de Aspect Ratio (Mais altura) ---
+          childAspectRatio = 0.95; // Era 1.2
+          // --- FIM DA MUDANÇA ---
         } else {
-          childAspectRatio = 1.2;
+          // --- MUDANÇA: Ajuste de Aspect Ratio (Mais altura) ---
+          childAspectRatio = 1.0; // Era 1.1
+          // --- FIM DA MUDANÇA ---
         }
 
         return GridView(
@@ -562,9 +491,7 @@ class _HomeScreenState extends State<HomeScreen>
               },
               hasAlert: AlertRepository.instance.countNotifier.value > 0,
               alertCount: AlertRepository.instance.countNotifier.value,
-              // *** INÍCIO DA MODIFICAÇÃO ***
               content: _buildAlertsCardContent(),
-              // *** FIM DA MODIFICAÇÃO ***
             ),
 
             // Card de Instrumentos
@@ -591,7 +518,6 @@ class _HomeScreenState extends State<HomeScreen>
                   MaterialPageRoute(builder: (_) => const MovimentacoesPage()),
                 );
               },
-
               // Conteúdo carregado a partir do backend (últimas 5 movimentações)
               content: _buildRecentMovimentacoesContent(),
             ),
@@ -607,7 +533,6 @@ class _HomeScreenState extends State<HomeScreen>
                   MaterialPageRoute(builder: (_) => const GerenciarUsuarios()),
                 );
               },
-              color2: Colors.blue.shade200,
               content: _buildStatContent(
                 "8",
                 "Usuários ativos",
@@ -615,24 +540,21 @@ class _HomeScreenState extends State<HomeScreen>
               ),
             ),
 
-            // Card Relatórios
+            // --- MUDANÇA: CARD DE RELATÓRIOS ATUALIZADO ---
             _buildDashboardCard(
               'Relatórios',
-              Icons.article,
-              const Color.fromARGB(255, 231, 126, 6),
+              Icons.article_outlined,
+              Colors.deepPurple,
               () {
                 Navigator.push(
                   context,
                   MaterialPageRoute(builder: (_) => const RelatoriosPage()),
                 );
               },
-              color2: const Color.fromARGB(255, 219, 193, 153),
-              content: _buildStatContent(
-                "5",
-                "Relatórios salvos",
-                const Color.fromARGB(255, 184, 99, 0),
-              ),
+              // Novo conteúdo complexo
+              content: _buildReportsCardContent(),
             ),
+            // --- FIM DA MUDANÇA ---
           ],
         );
       },
@@ -665,16 +587,22 @@ class _HomeScreenState extends State<HomeScreen>
     );
   }
 
-  // NOVO: Helper para mostrar uma linha da movimentação
+  // --- MUDANÇA: ÍCONES DE SETA VERDE/VERMELHA ---
   Widget _buildMovimentacaoRow(Movimentacao mov) {
     // Formata a hora, ex: "14:32"
     final String horaFormatada = DateFormat('HH:mm').format(mov.timestamp);
+
+    // Lógica de Ícone e Cor
+    final bool isEntrada = mov.tipo == 'Entrada';
+    final IconData iconData =
+        isEntrada ? Icons.arrow_downward : Icons.arrow_upward;
+    final Color iconColor = isEntrada ? Colors.green : Colors.red;
 
     return Padding(
       padding: const EdgeInsets.symmetric(vertical: 6.0, horizontal: 4.0),
       child: Row(
         children: [
-          Icon(mov.icon, color: Colors.grey.shade700, size: 20),
+          Icon(iconData, color: iconColor, size: 20), // Ícone ATUALIZADO
           const SizedBox(width: 12),
           Expanded(
             child: Text(
@@ -693,6 +621,7 @@ class _HomeScreenState extends State<HomeScreen>
       ),
     );
   }
+  // --- FIM DA MUDANÇA ---
 
   Widget _buildRecentMovimentacoesContent() {
     if (_isLoadingRecent) {
@@ -704,7 +633,8 @@ class _HomeScreenState extends State<HomeScreen>
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
-            Text('Erro ao carregar movimentações: $_recentError', style: const TextStyle(color: Colors.red)),
+            Text('Erro ao carregar movimentações: $_recentError',
+                style: const TextStyle(color: Colors.red)),
             const SizedBox(height: 8),
             ElevatedButton(
               onPressed: _loadRecentMovimentacoes,
@@ -728,7 +658,8 @@ class _HomeScreenState extends State<HomeScreen>
     return ListView.builder(
       padding: const EdgeInsets.only(top: 8.0),
       itemCount: _recentMovimentacoes.length,
-      itemBuilder: (context, index) => _buildMovimentacaoRow(_recentMovimentacoes[index]),
+      itemBuilder: (context, index) =>
+          _buildMovimentacaoRow(_recentMovimentacoes[index]),
     );
   }
 
@@ -741,18 +672,14 @@ class _HomeScreenState extends State<HomeScreen>
     ];
 
     final int totalMateriais = todosMateriais.length;
-    final int materiaisDisponiveis = todosMateriais
-        .where((m) => m.quantidade > 0)
-        .length;
-    final int materiaisEmFalta = todosMateriais
-        .where((m) => m.quantidade <= 0)
-        .length;
+    final int materiaisDisponiveis =
+        todosMateriais.where((m) => m.quantidade > 0).length;
+    final int materiaisEmFalta =
+        todosMateriais.where((m) => m.quantidade <= 0).length;
 
     final double porcentagemDisponivel = totalMateriais > 0
         ? (materiaisDisponiveis / totalMateriais) * 100
         : 0.0;
-
-    
 
     return Material(
       elevation: 4,
@@ -822,8 +749,8 @@ class _HomeScreenState extends State<HomeScreen>
                         color: porcentagemDisponivel > 85
                             ? Colors.green
                             : porcentagemDisponivel > 70
-                            ? Colors.orange
-                            : Colors.red,
+                                ? Colors.orange
+                                : Colors.red,
                         borderRadius: BorderRadius.circular(12),
                       ),
                       child: Text(
@@ -840,74 +767,80 @@ class _HomeScreenState extends State<HomeScreen>
 
                 const SizedBox(height: 16),
 
-                // Conteúdo do card
+                // --- MUDANÇA: CORREÇÃO DE OVERFLOW DO BOTÃO ---
                 Expanded(
-                  child: Row(
+                  child: Column(
                     children: [
-                      // Estatísticas
                       Expanded(
-                        flex: 3,
-                        child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          mainAxisAlignment: MainAxisAlignment.center,
+                        child: Row(
                           children: [
-                            _buildEstoqueStat(
-                              'Total de materiais',
-                              '$totalMateriais',
-                              Icons.category,
-                              metroBlue,
+                            // Estatísticas
+                            Expanded(
+                              flex: 3,
+                              child: Column(
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                mainAxisAlignment: MainAxisAlignment.center,
+                                children: [
+                                  _buildEstoqueStat(
+                                    'Total de materiais',
+                                    '$totalMateriais',
+                                    Icons.category,
+                                    metroBlue,
+                                  ),
+                                  const SizedBox(height: 12),
+                                  _buildEstoqueStat(
+                                    'Disponíveis',
+                                    '$materiaisDisponiveis',
+                                    Icons.check_circle_outline,
+                                    Colors.green,
+                                  ),
+                                  const SizedBox(height: 12),
+                                  _buildEstoqueStat(
+                                    'Em falta',
+                                    '$materiaisEmFalta',
+                                    Icons.error_outline,
+                                    Colors.red,
+                                  ),
+                                ],
+                              ),
                             ),
-                            const SizedBox(height: 12),
-                            _buildEstoqueStat(
-                              'Disponíveis',
-                              '$materiaisDisponiveis',
-                              Icons.check_circle_outline,
-                              Colors.green,
-                            ),
-                            const SizedBox(height: 12),
-                            _buildEstoqueStat(
-                              'Em falta',
-                              '$materiaisEmFalta',
-                              Icons.error_outline,
-                              Colors.red,
+
+                            // Gráfico de pizza
+                            Expanded(
+                              flex: 2,
+                              child: Container(
+                                height: double.infinity,
+                                padding: const EdgeInsets.all(8.0),
+                                child: CustomPaint(
+                                  painter: PieChartPainter(
+                                    // Prevenção de divisão por zero
+                                    disponivel: totalMateriais > 0
+                                        ? materiaisDisponiveis / totalMateriais
+                                        : 0,
+                                    emFalta: totalMateriais > 0
+                                        ? materiaisEmFalta / totalMateriais
+                                        : 0,
+                                    corDisponivel: Colors.green,
+                                  ),
+                                  size: const Size(100, 100),
+                                ),
+                              ),
                             ),
                           ],
                         ),
                       ),
-
-                      // Gráfico de pizza
-                      Expanded(
-                        flex: 2,
-                        child: Container(
-                          height: double.infinity,
-                          padding: const EdgeInsets.all(8.0),
-                          child: CustomPaint(
-                            painter: PieChartPainter(
-                              // Prevenção de divisão por zero
-                              disponivel: totalMateriais > 0
-                                  ? materiaisDisponiveis / totalMateriais
-                                  : 0,
-                              emFalta: totalMateriais > 0
-                                  ? materiaisEmFalta / totalMateriais
-                                  : 0,
-                              corDisponivel: Colors.green,
-                            ),
-                            size: const Size(100, 100),
-                          ),
+                      // Botão de ação (AGORA DENTRO DO EXPANDED)
+                      Align(
+                        alignment: Alignment.bottomRight,
+                        child: CardActionButton(
+                          borderColor: metroBlue,
+                          onPressed: onTap,
                         ),
                       ),
                     ],
                   ),
                 ),
-
-                // Botão de ação
-                Align(
-                  alignment: Alignment.bottomRight,
-                  child: CardActionButton(
-                    borderColor: metroBlue,
-                    onPressed: onTap,
-                  ),
-                ),
+                // --- FIM DA MUDANÇA ---
               ],
             ),
           ),
@@ -967,8 +900,6 @@ class _HomeScreenState extends State<HomeScreen>
     int? alertCount,
     Widget? content,
   }) {
-    
-
     return Material(
       elevation: 4,
       borderRadius: BorderRadius.circular(12),
@@ -1052,22 +983,31 @@ class _HomeScreenState extends State<HomeScreen>
                 ),
                 const SizedBox(height: 16),
 
+                // --- MUDANÇA: CORREÇÃO DE OVERFLOW DO BOTÃO ---
                 Expanded(
-                  // O 'content' agora é dinâmico
-                  child:
-                      content ??
-                      const Center(
-                        child: Text(
-                          'Dados do card vão aqui',
-                          style: TextStyle(color: Colors.black54),
-                        ),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Expanded(
+                        // O 'content' agora é dinâmico
+                        child: content ??
+                            const Center(
+                              child: Text(
+                                'Dados do card vão aqui',
+                                style: TextStyle(color: Colors.black54),
+                              ),
+                            ),
                       ),
+                      // Botão (AGORA DENTRO DO EXPANDED)
+                      Align(
+                        alignment: Alignment.bottomRight,
+                        child: CardActionButton(
+                            borderColor: color, onPressed: onTap),
+                      ),
+                    ],
+                  ),
                 ),
-
-                Align(
-                  alignment: Alignment.bottomRight,
-                  child: CardActionButton(borderColor: color, onPressed: onTap),
-                ),
+                // --- FIM DA MUDANÇA ---
               ],
             ),
           ),
@@ -1190,7 +1130,7 @@ class _HomeScreenState extends State<HomeScreen>
     );
   }
 
-  // NOVO: Conteúdo dinâmico para o Card de Alertas
+  // --- MUDANÇA: CONTEÚDO DO CARD DE ALERTAS CORRIGIDO (COM EXPANDED E LISTVIEW) ---
   Widget _buildAlertsCardContent() {
     // Usar ValueListenableBuilder para ouvir mudanças nos alertas
     return ValueListenableBuilder<int>(
@@ -1199,12 +1139,10 @@ class _HomeScreenState extends State<HomeScreen>
         final allAlerts = AlertRepository.instance.items;
 
         // 1. Calcular Estatísticas
-        final lowStock = allAlerts
-            .where((a) => a.type == AlertType.lowStock)
-            .length;
-        final nearExpiry = allAlerts
-            .where((a) => a.type == AlertType.nearExpiry)
-            .length;
+        final lowStock =
+            allAlerts.where((a) => a.type == AlertType.lowStock).length;
+        final nearExpiry =
+            allAlerts.where((a) => a.type == AlertType.nearExpiry).length;
 
         // 2. Obter os 3 mais urgentes (ordenados por severidade)
         final sortedAlerts = List<AlertItem>.from(allAlerts);
@@ -1215,7 +1153,7 @@ class _HomeScreenState extends State<HomeScreen>
         return Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            // 3. Linha de Estatísticas
+            // 3. Linha de Estatísticas (Altura Fixa)
             Row(
               children: [
                 Expanded(
@@ -1247,41 +1185,155 @@ class _HomeScreenState extends State<HomeScreen>
               ],
             ),
             const SizedBox(height: 12),
-            const Divider(height: 16), // Linha divisória
-            // 4. Lista de Alertas Urgentes
-            if (topAlerts.isEmpty)
-              Padding(
-                padding: const EdgeInsets.symmetric(vertical: 8),
-                child: Column(
-                  mainAxisAlignment: MainAxisAlignment.center,
-                  children: const [
-                    Icon(
-                      Icons.check_circle_outline,
-                      color: Colors.green,
-                      size: 28,
+            const Divider(height: 16), // Linha divisória (Altura Fixa)
+
+            // 4. Lista de Alertas Urgentes (AGORA EXPANDIDA E COM SCROLL)
+            Expanded(
+              child: topAlerts.isEmpty
+                  ? Center(
+                      child: Padding(
+                        padding: const EdgeInsets.symmetric(vertical: 8),
+                        child: Column(
+                          mainAxisAlignment: MainAxisAlignment.center,
+                          children: const [
+                            Icon(
+                              Icons.check_circle_outline,
+                              color: Colors.green,
+                              size: 28,
+                            ),
+                            SizedBox(height: 6),
+                            Text(
+                              'Nenhum alerta ativo.',
+                              style: TextStyle(color: Colors.black54),
+                            ),
+                          ],
+                        ),
+                      ),
+                    )
+                  : ListView.builder(
+                      padding: EdgeInsets.zero,
+                      itemCount: topAlerts.length,
+                      itemBuilder: (context, i) {
+                        return Padding(
+                          padding: const EdgeInsets.symmetric(vertical: 4.0),
+                          child: _buildAlertRow(topAlerts[i], context),
+                        );
+                      },
                     ),
-                    SizedBox(height: 6),
-                    Text(
-                      'Nenhum alerta ativo.',
-                      style: TextStyle(color: Colors.black54),
-                    ),
-                  ],
-                ),
-              )
-            else
-              Column(
-                children: [
-                  for (int i = 0; i < topAlerts.length; i++) ...[
-                    _buildAlertRow(topAlerts[i], context),
-                    if (i < topAlerts.length - 1) const SizedBox(height: 6),
-                  ],
-                ],
-              ),
+            ),
           ],
         );
       },
     );
   }
+  // --- FIM DA MUDANÇA ---
+
+  // --- MUDANÇA: NOVO HELPER PARA CARD DE RELATÓRIOS ---
+  Widget _buildReportRow(
+      String title, String subtitle, IconData icon, Color color) {
+    return Padding(
+      padding: const EdgeInsets.symmetric(vertical: 6.0),
+      child: Row(
+        children: [
+          Icon(icon, color: color, size: 18),
+          const SizedBox(width: 10),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  title,
+                  style: const TextStyle(
+                    color: Colors.black87,
+                    fontSize: 13,
+                    fontWeight: FontWeight.w500,
+                  ),
+                  overflow: TextOverflow.ellipsis,
+                  maxLines: 1,
+                ),
+                Text(
+                  subtitle,
+                  style: TextStyle(color: Colors.grey.shade600, fontSize: 12),
+                ),
+              ],
+            ),
+          ),
+          const SizedBox(width: 6),
+          // "Botões" falsos de PDF/Excel
+          Row(
+            children: [
+              Icon(Icons.picture_as_pdf_outlined,
+                  color: Colors.grey.shade400, size: 18),
+              const SizedBox(width: 4),
+              Icon(Icons.table_chart_outlined,
+                  color: Colors.grey.shade400, size: 18),
+            ],
+          )
+        ],
+      ),
+    );
+  }
+
+  Widget _buildReportsCardContent() {
+    final Color reportColor = Colors.deepPurple;
+
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        // 1. Estatísticas
+        Row(
+          children: [
+            Expanded(
+              child: _smallStat(
+                'Tipos de Relatório',
+                '4',
+                reportColor,
+                Icons.description_outlined,
+              ),
+            ),
+            const SizedBox(width: 8),
+            Expanded(
+              child: _smallStat(
+                'Relatórios Gerados',
+                '12', // (Mock data)
+                metroBlue,
+                Icons.download_done_outlined,
+              ),
+            ),
+          ],
+        ),
+        const SizedBox(height: 12),
+        const Divider(height: 16),
+        // 2. Lista de prévia (Usa ListView para rolar se necessário)
+        Expanded(
+          child: ListView(
+            padding: EdgeInsets.zero,
+            children: [
+              _buildReportRow(
+                'Movimentação Geral',
+                'Entradas e saídas de todos os itens.',
+                Icons.swap_horiz,
+                reportColor,
+              ),
+              _buildReportRow(
+                'Movimentações por Usuário',
+                'Filtrar por atividade de usuário.',
+                Icons.person_search_outlined,
+                reportColor,
+              ),
+              _buildReportRow(
+                'Inventário Atual',
+                'Status de todo o estoque.',
+                Icons.inventory_2_outlined,
+                reportColor,
+              ),
+            ],
+          ),
+        ),
+      ],
+    );
+  }
+  // --- FIM DA MUDANÇA ---
 }
 
 // Botão de ação com apenas o ícone de seta
