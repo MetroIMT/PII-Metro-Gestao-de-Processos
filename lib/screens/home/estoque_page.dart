@@ -1,10 +1,12 @@
 // lib/pages/estoque/estoque_page.dart (ou onde o seu estiver)
 
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart'; // Import para formatadores
 // NOVO: Importar o repositório que acabamos de criar
 // import '../../repositories/movimentacao_repository.dart';
 import '../../services/material_service.dart';
 import '../../widgets/sidebar.dart';
+import 'package:intl/intl.dart'; // Import para formatar data
 
 class EstoqueMaterial {
   final String codigo;
@@ -63,6 +65,86 @@ class _EstoquePageState extends State<EstoquePage>
   String _searchQuery = '';
   late List<EstoqueMaterial> _materiais;
   final MaterialService _materialService = MaterialService();
+
+  // --- NOVAS VARIÁVEIS DE ESTADO E HELPERS ---
+  final Color metroBlue = const Color(0xFF001489);
+  final Set<String> _processingIds = <String>{};
+
+  // --- MUDANÇA: LISTA DE BASES COMPARTILHADA ---
+  final List<Map<String, String>> _listaDeBases = [
+    {'value': 'WJA', 'label': 'WJA - Jabaquara'},
+    {'value': 'PSO', 'label': 'PSO - Paraiso'},
+    {'value': 'TRD', 'label': 'TRD - Tiradentes'},
+    {'value': 'TUC', 'label': 'TUC - Tucuruvi'},
+    {'value': 'LUM', 'label': 'LUM - Luminárias'},
+    {'value': 'IMG', 'label': 'IMG - Imigrantes'},
+    {'value': 'BFU', 'label': 'BFU - Barra Funda'},
+    {'value': 'BAS', 'label': 'BAS - Brás'},
+    {'value': 'CEC', 'label': 'CEC - Cecília'},
+    {'value': 'MAT', 'label': 'MAT - Matheus'},
+    {'value': 'VTD', 'label': 'VTD - Vila Matilde'},
+    {'value': 'VPT', 'label': 'VPT - Vila Prudente'},
+    {'value': 'PIT', 'label': 'PIT - Pátio Itaquera'},
+    {'value': 'POT', 'label': 'POT - Pátio Oratório'},
+    {'value': 'PAT', 'label': 'PAT - Pátio Jabaquara'},
+  ];
+
+  // Helper para o Input Style (copiado de gerenciar_usuarios)
+  InputDecoration _buildDialogInputDecoration(String label) {
+    return InputDecoration(
+      labelText: label,
+      labelStyle: const TextStyle(color: Colors.black54), // Texto "preto"
+      filled: true,
+      fillColor: Colors.grey.shade100, // Fundo "cinza"
+      border: OutlineInputBorder(
+        borderRadius: BorderRadius.circular(8),
+        borderSide: BorderSide.none,
+      ),
+      focusedBorder: OutlineInputBorder(
+        borderRadius: BorderRadius.circular(8),
+        borderSide: BorderSide(color: metroBlue, width: 2), // Borda "metroBlue"
+      ),
+    );
+  }
+
+  // --- MUDANÇA: HELPER PARA CAMPO NÃO-EDITÁVEL ---
+  Widget _buildReadOnlyField(String label, String value, IconData icon) {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 12),
+      decoration: BoxDecoration(
+        color: Colors.grey.shade100,
+        borderRadius: BorderRadius.circular(8),
+        border: Border.all(color: Colors.grey.shade200),
+      ),
+      child: Row(
+        children: [
+          Icon(icon, color: Colors.grey.shade600, size: 20),
+          const SizedBox(width: 12),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  label,
+                  style: TextStyle(color: Colors.grey.shade700, fontSize: 12),
+                ),
+                const SizedBox(height: 2),
+                Text(
+                  value,
+                  style: const TextStyle(
+                    fontSize: 16,
+                    color: Colors.black87,
+                    fontWeight: FontWeight.w500,
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+  // --- FIM DOS NOVOS HELPERS ---
 
   @override
   void initState() {
@@ -125,362 +207,494 @@ class _EstoquePageState extends State<EstoquePage>
   }
 
   String _formatDate(DateTime? d) {
-    // ... (sem alterações)
     if (d == null) return '-';
-    return '${d.day.toString().padLeft(2, '0')}/${d.month.toString().padLeft(2, '0')}/${d.year}';
+    // Usando DateFormat para garantir o formato
+    return DateFormat('dd/MM/yyyy').format(d);
   }
 
-  // Método para mostrar o diálogo de adicionar material
+  // --- DIÁLOGO DE ADICIONAR (COM DROPDOWN DE LOCAL) ---
   void _showAddMaterialDialog(BuildContext context) {
-    // ... (controllers e decorações sem alterações)
+    final formKey = GlobalKey<FormState>();
     final codigoController = TextEditingController();
     final nomeController = TextEditingController();
     final quantidadeController = TextEditingController();
-    final localController = TextEditingController();
+    // final localController = TextEditingController(); // REMOVIDO
+    String? selectedLocal; // NOVO
     DateTime? selectedVencimento;
     final vencimentoController = TextEditingController();
 
-    final primaryColor = const Color(0xFF253250);
-    final secondaryColor = Colors.blue.shade700;
+    showDialog(
+      context: context,
+      builder: (dialogContext) {
+        bool isSubmitting = false;
+        final double dialogWidth = MediaQuery.of(dialogContext).size.width > 550
+            ? 500.0 // Largura fixa
+            : MediaQuery.of(dialogContext).size.width * 0.95; // 95% para mobile
 
-    InputDecoration inputDecoration(String label, String hint, IconData icon) {
-      return InputDecoration(
-        labelText: label,
-        hintText: hint,
-        labelStyle: TextStyle(color: primaryColor),
-        prefixIcon: Icon(icon, color: primaryColor),
-        filled: true,
-        fillColor: Colors.grey.shade100,
-        border: OutlineInputBorder(
-          borderRadius: BorderRadius.circular(12),
-          borderSide: BorderSide.none,
-        ),
-        focusedBorder: OutlineInputBorder(
-          borderRadius: BorderRadius.circular(12),
-          borderSide: BorderSide(color: secondaryColor, width: 2),
-        ),
-        enabledBorder: OutlineInputBorder(
-          borderRadius: BorderRadius.circular(12),
-          borderSide: BorderSide(color: Colors.grey.shade300),
-        ),
-        contentPadding: const EdgeInsets.symmetric(
-          vertical: 16.0,
-          horizontal: 16.0,
-        ),
-      );
+        return StatefulBuilder(
+          builder: (context, setDialogState) => AlertDialog(
+            backgroundColor: Colors.white,
+            surfaceTintColor: Colors.white,
+            shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(12),
+            ),
+            titlePadding: const EdgeInsets.fromLTRB(24, 24, 24, 16),
+            title: Row(
+              children: [
+                Icon(Icons.add_box_rounded, color: metroBlue, size: 28),
+                const SizedBox(width: 12),
+                Text(
+                  'Adicionar Material',
+                  style: TextStyle(
+                    color: metroBlue,
+                    fontWeight: FontWeight.bold,
+                    fontSize: 20,
+                  ),
+                ),
+              ],
+            ),
+            contentPadding: const EdgeInsets.fromLTRB(24, 24, 24, 24),
+            content: SizedBox(
+              width: dialogWidth,
+              child: Form(
+                key: formKey,
+                child: SingleChildScrollView(
+                  child: Column(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      TextFormField(
+                        controller: codigoController,
+                        decoration: _buildDialogInputDecoration('Código *'),
+                        validator: (v) =>
+                            (v == null || v.isEmpty) ? 'Informe o código' : null,
+                      ),
+                      const SizedBox(height: 16), // AUMENTADO
+                      TextFormField(
+                        controller: nomeController,
+                        decoration: _buildDialogInputDecoration('Nome *'),
+                        validator: (v) =>
+                            (v == null || v.isEmpty) ? 'Informe o nome' : null,
+                      ),
+                      const SizedBox(height: 16), // AUMENTADO
+                      TextFormField(
+                        controller: quantidadeController,
+                        decoration:
+                            _buildDialogInputDecoration('Quantidade Inicial *'),
+                        keyboardType: TextInputType.number,
+                        inputFormatters: [
+                          FilteringTextInputFormatter.digitsOnly,
+                        ],
+                        validator: (v) => (v == null || v.isEmpty)
+                            ? 'Informe a quantidade'
+                            : null,
+                      ),
+                      const SizedBox(height: 16), // AUMENTADO
+
+                      // --- MUDANÇA: CAMPO DE LOCAL (DROPDOWN) ---
+                      DropdownButtonFormField<String>(
+                        value: selectedLocal,
+                        items: _listaDeBases.map((base) {
+                          return DropdownMenuItem(
+                            value: base['value'],
+                            child: Text(base['label']!),
+                          );
+                        }).toList(),
+                        onChanged: (value) {
+                          setDialogState(() {
+                            selectedLocal = value;
+                          });
+                        },
+                        decoration: _buildDialogInputDecoration('Local *'),
+                        validator: (value) =>
+                            (value == null || value.isEmpty)
+                                ? 'Selecione um local'
+                                : null,
+                        dropdownColor: Colors.white,
+                      ),
+                      // --- FIM DA MUDANÇA ---
+
+                      const SizedBox(height: 16), // AUMENTADO
+                      TextFormField(
+                        controller: vencimentoController,
+                        readOnly: true,
+                        decoration: _buildDialogInputDecoration(
+                            'Vencimento (opcional)'),
+                        onTap: () async {
+                          final now = DateTime.now();
+                          final picked = await showDatePicker(
+                            context: context,
+                            initialDate: selectedVencimento ?? now,
+                            firstDate: DateTime(now.year - 5),
+                            lastDate: DateTime(now.year + 10),
+                          );
+                          if (picked != null) {
+                            setDialogState(() {
+                              selectedVencimento = picked;
+                              vencimentoController.text = _formatDate(picked);
+                            });
+                          }
+                        },
+                      ),
+                    ],
+                  ),
+                ),
+              ),
+            ),
+            actionsPadding: const EdgeInsets.fromLTRB(24, 0, 24, 24),
+            actions: [
+              TextButton(
+                onPressed: () => Navigator.of(dialogContext).pop(),
+                child: Text('Cancelar', style: TextStyle(color: metroBlue)),
+              ),
+              ElevatedButton(
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: metroBlue,
+                  foregroundColor: Colors.white,
+                ),
+                onPressed: isSubmitting
+                    ? null
+                    : () async {
+                        if (!formKey.currentState!.validate()) return;
+
+                        setDialogState(() => isSubmitting = true);
+
+                        int quantidade;
+                        try {
+                          quantidade = int.parse(quantidadeController.text);
+                        } catch (e) {
+                          setDialogState(() => isSubmitting = false);
+                          ScaffoldMessenger.of(context).showSnackBar(
+                            const SnackBar(
+                              content: Text('Quantidade deve ser um número'),
+                              backgroundColor: Colors.red,
+                            ),
+                          );
+                          return;
+                        }
+
+                        try {
+                          final created = await _materialService.create(
+                            codigo: codigoController.text,
+                            nome: nomeController.text,
+                            quantidade: quantidade,
+                            local: selectedLocal!, // MUDANÇA
+                            vencimento: selectedVencimento,
+                            tipo: widget.tipo,
+                          );
+
+                          setState(() {
+                            _materiais.add(created);
+                          });
+
+                          if (!mounted) return;
+                          Navigator.of(dialogContext).pop(); // fecha o diálogo
+                          ScaffoldMessenger.of(context).showSnackBar(
+                            SnackBar(
+                              content: Text(
+                                'Material ${created.nome} adicionado com sucesso',
+                              ),
+                              backgroundColor: Colors.green,
+                            ),
+                          );
+                        } catch (e) {
+                          if (!mounted) return;
+                          ScaffoldMessenger.of(context).showSnackBar(
+                            SnackBar(
+                              content: Text('Erro ao criar material: $e'),
+                              backgroundColor: Colors.red,
+                            ),
+                          );
+                        } finally {
+                          setDialogState(() => isSubmitting = false);
+                        }
+                      },
+                child: isSubmitting
+                    ? const SizedBox(
+                        width: 20,
+                        height: 20,
+                        child: CircularProgressIndicator(
+                          strokeWidth: 2,
+                          color: Colors.white,
+                        ),
+                      )
+                    : const Text('Adicionar'),
+              ),
+            ],
+          ),
+        );
+      },
+    );
+  }
+
+  // --- MUDANÇA: DIÁLOGO DE EDITAR (COM CAMPOS BONITOS E DROPDOWN) ---
+  void _showEditMaterialDialog(EstoqueMaterial material) {
+    final formKey = GlobalKey<FormState>();
+    final nomeController = TextEditingController(text: material.nome);
+    // final localController = TextEditingController(text: material.local); // REMOVIDO
+    String? selectedLocal = material
+        .local; // NOVO
+    DateTime? selectedVencimento = material.vencimento;
+    final vencimentoController =
+        TextEditingController(text: _formatDate(material.vencimento));
+
+    // Valida se o local atual existe na lista, se não, reseta
+    if (selectedLocal != null &&
+        !_listaDeBases.any((base) => base['value'] == selectedLocal)) {
+      selectedLocal = null;
     }
 
     showDialog(
       context: context,
-      builder: (context) => Dialog(
-        // ... (layout do diálogo sem alterações)
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
-        elevation: 8,
-        child: Container(
-          padding: const EdgeInsets.all(24),
-          constraints: const BoxConstraints(maxWidth: 500),
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              // Header
-              Row(
-                // ... (sem alterações)
-                children: [
-                  Container(
-                    padding: const EdgeInsets.all(10),
-                    decoration: BoxDecoration(
-                      color: primaryColor,
-                      borderRadius: BorderRadius.circular(12),
-                    ),
-                    child: const Icon(
-                      Icons.add_box_rounded,
-                      color: Colors.white,
-                      size: 28,
-                    ),
+      builder: (dialogContext) {
+        bool isSubmitting = false;
+        final double dialogWidth = MediaQuery.of(dialogContext).size.width > 550
+            ? 500.0 // Largura fixa
+            : MediaQuery.of(dialogContext).size.width * 0.95; // 95% para mobile
+
+        return StatefulBuilder(
+          builder: (context, setDialogState) => AlertDialog(
+            backgroundColor: Colors.white,
+            surfaceTintColor: Colors.white,
+            shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(12),
+            ),
+            titlePadding: const EdgeInsets.fromLTRB(24, 24, 24, 16),
+            title: Row(
+              children: [
+                Icon(Icons.edit_note_rounded, color: metroBlue, size: 28),
+                const SizedBox(width: 12),
+                Text(
+                  'Editar Material',
+                  style: TextStyle(
+                    color: metroBlue,
+                    fontWeight: FontWeight.bold,
+                    fontSize: 20,
                   ),
-                  const SizedBox(width: 16),
-                  Expanded(
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        const Text(
-                          'Adicionar Material',
-                          style: TextStyle(
-                            fontSize: 22,
-                            fontWeight: FontWeight.bold,
-                          ),
-                        ),
-                        const SizedBox(height: 4),
-                        Text(
-                          'Preencha os dados do novo material',
-                          style: TextStyle(
-                            fontSize: 14,
-                            color: Colors.grey.shade600,
-                          ),
-                        ),
-                      ],
-                    ),
+                ),
+              ],
+            ),
+            contentPadding: const EdgeInsets.fromLTRB(24, 24, 24, 24),
+            content: SizedBox(
+              width: dialogWidth,
+              child: Form(
+                key: formKey,
+                child: SingleChildScrollView(
+                  child: Column(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      // --- MUDANÇA: CAMPO NÃO-EDITÁVEL BONITO ---
+                      _buildReadOnlyField(
+                        'Código',
+                        material.codigo,
+                        Icons.qr_code_2_rounded,
+                      ),
+                      const SizedBox(height: 16), // AUMENTADO
+                      TextFormField(
+                        controller: nomeController,
+                        decoration: _buildDialogInputDecoration('Nome *'),
+                        validator: (v) =>
+                            (v == null || v.isEmpty) ? 'Informe o nome' : null,
+                      ),
+                      const SizedBox(height: 16), // AUMENTADO
+
+                      // --- MUDANÇA: CAMPO NÃO-EDITÁVEL BONITO ---
+                      _buildReadOnlyField(
+                        'Quantidade Atual',
+                        "${material.quantidade} (use 'Movimentar' para alterar)",
+                        Icons.info_outline_rounded,
+                      ),
+                      const SizedBox(height: 16), // AUMENTADO
+
+                      // --- MUDANÇA: CAMPO DE LOCAL (DROPDOWN) ---
+                      DropdownButtonFormField<String>(
+                        value: selectedLocal,
+                        items: _listaDeBases.map((base) {
+                          return DropdownMenuItem(
+                            value: base['value'],
+                            child: Text(base['label']!),
+                          );
+                        }).toList(),
+                        onChanged: (value) {
+                          setDialogState(() {
+                            selectedLocal = value;
+                          });
+                        },
+                        decoration: _buildDialogInputDecoration('Local *'),
+                        validator: (value) =>
+                            (value == null || value.isEmpty)
+                                ? 'Selecione um local'
+                                : null,
+                        dropdownColor: Colors.white,
+                      ),
+                      // --- FIM DA MUDANÇA ---
+
+                      const SizedBox(height: 16), // AUMENTADO
+                      TextFormField(
+                        controller: vencimentoController,
+                        readOnly: true,
+                        decoration: _buildDialogInputDecoration(
+                            'Vencimento (opcional)'),
+                        onTap: () async {
+                          final now = DateTime.now();
+                          final picked = await showDatePicker(
+                            context: context,
+                            initialDate: selectedVencimento ?? now,
+                            firstDate: DateTime(now.year - 5),
+                            lastDate: DateTime(now.year + 10),
+                          );
+                          if (picked != null) {
+                            setDialogState(() {
+                              selectedVencimento = picked;
+                              vencimentoController.text = _formatDate(picked);
+                            });
+                          }
+                        },
+                      ),
+                    ],
                   ),
-                ],
-              ),
-
-              const SizedBox(height: 24),
-              const Divider(),
-              const SizedBox(height: 16),
-
-              // Form fields
-              TextField(
-                // ... (sem alterações)
-                controller: codigoController,
-                decoration: inputDecoration(
-                  'Código',
-                  'Ex: M001',
-                  Icons.qr_code,
                 ),
-                style: const TextStyle(fontSize: 16),
               ),
-              const SizedBox(height: 16),
-
-              TextField(
-                // ... (sem alterações)
-                controller: nomeController,
-                decoration: inputDecoration(
-                  'Nome',
-                  'Ex: Cabo Elétrico',
-                  Icons.inventory,
+            ),
+            actionsPadding: const EdgeInsets.fromLTRB(24, 0, 24, 24),
+            actions: [
+              TextButton(
+                onPressed: () => Navigator.of(dialogContext).pop(),
+                child: Text('Cancelar', style: TextStyle(color: metroBlue)),
+              ),
+              ElevatedButton(
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: metroBlue,
+                  foregroundColor: Colors.white,
                 ),
-                style: const TextStyle(fontSize: 16),
-              ),
-              const SizedBox(height: 16),
+                onPressed: isSubmitting
+                    ? null
+                    : () async {
+                        if (!formKey.currentState!.validate()) return;
 
-              TextField(
-                // ... (sem alterações)
-                controller: quantidadeController,
-                decoration: inputDecoration(
-                  'Quantidade',
-                  'Ex: 150',
-                  Icons.production_quantity_limits,
-                ),
-                keyboardType: TextInputType.number,
-                style: const TextStyle(fontSize: 16),
-              ),
-              const SizedBox(height: 16),
+                        setDialogState(() => isSubmitting = true);
+                        setState(() => _processingIds.add(material.codigo));
 
-              TextField(
-                // ... (sem alterações)
-                controller: localController,
-                decoration: inputDecoration(
-                  'Local',
-                  'Ex: Base A',
-                  Icons.location_on,
-                ),
-                style: const TextStyle(fontSize: 16),
-              ),
-              const SizedBox(height: 16),
-              // Campo opcional de vencimento (abre date picker)
-              TextField(
-                // ... (sem alterações)
-                controller: vencimentoController,
-                readOnly: true,
-                decoration: inputDecoration(
-                  'Vencimento (opcional)',
-                  'Selecione uma data',
-                  Icons.calendar_today,
-                ),
-                onTap: () async {
-                  final now = DateTime.now();
-                  final picked = await showDatePicker(
-                    context: context,
-                    initialDate: selectedVencimento ?? now,
-                    firstDate: DateTime(now.year - 5),
-                    lastDate: DateTime(now.year + 10),
-                  );
-                  if (picked != null) {
-                    selectedVencimento = picked;
-                    vencimentoController.text = _formatDate(picked);
-                    setState(() {}); // para atualizar se necessário
-                  }
-                },
-                style: const TextStyle(fontSize: 16),
-              ),
-
-              const SizedBox(height: 24),
-              const Divider(),
-              const SizedBox(height: 16),
-
-              // Action buttons
-              Row(
-                mainAxisAlignment: MainAxisAlignment.end,
-                children: [
-                  OutlinedButton(
-                    // ... (botão cancelar sem alterações)
-                    onPressed: () => Navigator.pop(context),
-                    style: OutlinedButton.styleFrom(
-                      foregroundColor: primaryColor,
-                      side: BorderSide(color: primaryColor),
-                      padding: const EdgeInsets.symmetric(
-                        horizontal: 20,
-                        vertical: 12,
-                      ),
-                      shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(12),
-                      ),
-                    ),
-                    child: const Text(
-                      'Cancelar',
-                      style: TextStyle(fontWeight: FontWeight.bold),
-                    ),
-                  ),
-                  const SizedBox(width: 16),
-                  ElevatedButton(
-                    style: ElevatedButton.styleFrom(
-                      backgroundColor: primaryColor,
-                      foregroundColor: Colors.white,
-                      elevation: 0,
-                      padding: const EdgeInsets.symmetric(
-                        horizontal: 24,
-                        vertical: 12,
-                      ),
-                      shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(12),
-                      ),
-                    ),
-                    onPressed: () async {
-                      // Validar entradas
-                      if (codigoController.text.isEmpty ||
-                          nomeController.text.isEmpty ||
-                          quantidadeController.text.isEmpty ||
-                          localController.text.isEmpty) {
-                        // ... (lógica de erro sem alterações)
-                        ScaffoldMessenger.of(context).showSnackBar(
-                          const SnackBar(
-                            content: Text('Preencha todos os campos'),
-                            backgroundColor: Colors.red,
-                          ),
-                        );
-                        return;
-                      }
-
-                      // Tentar converter quantidade para número
-                      int quantidade;
-                      try {
-                        quantidade = int.parse(quantidadeController.text);
-                      } catch (e) {
-                        // ... (lógica de erro sem alterações)
-                        ScaffoldMessenger.of(context).showSnackBar(
-                          const SnackBar(
-                            content: Text('Quantidade deve ser um número'),
-                            backgroundColor: Colors.red,
-                          ),
-                        );
-                        return;
-                      }
-                      // Chamar a API para criar o material (usa widget.tipo se fornecido)
-                      // Mostra indicador de progresso modal enquanto aguarda
-                      showDialog(
-                        context: context,
-                        barrierDismissible: false,
-                        builder: (_) =>
-                            const Center(child: CircularProgressIndicator()),
-                      );
-
-                      try {
-                        final created = await _materialService.create(
-                          codigo: codigoController.text,
-                          nome: nomeController.text,
-                          quantidade: quantidade,
-                          local: localController.text,
-                          vencimento: selectedVencimento,
-                          tipo: widget.tipo,
-                        );
-
-                        setState(() {
-                          _materiais.add(created);
-                        });
-
-                        // MovimentacaoRepository.instance.addMovimentacao(
-                        //   codigoMaterial: created.codigo,
-                        //   descricao: "Adicionado: ${created.nome}",
-                        //   quantidade: created.quantidade,
-                        //   tipo: 'adicao',
-                        //   usuario: 'Sistema',
-                        //   local: created.local,
-                        // );
-
-                        // Fechar indicador de progresso e diálogo de formulário
-                        Navigator.of(
-                          context,
-                        ).pop(); // fecha o CircularProgressIndicator
-                        Navigator.of(
-                          context,
-                        ).pop(); // fecha o diálogo de adicionar
-
-                        // Mostrar confirmação
-                        ScaffoldMessenger.of(context).showSnackBar(
-                          SnackBar(
-                            content: Row(
-                              children: [
-                                const Icon(
-                                  Icons.check_circle,
-                                  color: Colors.white,
-                                ),
-                                const SizedBox(width: 16),
-                                Expanded(
-                                  child: Text(
-                                    'Material ${created.nome} adicionado com sucesso',
-                                    style: const TextStyle(fontSize: 16),
-                                  ),
-                                ),
-                              ],
-                            ),
-                            backgroundColor: Colors.green.shade700,
-                            behavior: SnackBarBehavior.floating,
-                            shape: RoundedRectangleBorder(
-                              borderRadius: BorderRadius.circular(10),
-                            ),
-                            duration: const Duration(seconds: 4),
-                          ),
-                        );
-                      } catch (e) {
-                        // Fechar indicador de progresso se aberto
                         try {
-                          Navigator.of(context).pop();
-                        } catch (_) {}
+                          // --- MUDANÇA: Chamada de update corrigida ---
+                          final updatedMaterial =
+                              await _materialService.update(
+                            material.codigo,
+                            // tipo não é mais necessário
+                            nome: nomeController.text,
+                            local: selectedLocal!, 
+                            vencimento: selectedVencimento,
+                          );
 
-                        // Mostrar erro
-                        ScaffoldMessenger.of(context).showSnackBar(
-                          SnackBar(
-                            content: Text('Erro ao criar material: $e'),
-                            backgroundColor: Colors.red.shade700,
-                          ),
-                        );
-                      }
-                    },
-                    child: Row(
-                      // ... (botão adicionar sem alterações)
-                      mainAxisSize: MainAxisSize.min,
-                      children: const [
-                        Icon(Icons.add),
-                        SizedBox(width: 8),
-                        Text(
-                          'Adicionar',
-                          style: TextStyle(
-                            fontWeight: FontWeight.bold,
-                            fontSize: 16,
-                          ),
+                          // Atualiza a lista local
+                          setState(() {
+                            final index = _materiais.indexWhere(
+                                (m) => m.codigo == material.codigo);
+                            if (index != -1) {
+                              _materiais[index] = updatedMaterial;
+                            }
+                          });
+
+                          if (!mounted) return;
+                          Navigator.of(dialogContext).pop(); // fecha o diálogo
+                          ScaffoldMessenger.of(context).showSnackBar(
+                            SnackBar(
+                              content: Text(
+                                  'Material ${updatedMaterial.nome} salvo com sucesso'),
+                              backgroundColor: Colors.green,
+                            ),
+                          );
+                        } catch (e) {
+                          if (!mounted) return;
+                          ScaffoldMessenger.of(context).showSnackBar(
+                            SnackBar(
+                              content: Text('Erro ao salvar material: $e'),
+                              backgroundColor: Colors.red,
+                            ),
+                          );
+                        } finally {
+                          setDialogState(() => isSubmitting = false);
+                          setState(
+                              () => _processingIds.remove(material.codigo));
+                        }
+                      },
+                child: isSubmitting
+                    ? const SizedBox(
+                        width: 20,
+                        height: 20,
+                        child: CircularProgressIndicator(
+                          strokeWidth: 2,
+                          color: Colors.white,
                         ),
-                      ],
-                    ),
-                  ),
-                ],
+                      )
+                    : const Text('Salvar'),
               ),
             ],
           ),
-        ),
-      ),
+        );
+      },
     );
   }
+
+  // --- NOVOS: MÉTODOS DE EXCLUIR ---
+  Future<void> _deleteMaterial(String codigo) async {
+
+    setState(() => _processingIds.add(codigo));
+    try {
+      // --- MUDANÇA: Chamada de delete corrigida ---
+      await _materialService.delete(codigo); // tipo não é mais necessário
+
+      setState(() {
+        _materiais.removeWhere((m) => m.codigo == codigo);
+      });
+
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('Material excluído com sucesso'),
+            backgroundColor: Colors.green,
+          ),
+        );
+      }
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Erro ao excluir material: $e'),
+            backgroundColor: Colors.red,
+          ),
+        );
+      }
+    } finally {
+      setState(() => _processingIds.remove(codigo));
+    }
+  }
+
+  Future<void> _showDeleteConfirmDialog(EstoqueMaterial material) async {
+    final confirm = await showDialog<bool>(
+      context: context,
+      builder: (_) => AlertDialog(
+        title: const Text('Confirmar Exclusão'),
+        content: Text(
+            'Deseja realmente excluir o material "${material.nome}" (${material.codigo})? Esta ação não pode ser desfeita.'),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.of(context).pop(false),
+            child: const Text('Cancelar'),
+          ),
+          ElevatedButton(
+            style: ElevatedButton.styleFrom(backgroundColor: Colors.red),
+            onPressed: () => Navigator.of(context).pop(true),
+            child: const Text('Excluir'),
+          ),
+        ],
+      ),
+    );
+
+    if (confirm == true) {
+      await _deleteMaterial(material.codigo);
+    }
+  }
+  // --- FIM DOS MÉTODOS DE EXCLUIR ---
 
   // Método para mostrar o diálogo de movimentação de material
   void _showMovimentarDialog(BuildContext context, EstoqueMaterial material) {
@@ -529,6 +743,7 @@ class _EstoquePageState extends State<EstoquePage>
                   TextField(
                     controller: quantidadeController,
                     keyboardType: TextInputType.number,
+                    inputFormatters: [FilteringTextInputFormatter.digitsOnly],
                     decoration: const InputDecoration(
                       labelText: 'Quantidade',
                       border: OutlineInputBorder(),
@@ -628,20 +843,6 @@ class _EstoquePageState extends State<EstoquePage>
 
   @override
   Widget build(BuildContext context) {
-    // ... (O resto do seu método build continua aqui, sem alterações)
-    // Eu adicionei a lógica no `onPressed` do botão "Adicionar"
-    // dentro do diálogo `_showAddMaterialDialog`.
-
-    // Você deve fazer o mesmo para "Editar" e "Movimentar":
-    // 1. Encontre o onPressed do botão "Editar" (na linha 600 ou 759)
-    //    e adicione:
-    //    MovimentacaoRepository.instance.addMovimentacao("Editado: ${material.nome}", Icons.edit);
-    //
-    // 2. Encontre o onPressed do botão "Movimentar" (na linha 616 ou 776)
-    //    e adicione:
-    //    MovimentacaoRepository.instance.addMovimentacao("Retirado: ${material.nome}", Icons.remove_circle);
-    //    (ou adicione um diálogo que pergunta a quantidade e decide o ícone)
-
     final metroBlue = const Color(0xFF001489);
 
     // Original body (extracted so we can reuse it with or without sidebar)
@@ -775,6 +976,13 @@ class _EstoquePageState extends State<EstoquePage>
                     itemCount: _filteredMateriais.length,
                     itemBuilder: (context, index) {
                       final material = _filteredMateriais[index];
+                      // Encontra o label da base para exibição
+                      final localLabel = _listaDeBases
+                          .firstWhere(
+                            (base) => base['value'] == material.local,
+                            orElse: () => {'label': material.local},
+                          )['label']!;
+                      
                       return Padding(
                         padding: const EdgeInsets.only(bottom: 12),
                         child: Card(
@@ -874,28 +1082,38 @@ class _EstoquePageState extends State<EstoquePage>
                                       material.quantidade.toString(),
                                     ),
                                     const SizedBox(height: 8),
-                                    _buildInfoRow('Local:', material.local),
+                                    _buildInfoRow('Local:', localLabel), // MUDANÇA
                                     const SizedBox(height: 8),
                                     _buildInfoRow(
                                       'Vencimento:',
                                       _formatDate(material.vencimento),
                                     ),
                                     const SizedBox(height: 12),
-                                    // Botões de ação
+                                    // --- MUDANÇA: ADICIONADO BOTÃO DE EXCLUIR E EDITAR (MOBILE) ---
                                     Row(
                                       mainAxisAlignment: MainAxisAlignment.end,
                                       children: [
-                                        OutlinedButton.icon(
-                                          icon: const Icon(
-                                            Icons.edit,
-                                            size: 18,
-                                          ),
-                                          label: const Text('Editar'),
-                                          onPressed: () {
-                                            // Implementar edição de material
-                                          },
+                                        // Botão Excluir
+                                        TextButton.icon(
+                                          icon: const Icon(Icons.delete,
+                                              size: 18),
+                                          label: const Text('Excluir'),
+                                          style: TextButton.styleFrom(
+                                              foregroundColor: Colors.red),
+                                          onPressed: () =>
+                                              _showDeleteConfirmDialog(
+                                                  material),
                                         ),
                                         const SizedBox(width: 8),
+                                        // Botão Editar
+                                        TextButton.icon(
+                                          icon: const Icon(Icons.edit, size: 18),
+                                          label: const Text('Editar'),
+                                          onPressed: () =>
+                                              _showEditMaterialDialog(material),
+                                        ),
+                                        const SizedBox(width: 8),
+                                        // Botão Movimentar (Primário)
                                         ElevatedButton.icon(
                                           icon: const Icon(
                                             Icons.swap_vert,
@@ -903,9 +1121,9 @@ class _EstoquePageState extends State<EstoquePage>
                                           ),
                                           label: const Text('Movimentar'),
                                           style: ElevatedButton.styleFrom(
-                                            backgroundColor: const Color(
-                                              0xFF253250,
-                                            ),
+                                            backgroundColor:
+                                                const Color(0xFF253250),
+                                            foregroundColor: Colors.white,
                                           ),
                                           onPressed: () {
                                             _showMovimentarDialog(
@@ -916,6 +1134,7 @@ class _EstoquePageState extends State<EstoquePage>
                                         ),
                                       ],
                                     ),
+                                    // --- FIM DA MUDANÇA ---
                                   ],
                                 ),
                               ),
@@ -1063,6 +1282,13 @@ class _EstoquePageState extends State<EstoquePage>
                                 ),
                               ],
                               rows: _filteredMateriais.map((material) {
+                                // Encontra o label da base para exibição
+                                final localLabel = _listaDeBases
+                                    .firstWhere(
+                                      (base) => base['value'] == material.local,
+                                      orElse: () => {'label': material.local},
+                                    )['label']!;
+
                                 return DataRow(
                                   cells: [
                                     DataCell(
@@ -1099,7 +1325,7 @@ class _EstoquePageState extends State<EstoquePage>
                                         ),
                                       ),
                                     ),
-                                    DataCell(Text(material.local)),
+                                    DataCell(Text(localLabel)), // MUDANÇA
                                     // Célula de vencimento (formatação ou '-')
                                     DataCell(
                                       SizedBox(
@@ -1141,38 +1367,63 @@ class _EstoquePageState extends State<EstoquePage>
                                         ),
                                       ),
                                     ),
+                                    // --- MUDANÇA: ADICIONADO BOTÃO DE EXCLUIR, EDITAR E LOADING (DESKTOP) ---
                                     DataCell(
-                                      Row(
-                                        mainAxisSize: MainAxisSize.min,
-                                        children: [
-                                          IconButton(
-                                            icon: const Icon(
-                                              Icons.edit,
-                                              size: 20,
+                                      _processingIds.contains(material.codigo)
+                                          ? const Center(
+                                              child: SizedBox(
+                                                width: 20,
+                                                height: 20,
+                                                child:
+                                                    CircularProgressIndicator(
+                                                        strokeWidth: 2),
+                                              ),
+                                            )
+                                          : Row(
+                                              mainAxisSize: MainAxisSize.min,
+                                              children: [
+                                                IconButton(
+                                                  icon: const Icon(
+                                                    Icons.edit,
+                                                    size: 20,
+                                                  ),
+                                                  color: Colors.blue,
+                                                  tooltip: "Editar",
+                                                  onPressed: () {
+                                                    _showEditMaterialDialog(
+                                                        material);
+                                                  },
+                                                ),
+                                                IconButton(
+                                                  icon: const Icon(
+                                                    Icons.swap_vert,
+                                                    size: 20,
+                                                  ),
+                                                  color:
+                                                      const Color(0xFF253250),
+                                                  tooltip: "Movimentar",
+                                                  onPressed: () {
+                                                    _showMovimentarDialog(
+                                                      context,
+                                                      material,
+                                                    );
+                                                  },
+                                                ),
+                                                IconButton(
+                                                  icon: const Icon(
+                                                      Icons.delete,
+                                                      size: 20),
+                                                  color: Colors.red,
+                                                  tooltip: "Excluir",
+                                                  onPressed: () {
+                                                    _showDeleteConfirmDialog(
+                                                        material);
+                                                  },
+                                                ),
+                                              ],
                                             ),
-                                            color: Colors.blue,
-                                            tooltip: "Editar",
-                                            onPressed: () {
-                                              // Implementar edição
-                                            },
-                                          ),
-                                          IconButton(
-                                            icon: const Icon(
-                                              Icons.swap_vert,
-                                              size: 20,
-                                            ),
-                                            color: const Color(0xFF253250),
-                                            tooltip: "Movimentar",
-                                            onPressed: () {
-                                              _showMovimentarDialog(
-                                                context,
-                                                material,
-                                              );
-                                            },
-                                          ),
-                                        ],
-                                      ),
                                     ),
+                                    // --- FIM DA MUDANÇA ---
                                   ],
                                   onSelectChanged: (selected) {
                                     if (selected == true) {

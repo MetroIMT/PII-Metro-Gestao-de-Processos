@@ -20,8 +20,9 @@ class MaterialService {
     return decoded.map<EstoqueMaterial>((m) {
       DateTime? venc;
       try {
-        if (m['vencimento'] != null)
+        if (m['vencimento'] != null) {
           venc = DateTime.tryParse(m['vencimento'].toString());
+        }
       } catch (_) {
         venc = null;
       }
@@ -46,6 +47,7 @@ class MaterialService {
     DateTime? vencimento,
     String? tipo,
   }) async {
+    // Rota de CREATE (POST) mantém a lógica especial /giro
     final uri = Uri.parse(
       '$_baseUrl/materiais${tipo == 'giro' ? '/giro' : ''}',
     );
@@ -75,8 +77,9 @@ class MaterialService {
     final m = json.decode(resp.body);
     DateTime? venc;
     try {
-      if (m['vencimento'] != null)
+      if (m['vencimento'] != null) {
         venc = DateTime.tryParse(m['vencimento'].toString());
+      }
     } catch (_) {
       venc = null;
     }
@@ -129,6 +132,78 @@ class MaterialService {
         errorMessage += ' ${resp.body}';
       }
       throw Exception(errorMessage);
+    }
+  }
+
+  // --- MÉTODO UPDATE (AGORA USANDO PATCH e ROTA SIMPLES) ---
+  Future<EstoqueMaterial> update(
+    String codigo, {
+    String? nome,
+    String? local,
+    DateTime? vencimento,
+  }) async {
+    // --- MUDANÇA: Rota simplificada. /materiais/:codigo para TODOS os tipos ---
+    final uri = Uri.parse(
+      '$_baseUrl/materiais/$codigo',
+    );
+
+    final body = {
+      if (nome != null) 'nome': nome,
+      if (local != null) 'local': local,
+      'vencimento':
+          vencimento?.toIso8601String(), // Envia null se for nulo
+    };
+
+    final resp = await _client
+        .patch( // Usando PATCH
+      uri,
+      headers: {'Content-Type': 'application/json'},
+      body: json.encode(body),
+    )
+        .timeout(const Duration(seconds: 30));
+
+    if (resp.statusCode != 200) {
+      throw Exception(
+        'Falha ao atualizar material: ${resp.statusCode} ${resp.body}',
+      );
+    }
+
+    final m = json.decode(resp.body);
+    DateTime? venc;
+    try {
+      if (m['vencimento'] != null) {
+        venc = DateTime.tryParse(m['vencimento'].toString());
+      }
+    } catch (_) {
+      venc = null;
+    }
+
+    // Retorna o material atualizado (importante: `quantidade` vem do servidor)
+    return EstoqueMaterial(
+      codigo: m['codigo']?.toString() ?? '',
+      nome: m['nome']?.toString() ?? '',
+      quantidade: (m['quantidade'] is int)
+          ? m['quantidade'] as int
+          : int.tryParse(m['quantidade']?.toString() ?? '0') ?? 0,
+      local: m['local']?.toString() ?? '',
+      vencimento: venc,
+    );
+  }
+
+  // --- MÉTODO DELETE (ROTA SIMPLES) ---
+  Future<void> delete(String codigo) async {
+    // --- MUDANÇA: Rota simplificada. /materiais/:codigo para TODOS os tipos ---
+    final uri = Uri.parse(
+      '$_baseUrl/materiais/$codigo',
+    );
+
+    final resp =
+        await _client.delete(uri).timeout(const Duration(seconds: 30));
+
+    if (resp.statusCode != 200 && resp.statusCode != 204) {
+      throw Exception(
+        'Falha ao excluir material: ${resp.statusCode} ${resp.body}',
+      );
     }
   }
 
