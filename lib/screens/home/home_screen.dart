@@ -6,7 +6,8 @@ import 'reports_page.dart';
 import 'estoque_categorias_page.dart';
 import 'movimentacoes_page.dart'; // Importar a nova página
 import 'tool_page.dart';
-import '../../repositories/alert_repository.dart'; // Importa AlertRepository, AlertItem e AlertType
+// Importa os *modelos* AlertItem e AlertType, mas não o repositório estático
+import '../../repositories/alert_repository.dart' show AlertItem, AlertType;
 import '../../repositories/movimentacao_repository.dart';
 import '../../models/movimentacao.dart';
 import 'package:intl/intl.dart';
@@ -101,6 +102,27 @@ class _HomeScreenState extends State<HomeScreen>
   late AnimationController _animationController;
   final GlobalKey<ScaffoldState> _scaffoldKey = GlobalKey<ScaffoldState>();
 
+  // --- Serviços ---
+  final MaterialService _materialService = MaterialService();
+  final MovimentacaoService _movimentacaoService = MovimentacaoService();
+
+  // --- Estado: Movimentações ---
+  List<Movimentacao> _recentMovimentacoes = [];
+  bool _isLoadingRecent = true;
+  String? _recentError;
+
+  // --- Estado: Estoque (para o gráfico) ---
+  List<EstoqueMaterial>? _materiaisGiro;
+  List<EstoqueMaterial>? _materiaisConsumo;
+  List<EstoqueMaterial>? _materiaisPatrimoniado;
+  String? _materiaisError;
+
+  // --- NOVO ESTADO: Alertas (para o card de Alertas) ---
+  List<AlertItem> _dashboardAlerts = [];
+  bool _isLoadingAlerts = true;
+  String? _alertsError;
+  // --- FIM DA MUDANÇA ---
+
   @override
   void initState() {
     super.initState();
@@ -108,7 +130,9 @@ class _HomeScreenState extends State<HomeScreen>
       vsync: this,
       duration: const Duration(milliseconds: 300),
     );
-    AlertRepository.instance.countNotifier.addListener(_onAlertsCountChanged);
+
+    // --- MUDANÇA: Listener do AlertRepository REMOVIDO ---
+    // AlertRepository.instance.countNotifier.addListener(_onAlertsCountChanged);
 
     // Adicionar listener para o novo repositório
     MovimentacaoRepository.instance.movimentacoesNotifier.addListener(
@@ -118,17 +142,11 @@ class _HomeScreenState extends State<HomeScreen>
     _loadMateriais();
     // carregar últimas movimentações do backend para o card do dashboard
     _loadRecentMovimentacoes();
-  }
 
-  final MaterialService _materialService = MaterialService();
-  final MovimentacaoService _movimentacaoService = MovimentacaoService();
-  List<Movimentacao> _recentMovimentacoes = [];
-  bool _isLoadingRecent = true;
-  String? _recentError;
-  List<EstoqueMaterial>? _materiaisGiro;
-  List<EstoqueMaterial>? _materiaisConsumo;
-  List<EstoqueMaterial>? _materiaisPatrimoniado;
-  String? _materiaisError;
+    // --- MUDANÇA: Carregar os alertas REAIS ---
+    _loadDashboardAlerts();
+    // --- FIM DA MUDANÇA ---
+  }
 
   Future<void> _loadMateriais() async {
     try {
@@ -170,25 +188,121 @@ class _HomeScreenState extends State<HomeScreen>
         });
       }
     } catch (e) {
-      if (mounted) setState(() {
-        _recentError = e.toString();
-        _isLoadingRecent = false;
-      });
+      if (mounted) {
+        setState(() {
+          _recentError = e.toString();
+          _isLoadingRecent = false;
+        });
+      }
     }
   }
 
+  // --- NOVO MÉTODO: Lógica de Alertas (copiado da AlertsPage) ---
+  Future<void> _loadDashboardAlerts() async {
+    setState(() {
+      _isLoadingAlerts = true;
+      _alertsError = null;
+    });
+
+    try {
+      final results = await Future.wait([
+        _materialService.getByTipo('giro'),
+        _materialService.getByTipo('patrimoniado'),
+        _materialService.getByTipo('consumo'),
+      ]);
+
+      final allMaterials = results.expand((list) => list).toList();
+      final generatedAlerts = <AlertItem>[];
+      final now = DateTime.now();
+      final expiryLimit = now.add(const Duration(days: 30));
+      final criticalExpiryLimit = now.add(const Duration(days: 15));
+
+      for (final m in allMaterials) {
+        bool isLowStock = m.quantidade < 10;
+        int lowStockSeverity = isLowStock ? (m.quantidade == 0 ? 3 : 2) : 0;
+
+        bool isNearExpiry =
+            m.vencimento != null && m.vencimento!.isBefore(expiryLimit);
+        int nearExpirySeverity = isNearExpiry
+            ? (m.vencimento!.isBefore(criticalExpiryLimit) ? 3 : 2)
+            : 0;
+
+        if (isLowStock && isNearExpiry) {
+          if (lowStockSeverity >= nearExpirySeverity) {
+            generatedAlerts.add(AlertItem(
+              codigo: m.codigo,
+              nome: m.nome,
+              quantidade: m.quantidade,
+              local: m.local,
+              vencimento: m.vencimento,
+              type: AlertType.lowStock,
+              severity: lowStockSeverity,
+            ));
+          } else {
+            generatedAlerts.add(AlertItem(
+              codigo: m.codigo,
+              nome: m.nome,
+              quantidade: m.quantidade,
+              local: m.local,
+              vencimento: m.vencimento,
+              type: AlertType.nearExpiry,
+              severity: nearExpirySeverity,
+            ));
+          }
+        } else if (isLowStock) {
+          generatedAlerts.add(AlertItem(
+            codigo: m.codigo,
+            nome: m.nome,
+            quantidade: m.quantidade,
+            local: m.local,
+            vencimento: m.vencimento,
+            type: AlertType.lowStock,
+            severity: lowStockSeverity,
+          ));
+        } else if (isNearExpiry) {
+          generatedAlerts.add(AlertItem(
+            codigo: m.codigo,
+            nome: m.nome,
+            quantidade: m.quantidade,
+            local: m.local,
+            vencimento: m.vencimento,
+            type: AlertType.nearExpiry,
+            severity: nearExpirySeverity,
+          ));
+        }
+      }
+
+      if (mounted) {
+        setState(() {
+          _dashboardAlerts = generatedAlerts;
+          _isLoadingAlerts = false;
+        });
+      }
+    } catch (e) {
+      if (mounted) {
+        setState(() {
+          _alertsError = e.toString();
+          _isLoadingAlerts = false;
+        });
+      }
+    }
+  }
+  // --- FIM DA MUDANÇA ---
+
   @override
   void dispose() {
-    AlertRepository.instance.countNotifier.removeListener(
-      _onAlertsCountChanged,
-    );
-    // Remover o listener
+    // --- MUDANÇA: Listener do AlertRepository REMOVIDO ---
+    // AlertRepository.instance.countNotifier.removeListener(
+    //   _onAlertsCountChanged,
+    // );
+    // --- FIM DA MUDANÇA ---
+
     MovimentacaoRepository.instance.movimentacoesNotifier.removeListener(
       _onAlertsCountChanged,
     );
     _animationController.dispose();
-    // Fechar cliente HTTP do serviço de movimentações
     _movimentacaoService.dispose();
+    _materialService.dispose(); // Adicionado para fechar o cliente de materiais
     super.dispose();
   }
 
@@ -489,8 +603,10 @@ class _HomeScreenState extends State<HomeScreen>
                   MaterialPageRoute(builder: (_) => const AlertsPage()),
                 );
               },
-              hasAlert: AlertRepository.instance.countNotifier.value > 0,
-              alertCount: AlertRepository.instance.countNotifier.value,
+              // --- MUDANÇA: USA O ESTADO REAL ---
+              hasAlert: _dashboardAlerts.isNotEmpty,
+              alertCount: _dashboardAlerts.length,
+              // --- FIM DA MUDANÇA ---
               content: _buildAlertsCardContent(),
             ),
 
@@ -971,7 +1087,9 @@ class _HomeScreenState extends State<HomeScreen>
                           ],
                         ),
                         child: Text(
-                          '${alertCount ?? AlertRepository.instance.countNotifier.value}',
+                          // --- MUDANÇA: Usa o alertCount passado como parâmetro ---
+                          '${alertCount ?? 0}',
+                          // --- FIM DA MUDANÇA ---
                           style: const TextStyle(
                             color: Colors.white,
                             fontWeight: FontWeight.bold,
@@ -1130,100 +1248,115 @@ class _HomeScreenState extends State<HomeScreen>
     );
   }
 
-  // --- MUDANÇA: CONTEÚDO DO CARD DE ALERTAS CORRIGIDO (COM EXPANDED E LISTVIEW) ---
+  // --- MUDANÇA: CONTEÚDO DO CARD DE ALERTAS ATUALIZADO (USA ESTADO REAL) ---
   Widget _buildAlertsCardContent() {
-    // Usar ValueListenableBuilder para ouvir mudanças nos alertas
-    return ValueListenableBuilder<int>(
-      valueListenable: AlertRepository.instance.countNotifier,
-      builder: (context, count, _) {
-        final allAlerts = AlertRepository.instance.items;
+    // 1. Lidar com o estado de carregamento
+    if (_isLoadingAlerts) {
+      return const Center(child: CircularProgressIndicator());
+    }
 
-        // 1. Calcular Estatísticas
-        final lowStock =
-            allAlerts.where((a) => a.type == AlertType.lowStock).length;
-        final nearExpiry =
-            allAlerts.where((a) => a.type == AlertType.nearExpiry).length;
+    // 2. Lidar com o estado de erro
+    if (_alertsError != null) {
+      return Center(
+        child: Padding(
+          padding: const EdgeInsets.all(8.0),
+          child: Text(
+            'Falha ao carregar alertas: $_alertsError',
+            style: const TextStyle(color: Colors.red),
+            textAlign: TextAlign.center,
+          ),
+        ),
+      );
+    }
 
-        // 2. Obter os 3 mais urgentes (ordenados por severidade)
-        final sortedAlerts = List<AlertItem>.from(allAlerts);
-        sortedAlerts.sort((a, b) => b.severity.compareTo(a.severity));
-        // Limitar a 3 ou 4 itens para não sobrecarregar o card
-        final topAlerts = sortedAlerts.take(3).toList();
+    // 3. Exibir os dados reais (usando _dashboardAlerts do estado)
+    final allAlerts = _dashboardAlerts;
 
-        return Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
+    // 1. Calcular Estatísticas
+    final count = allAlerts.length;
+    final lowStock =
+        allAlerts.where((a) => a.type == AlertType.lowStock).length;
+    final nearExpiry =
+        allAlerts.where((a) => a.type == AlertType.nearExpiry).length;
+
+    // 2. Obter os 3 mais urgentes (ordenados por severidade)
+    final sortedAlerts = List<AlertItem>.from(allAlerts);
+    sortedAlerts.sort((a, b) => b.severity.compareTo(a.severity));
+    // Limitar a 3 ou 4 itens para não sobrecarregar o card
+    final topAlerts = sortedAlerts.take(3).toList();
+
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        // 3. Linha de Estatísticas (Altura Fixa)
+        Row(
           children: [
-            // 3. Linha de Estatísticas (Altura Fixa)
-            Row(
-              children: [
-                Expanded(
-                  child: _smallStat(
-                    'Total de alertas',
-                    count.toString(),
-                    metroBlue,
-                    Icons.stacked_line_chart,
-                  ),
-                ),
-                const SizedBox(width: 8),
-                Expanded(
-                  child: _smallStat(
-                    'Estoques baixos',
-                    lowStock.toString(),
-                    Colors.red,
-                    Icons.inventory_2_outlined,
-                  ),
-                ),
-                const SizedBox(width: 8),
-                Expanded(
-                  child: _smallStat(
-                    'Vencimentos próximos',
-                    nearExpiry.toString(),
-                    Colors.green,
-                    Icons.calendar_today_outlined,
-                  ),
-                ),
-              ],
-            ),
-            const SizedBox(height: 12),
-            const Divider(height: 16), // Linha divisória (Altura Fixa)
-
-            // 4. Lista de Alertas Urgentes (AGORA EXPANDIDA E COM SCROLL)
             Expanded(
-              child: topAlerts.isEmpty
-                  ? Center(
-                      child: Padding(
-                        padding: const EdgeInsets.symmetric(vertical: 8),
-                        child: Column(
-                          mainAxisAlignment: MainAxisAlignment.center,
-                          children: const [
-                            Icon(
-                              Icons.check_circle_outline,
-                              color: Colors.green,
-                              size: 28,
-                            ),
-                            SizedBox(height: 6),
-                            Text(
-                              'Nenhum alerta ativo.',
-                              style: TextStyle(color: Colors.black54),
-                            ),
-                          ],
-                        ),
-                      ),
-                    )
-                  : ListView.builder(
-                      padding: EdgeInsets.zero,
-                      itemCount: topAlerts.length,
-                      itemBuilder: (context, i) {
-                        return Padding(
-                          padding: const EdgeInsets.symmetric(vertical: 4.0),
-                          child: _buildAlertRow(topAlerts[i], context),
-                        );
-                      },
-                    ),
+              child: _smallStat(
+                'Total de alertas',
+                count.toString(),
+                metroBlue,
+                Icons.stacked_line_chart,
+              ),
+            ),
+            const SizedBox(width: 8),
+            Expanded(
+              child: _smallStat(
+                'Estoques baixos',
+                lowStock.toString(),
+                Colors.red,
+                Icons.inventory_2_outlined,
+              ),
+            ),
+            const SizedBox(width: 8),
+            Expanded(
+              child: _smallStat(
+                'Vencimentos próximos',
+                nearExpiry.toString(),
+                Colors.orange, // Corrigido para Laranja
+                Icons.calendar_today_outlined,
+              ),
             ),
           ],
-        );
-      },
+        ),
+        const SizedBox(height: 12),
+        const Divider(height: 16), // Linha divisória (Altura Fixa)
+
+        // 4. Lista de Alertas Urgentes (AGORA EXPANDIDA E COM SCROLL)
+        Expanded(
+          child: topAlerts.isEmpty
+              ? Center(
+                  child: Padding(
+                    padding: const EdgeInsets.symmetric(vertical: 8),
+                    child: Column(
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      children: const [
+                        Icon(
+                          Icons.check_circle_outline,
+                          color: Colors.green,
+                          size: 28,
+                        ),
+                        SizedBox(height: 6),
+                        Text(
+                          'Nenhum alerta ativo.',
+                          style: TextStyle(color: Colors.black54),
+                        ),
+                      ],
+                    ),
+                  ),
+                )
+              : ListView.builder(
+                  padding: EdgeInsets.zero,
+                  itemCount: topAlerts.length,
+                  itemBuilder: (context, i) {
+                    return Padding(
+                      padding: const EdgeInsets.symmetric(vertical: 4.0),
+                      child: _buildAlertRow(topAlerts[i], context),
+                    );
+                  },
+                ),
+        ),
+      ],
     );
   }
   // --- FIM DA MUDANÇA ---

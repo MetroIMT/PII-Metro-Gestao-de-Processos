@@ -1,6 +1,11 @@
 import 'package:flutter/material.dart';
-import '../../repositories/alert_repository.dart';
+// Importe o serviço e os modelos necessários
+import '../../services/material_service.dart';
+import '../home/estoque_page.dart'; // Assumindo que EstoqueMaterial está aqui, como em MaterialService
+import '../../repositories/alert_repository.dart'; // Usaremos para os modelos AlertItem e AlertType
 import '../../widgets/sidebar.dart';
+import 'dart:async'; // Para tratamento de erros
+import 'dart:math'; // Para usar o max() na severidade
 
 class AlertsPage extends StatefulWidget {
   const AlertsPage({super.key});
@@ -19,6 +24,12 @@ class _AlertsPageState extends State<AlertsPage>
   late AnimationController _animationController;
   final GlobalKey<ScaffoldState> _scaffoldKey = GlobalKey<ScaffoldState>();
 
+  // --- Novas variáveis de estado ---
+  late final MaterialService _materialService;
+  List<AlertItem> _allAlerts = []; // Armazena os alertas reais
+  bool _isLoading = true; // Controla o estado de carregamento
+  String? _errorMessage; // Armazena mensagens de erro
+
   @override
   void initState() {
     super.initState();
@@ -26,23 +37,129 @@ class _AlertsPageState extends State<AlertsPage>
       vsync: this,
       duration: const Duration(milliseconds: 300),
     );
+    // Instancia o serviço e carrega os dados
+    _materialService = MaterialService();
+    _loadAlerts();
+  }
+
+  // --- ATUALIZADO: Método para carregar e processar alertas ---
+  Future<void> _loadAlerts() async {
+    setState(() {
+      _isLoading = true;
+      _errorMessage = null;
+    });
+
+    try {
+      // 1. Busca os três tipos de material em paralelo
+      final results = await Future.wait([
+        _materialService.getByTipo('giro'),
+        _materialService.getByTipo('patrimoniado'),
+        _materialService.getByTipo('consumo'),
+      ]);
+
+      // 2. Achata a lista de listas em uma única lista
+      final allMaterials = results.expand((list) => list).toList();
+
+      // 3. Processa os materiais para gerar alertas
+      final generatedAlerts = <AlertItem>[];
+      final now = DateTime.now();
+      final expiryLimit = now.add(const Duration(days: 30));
+      final criticalExpiryLimit = now.add(const Duration(days: 15));
+
+      for (final m in allMaterials) {
+        // --- LÓGICA DE ALERTA ATUALIZADA ---
+
+        // 1. Calcular condições e severidades
+        bool isLowStock = m.quantidade < 10;
+        int lowStockSeverity = isLowStock ? (m.quantidade == 0 ? 3 : 2) : 0;
+
+        bool isNearExpiry =
+            m.vencimento != null && m.vencimento!.isBefore(expiryLimit);
+        int nearExpirySeverity = isNearExpiry
+            ? (m.vencimento!.isBefore(criticalExpiryLimit) ? 3 : 2)
+            : 0;
+
+        // 2. Determinar qual alerta criar (APENAS UM por item)
+        if (isLowStock && isNearExpiry) {
+          // Caso 1: Item tem AMBOS os problemas.
+          // Criamos UM alerta para o problema mais grave.
+          if (lowStockSeverity >= nearExpirySeverity) {
+            // Prioriza estoque baixo (ou se a gravidade for igual)
+            generatedAlerts.add(AlertItem(
+              codigo: m.codigo,
+              nome: m.nome,
+              quantidade: m.quantidade,
+              local: m.local,
+              vencimento: m.vencimento,
+              type: AlertType.lowStock,
+              severity: lowStockSeverity,
+            ));
+          } else {
+            // Vencimento é mais grave
+            generatedAlerts.add(AlertItem(
+              codigo: m.codigo,
+              nome: m.nome,
+              quantidade: m.quantidade,
+              local: m.local,
+              vencimento: m.vencimento,
+              type: AlertType.nearExpiry,
+              severity: nearExpirySeverity,
+            ));
+          }
+        } else if (isLowStock) {
+          // Caso 2: Apenas estoque baixo
+          generatedAlerts.add(AlertItem(
+            codigo: m.codigo,
+            nome: m.nome,
+            quantidade: m.quantidade,
+            local: m.local,
+            vencimento: m.vencimento,
+            type: AlertType.lowStock,
+            severity: lowStockSeverity,
+          ));
+        } else if (isNearExpiry) {
+          // Caso 3: Apenas vencimento próximo
+          generatedAlerts.add(AlertItem(
+            codigo: m.codigo,
+            nome: m.nome,
+            quantidade: m.quantidade,
+            local: m.local,
+            vencimento: m.vencimento,
+            type: AlertType.nearExpiry,
+            severity: nearExpirySeverity,
+          ));
+        }
+        // Se nenhum for verdadeiro, nada é adicionado.
+        // --- FIM DA LÓGICA DE ALERTA ATUALIZADA ---
+      }
+
+      setState(() {
+        _allAlerts = generatedAlerts;
+        _isLoading = false;
+      });
+    } catch (e) {
+      // Trata exceções da API
+      setState(() {
+        _errorMessage = e.toString();
+        _isLoading = false;
+      });
+    }
   }
 
   Widget _buildAlertsPanel({
     required BuildContext context,
     required bool useListLayout,
   }) {
+    // --- Variáveis restauradas ---
     final size = MediaQuery.of(context).size;
     final bool isMobileView = size.width < 600;
-    final double computedMinWidth =
-        size.width -
+    final double computedMinWidth = size.width -
         (isMobileView ? 0 : (_isRailExtended ? 180 : 70)) -
         48 -
         32;
-    final double tableMinWidth = computedMinWidth > 0
-        ? computedMinWidth
-        : size.width;
-
+    final double tableMinWidth =
+        computedMinWidth > 0 ? computedMinWidth : size.width;
+    // --- Fim das variáveis restauradas ---
 
     return Card(
       elevation: 2,
@@ -56,152 +173,218 @@ class _AlertsPageState extends State<AlertsPage>
             _buildTopBar(context, showTitle: useListLayout),
             const SizedBox(height: 16),
             Expanded(
-              child: _visibleAlerts.isEmpty
-                  ? Center(
-                      child: Column(
-                        mainAxisSize: MainAxisSize.min,
-                        children: [
-                          Icon(
-                            Icons.check_circle_outline,
-                            size: 64,
-                            color: Colors.green.shade400,
+              // --- Lógica de exibição atualizada ---
+              child: _isLoading
+                  ? const Center(child: CircularProgressIndicator())
+                  : _errorMessage != null
+                      ? Center(
+                          child: Padding(
+                            padding: const EdgeInsets.all(16.0),
+                            child: Column(
+                              mainAxisSize: MainAxisSize.min,
+                              children: [
+                                const Icon(Icons.error_outline,
+                                    color: Colors.red, size: 64),
+                                const SizedBox(height: 12),
+                                const Text(
+                                  'Falha ao carregar alertas',
+                                  style: TextStyle(
+                                      fontSize: 18,
+                                      fontWeight: FontWeight.bold),
+                                  textAlign: TextAlign.center,
+                                ),
+                                const SizedBox(height: 8),
+                                Text(
+                                  _errorMessage!,
+                                  style:
+                                      TextStyle(color: Colors.grey.shade700),
+                                  textAlign: TextAlign.center,
+                                ),
+                              ],
+                            ),
                           ),
-                          const SizedBox(height: 12),
-                          Text(
-                            'Nenhum alerta encontrado',
-                            style: TextStyle(color: Colors.grey.shade600),
-                          ),
-                        ],
-                      ),
-                    )
-                  : useListLayout
-                  ? ListView.separated(
-                      itemCount: _visibleAlerts.length,
-                      separatorBuilder: (_, __) => const SizedBox(height: 12),
-                      itemBuilder: (context, i) {
-                        final a = _visibleAlerts[i];
-                        return Dismissible(
-                          key: ValueKey(a.codigo + a.nome),
-                          direction: DismissDirection.endToStart,
-                          confirmDismiss: (direction) async {
-                            return await showDialog<bool>(
-                                  context: context,
-                                  builder: (context) => AlertDialog(
-                                    title: const Text('Confirmar remoção'),
-                                    content: Text(
-                                      'Deseja marcar o alerta de \"${a.nome}\" como resolvido?',
-                                    ),
-                                    actions: [
-                                      TextButton(
-                                        onPressed: () =>
-                                            Navigator.of(context).pop(false),
-                                        child: const Text('Cancelar'),
-                                      ),
-                                      ElevatedButton(
-                                        onPressed: () =>
-                                            Navigator.of(context).pop(true),
-                                        style: ElevatedButton.styleFrom(
-                                          backgroundColor: Colors.green,
-                                        ),
-                                        child: const Text('Confirmar'),
-                                      ),
-                                    ],
+                        )
+                      : _visibleAlerts.isEmpty
+                          ? Center(
+                              child: Column(
+                                mainAxisSize: MainAxisSize.min,
+                                children: [
+                                  Icon(
+                                    Icons.check_circle_outline,
+                                    size: 64,
+                                    color: Colors.green.shade400,
                                   ),
-                                ) ??
-                                false;
-                          },
-                          background: Container(
-                            alignment: Alignment.centerRight,
-                            padding: const EdgeInsets.only(right: 20),
-                            decoration: BoxDecoration(
-                              color: Colors.green,
-                              borderRadius: BorderRadius.circular(12),
-                            ),
-                            child: const Icon(Icons.check, color: Colors.white),
-                          ),
-                          onDismissed: (_) => _resolveAlertAt(i),
-                          child: _buildAlertCardMobile(a, i),
-                        );
-                      },
-                    )
-                  : SingleChildScrollView(
-                      scrollDirection: Axis.vertical,
-                      child: SingleChildScrollView(
-                        scrollDirection: Axis.horizontal,
-                        child: ConstrainedBox(
-                          constraints: BoxConstraints(minWidth: tableMinWidth),
-                          child: DataTable(
-                            dataRowHeight: 60,
-                            headingRowColor: MaterialStateProperty.all(
-                              const Color.fromARGB(255, 255, 255, 255),
-                            ),
-                            headingTextStyle: const TextStyle(
-                              fontWeight: FontWeight.bold,
-                              color: Colors.black87,
-                            ),
-                            columnSpacing: 24,
-                            columns: const [
-                              DataColumn(label: Text('Código')),
-                              DataColumn(label: Text('Nome')),
-                              DataColumn(label: Text('Tipo')),
-                              DataColumn(label: Text('Quantidade')),
-                              DataColumn(label: Text('Local')),
-                              DataColumn(label: Text('Vencimento')),
-                              DataColumn(label: Text('Prioridade')),
-                              DataColumn(label: Text('Ações')),
-                            ],
-                            rows: _visibleAlerts.map((a) {
-                              return DataRow(
-                                cells: [
-                                  DataCell(Text(a.codigo)),
-                                  DataCell(Text(a.nome)),
-                                  DataCell(Text(_typeLabel(a.type))),
-                                  DataCell(Text(a.quantidade.toString())),
-                                  DataCell(Text(a.local)),
-                                  DataCell(Text(_formatDate(a.vencimento))),
-                                  DataCell(
-                                    Chip(
-                                      backgroundColor: _severityColor(
-                                        a.severity,
-                                      ).withAlpha((0.12 * 255).round()),
-                                      shape: RoundedRectangleBorder(
-                                        borderRadius: BorderRadius.circular(12),
-                                        side: const BorderSide(
-                                          color: Colors.transparent,
-                                        ),
-                                      ),
-                                      label: Text(
-                                        '${a.severity}',
-                                        style: TextStyle(
-                                          color: _severityColor(a.severity),
-                                        ),
-                                      ),
-                                    ),
-                                  ),
-                                  DataCell(
-                                    Row(
-                                      mainAxisSize: MainAxisSize.min,
-                                      children: [
-                                        IconButton(
-                                          icon: const Icon(Icons.visibility),
-                                          tooltip: 'Detalhes',
-                                          onPressed: () => _showDetail(a),
-                                        ),
-                                        IconButton(
-                                          icon: const Icon(Icons.check),
-                                          tooltip: 'Marcar resolvido',
-                                          onPressed: () => _confirmAndMark(a),
-                                        ),
-                                      ],
-                                    ),
+                                  const SizedBox(height: 12),
+                                  Text(
+                                    'Nenhum alerta encontrado',
+                                    style: TextStyle(
+                                        color: Colors.grey.shade600),
                                   ),
                                 ],
-                              );
-                            }).toList(),
-                          ),
-                        ),
-                      ),
-                    ),
+                              ),
+                            )
+                          : useListLayout
+                              ? ListView.separated(
+                                  itemCount: _visibleAlerts.length,
+                                  separatorBuilder: (_, __) =>
+                                      const SizedBox(height: 12),
+                                  itemBuilder: (context, i) {
+                                    final a = _visibleAlerts[i];
+                                    return Dismissible(
+                                      key: ValueKey(a.codigo + a.nome),
+                                      direction: DismissDirection.endToStart,
+                                      confirmDismiss: (direction) async {
+                                        return await showDialog<bool>(
+                                              context: context,
+                                              builder: (context) =>
+                                                  AlertDialog(
+                                                title: const Text(
+                                                    'Confirmar remoção'),
+                                                content: Text(
+                                                  'Deseja marcar o alerta de \"${a.nome}\" como resolvido?',
+                                                ),
+                                                actions: [
+                                                  TextButton(
+                                                    onPressed: () =>
+                                                        Navigator.of(context)
+                                                            .pop(false),
+                                                    child:
+                                                        const Text('Cancelar'),
+                                                  ),
+                                                  ElevatedButton(
+                                                    onPressed: () =>
+                                                        Navigator.of(context)
+                                                            .pop(true),
+                                                    style: ElevatedButton
+                                                        .styleFrom(
+                                                      backgroundColor:
+                                                          Colors.green,
+                                                    ),
+                                                    child: const Text(
+                                                        'Confirmar'),
+                                                  ),
+                                                ],
+                                              ),
+                                            ) ??
+                                            false;
+                                      },
+                                      background: Container(
+                                        alignment: Alignment.centerRight,
+                                        padding:
+                                            const EdgeInsets.only(right: 20),
+                                        decoration: BoxDecoration(
+                                          color: Colors.green,
+                                          borderRadius:
+                                              BorderRadius.circular(12),
+                                        ),
+                                        child: const Icon(Icons.check,
+                                            color: Colors.white),
+                                      ),
+                                      onDismissed: (_) => _resolveAlertAt(i),
+                                      child: _buildAlertCardMobile(a, i),
+                                    );
+                                  },
+                                )
+                              : SingleChildScrollView(
+                                  scrollDirection: Axis.vertical,
+                                  child: SingleChildScrollView(
+                                    scrollDirection: Axis.horizontal,
+                                    child: ConstrainedBox(
+                                      constraints: BoxConstraints(
+                                          minWidth: tableMinWidth),
+                                      child: DataTable(
+                                        dataRowHeight: 60,
+                                        headingRowColor:
+                                            MaterialStateProperty.all(
+                                          const Color.fromARGB(
+                                              255, 255, 255, 255),
+                                        ),
+                                        headingTextStyle: const TextStyle(
+                                          fontWeight: FontWeight.bold,
+                                          color: Colors.black87,
+                                        ),
+                                        columnSpacing: 24,
+                                        columns: const [
+                                          DataColumn(label: Text('Código')),
+                                          DataColumn(label: Text('Nome')),
+                                          DataColumn(label: Text('Tipo')),
+                                          DataColumn(
+                                              label: Text('Quantidade')),
+                                          DataColumn(label: Text('Local')),
+                                          DataColumn(
+                                              label: Text('Vencimento')),
+                                          DataColumn(
+                                              label: Text('Prioridade')),
+                                          DataColumn(label: Text('Ações')),
+                                        ],
+                                        rows: _visibleAlerts.map((a) {
+                                          return DataRow(
+                                            cells: [
+                                              DataCell(Text(a.codigo)),
+                                              DataCell(Text(a.nome)),
+                                              DataCell(
+                                                  Text(_typeLabel(a.type))),
+                                              DataCell(Text(
+                                                  a.quantidade.toString())),
+                                              DataCell(Text(a.local)),
+                                              DataCell(Text(
+                                                  _formatDate(a.vencimento))),
+                                              DataCell(
+                                                Chip(
+                                                  backgroundColor:
+                                                      _severityColor(
+                                                    a.severity,
+                                                  ).withAlpha(
+                                                          (0.12 * 255).round()),
+                                                  shape:
+                                                      RoundedRectangleBorder(
+                                                    borderRadius:
+                                                        BorderRadius.circular(
+                                                            12),
+                                                    side: const BorderSide(
+                                                      color:
+                                                          Colors.transparent,
+                                                    ),
+                                                  ),
+                                                  label: Text(
+                                                    '${a.severity}',
+                                                    style: TextStyle(
+                                                      color: _severityColor(
+                                                          a.severity),
+                                                    ),
+                                                  ),
+                                                ),
+                                              ),
+                                              DataCell(
+                                                Row(
+                                                  mainAxisSize:
+                                                      MainAxisSize.min,
+                                                  children: [
+                                                    IconButton(
+                                                      icon: const Icon(
+                                                          Icons.visibility),
+                                                      tooltip: 'Detalhes',
+                                                      onPressed: () =>
+                                                          _showDetail(a),
+                                                    ),
+                                                    IconButton(
+                                                      icon: const Icon(
+                                                          Icons.check),
+                                                      tooltip:
+                                                          'Marcar resolvido',
+                                                      onPressed: () =>
+                                                          _confirmAndMark(a),
+                                                    ),
+                                                  ],
+                                                ),
+                                              ),
+                                            ],
+                                          );
+                                        }).toList(),
+                                      ),
+                                    ),
+                                  ),
+                                ),
             ),
           ],
         ),
@@ -212,6 +395,7 @@ class _AlertsPageState extends State<AlertsPage>
   @override
   void dispose() {
     _animationController.dispose();
+    _materialService.dispose(); // Limpa o cliente HTTP
     super.dispose();
   }
 
@@ -246,7 +430,6 @@ class _AlertsPageState extends State<AlertsPage>
       t == AlertType.lowStock ? 'Estoque baixo' : 'Vencimento próximo';
 
   List<AlertItem> get _visibleAlerts {
-    // Protege contra _query ou campos inesperadamente nulos/indefinidos em tempo de execução.
     String q;
     try {
       q = _query.trim().toLowerCase();
@@ -254,7 +437,8 @@ class _AlertsPageState extends State<AlertsPage>
       q = '';
     }
 
-    final items = AlertRepository.instance.items;
+    // --- Alteração principal: usa _allAlerts em vez do repositório ---
+    final items = _allAlerts;
     return items.where((a) {
       try {
         if (_filterType != null && a.type != _filterType) return false;
@@ -265,7 +449,6 @@ class _AlertsPageState extends State<AlertsPage>
         final local = a.local.toLowerCase();
         return nome.contains(q) || codigo.contains(q) || local.contains(q);
       } catch (_) {
-        // Se algum campo estiver ausente/inválido, ignorar este item no filtro
         return false;
       }
     }).toList();
@@ -273,7 +456,8 @@ class _AlertsPageState extends State<AlertsPage>
 
   void _markResolved(AlertItem a) {
     setState(() {
-      AlertRepository.instance.remove(a);
+      // --- Alteração: remove da lista de estado local ---
+      _allAlerts.remove(a);
     });
     ScaffoldMessenger.of(context).showSnackBar(
       const SnackBar(content: Text('Alerta marcado como resolvido')),
@@ -286,7 +470,8 @@ class _AlertsPageState extends State<AlertsPage>
     if (index < 0 || index >= visible.length) return;
     final removed = visible[index];
     setState(() {
-      AlertRepository.instance.remove(removed);
+      // --- Alteração: remove da lista de estado local ---
+      _allAlerts.remove(removed);
     });
     ScaffoldMessenger.of(context).showSnackBar(
       SnackBar(content: Text('Alerta de ${removed.nome} resolvido')),
@@ -570,14 +755,15 @@ class _AlertsPageState extends State<AlertsPage>
     );
   }
 
+  // --- ATUALIZADO: Método _buildTopBar com novos estilos de Chip ---
   Widget _buildTopBar(BuildContext context, {bool showTitle = true}) {
-    final total = AlertRepository.instance.items.length;
-    final lowStock = AlertRepository.instance.items
-        .where((a) => a.type == AlertType.lowStock)
-        .length;
-    final nearExpiry = AlertRepository.instance.items
-        .where((a) => a.type == AlertType.nearExpiry)
-        .length;
+    // --- Alteração: calcula totais com base em _allAlerts ---
+    final total = _allAlerts.length;
+    final lowStock =
+        _allAlerts.where((a) => a.type == AlertType.lowStock).length;
+    final nearExpiry =
+        _allAlerts.where((a) => a.type == AlertType.nearExpiry).length;
+
     final size = MediaQuery.of(context).size;
     final bool isMobileView = size.width < 600;
 
@@ -673,6 +859,7 @@ class _AlertsPageState extends State<AlertsPage>
         if (showTitle) const SizedBox(height: 12),
         filterControls,
         const SizedBox(height: 12),
+        // --- ATUALIZAÇÃO DOS CHIPS ---
         Wrap(
           spacing: 8,
           runSpacing: 8,
@@ -680,11 +867,18 @@ class _AlertsPageState extends State<AlertsPage>
             ChoiceChip(
               label: const Text('Todos'),
               selected: _filterType == null,
-              selectedColor: Colors.white,
-              backgroundColor: Colors.white,
-              side: const BorderSide(color: Colors.grey),
+              // Fundo 'tintado' quando selecionado
+              selectedColor: metroBlue.withOpacity(0.1),
+              // Fundo neutro quando não selecionado
+              backgroundColor: Colors.grey.shade100,
+              side: BorderSide(
+                color: _filterType == null
+                    ? metroBlue.withOpacity(0.5)
+                    : Colors.grey.shade300,
+              ),
               labelStyle: TextStyle(
-                color: _filterType == null ? metroBlue : Colors.black,
+                // Cor do texto muda
+                color: _filterType == null ? metroBlue : Colors.black87,
                 fontWeight: FontWeight.w500,
               ),
               onSelected: (_) => setState(() => _filterType = null),
@@ -692,13 +886,17 @@ class _AlertsPageState extends State<AlertsPage>
             ChoiceChip(
               label: const Text('Estoque baixo'),
               selected: _filterType == AlertType.lowStock,
-              selectedColor: Colors.white,
-              backgroundColor: Colors.white,
-              side: const BorderSide(color: Colors.grey),
+              selectedColor: Colors.red.withOpacity(0.1),
+              backgroundColor: Colors.grey.shade100,
+              side: BorderSide(
+                color: _filterType == AlertType.lowStock
+                    ? Colors.red.withOpacity(0.5)
+                    : Colors.grey.shade300,
+              ),
               labelStyle: TextStyle(
                 color: _filterType == AlertType.lowStock
-                    ? Colors.green
-                    : Colors.black,
+                    ? Colors.red
+                    : Colors.black87,
                 fontWeight: FontWeight.w500,
               ),
               onSelected: (_) =>
@@ -707,13 +905,17 @@ class _AlertsPageState extends State<AlertsPage>
             ChoiceChip(
               label: const Text('Vencimento próximo'),
               selected: _filterType == AlertType.nearExpiry,
-              selectedColor: Colors.white,
-              backgroundColor: Colors.white,
-              side: const BorderSide(color: Colors.grey),
+              selectedColor: Colors.orange.withOpacity(0.1),
+              backgroundColor: Colors.grey.shade100,
+              side: BorderSide(
+                color: _filterType == AlertType.nearExpiry
+                    ? Colors.orange.withOpacity(0.5)
+                    : Colors.grey.shade300,
+              ),
               labelStyle: TextStyle(
                 color: _filterType == AlertType.nearExpiry
-                    ? Colors.red
-                    : Colors.black,
+                    ? Colors.orange
+                    : Colors.black87,
                 fontWeight: FontWeight.w500,
               ),
               onSelected: (_) =>
