@@ -16,6 +16,7 @@ import '../../widgets/sidebar.dart';
 import '../../services/material_service.dart';
 import '../../services/movimentacao_service.dart';
 import '../../services/auth_service.dart';
+import '../../services/user_service.dart';
 
 // Classe PieChartPainter (Sem alterações)
 class PieChartPainter extends CustomPainter {
@@ -107,10 +108,15 @@ class _HomeScreenState extends State<HomeScreen>
   final MaterialService _materialService = MaterialService();
   final MovimentacaoService _movimentacaoService = MovimentacaoService();
   final AuthService _authService = AuthService();
+  final UserService _userService = UserService();
 
   // --- Estado: Nome do Usuário ---
   String _nomeUsuario = 'Usuário';
   bool _isLoadingNome = true;
+
+  // --- Estado: Usuários Ativos ---
+  int _usuariosAtivos = 0;
+  bool _isLoadingUsuarios = true;
 
   // --- Estado: Movimentações ---
   List<Movimentacao> _recentMovimentacoes = [];
@@ -150,10 +156,33 @@ class _HomeScreenState extends State<HomeScreen>
     _loadMateriais();
     // carregar últimas movimentações do backend para o card do dashboard
     _loadRecentMovimentacoes();
+    // carregar usuários ativos
+    _loadUsuariosAtivos();
 
     // --- MUDANÇA: Carregar os alertas REAIS ---
     _loadDashboardAlerts();
     // --- FIM DA MUDANÇA ---
+  }
+
+  Future<void> _loadUsuariosAtivos() async {
+    setState(() => _isLoadingUsuarios = true);
+    try {
+      final usuarios = await _userService.getAll();
+      final ativos = usuarios.where((u) => u.ativo).length;
+      if (mounted) {
+        setState(() {
+          _usuariosAtivos = ativos;
+          _isLoadingUsuarios = false;
+        });
+      }
+    } catch (e) {
+      if (mounted) {
+        setState(() {
+          _usuariosAtivos = 0;
+          _isLoadingUsuarios = false;
+        });
+      }
+    }
   }
 
   Future<void> _loadNomeUsuario() async {
@@ -701,11 +730,13 @@ class _HomeScreenState extends State<HomeScreen>
                   MaterialPageRoute(builder: (_) => const GerenciarUsuarios()),
                 );
               },
-              content: _buildStatContent(
-                "8",
-                "Usuários ativos",
-                Colors.blue.shade800,
-              ),
+              content: _isLoadingUsuarios
+                  ? const Center(child: CircularProgressIndicator())
+                  : _buildStatContent(
+                      _usuariosAtivos.toString(),
+                      "Usuários ativos",
+                      Colors.blue.shade800,
+                    ),
             ),
 
             // --- MUDANÇA: CARD DE RELATÓRIOS ATUALIZADO ---

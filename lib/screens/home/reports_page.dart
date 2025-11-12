@@ -3,6 +3,8 @@ import 'package:flutter/material.dart';
 import '../../widgets/sidebar.dart';
 import '../../services/pdf_service.dart';
 import '../../services/excel_service.dart';
+import '../../services/movimentacao_service.dart';
+import '../../models/movimentacao.dart';
 import 'package:flutter_map/flutter_map.dart';
 import 'package:latlong2/latlong.dart';
 
@@ -28,8 +30,15 @@ class _RelatoriosPageState extends State<RelatoriosPage>
   double _latestZoom = _mapDefaultZoom;
   bool _isMapReady = false;
 
+  // --- Services ---
+  final MovimentacaoService _movimentacaoService = MovimentacaoService();
+
   // 🔹 tipo de relatório selecionado
   String _selectedReportType = 'Movimentação Geral';
+
+  // --- Estado de carregamento ---
+  bool _isLoading = true;
+  List<Movimentacao> _allMovimentacoes = [];
 
   // --- Estado da Página ---
   DateTime? _selectedStartDate;
@@ -45,159 +54,7 @@ class _RelatoriosPageState extends State<RelatoriosPage>
   final Color backgroundColor = Colors.grey.shade100;
   final Color metroBlue = const Color(0xFF001489);
 
-  // Mock data - movimentação geral
-  final List<Map<String, dynamic>> _allData = [
-    {
-      'codigo': 'ITM-00123',
-      'data': DateTime(2025, 10, 21),
-      'item': 'Cabo Elétrico',
-      'categoria_id': 'consumo',
-      'categoria': 'Material de Consumo',
-      'sub_categoria_id': null,
-      'quantidade': -5,
-      'usuario': 'João Pereira',
-      'base': 'WJA - Jabaquara',
-      'base_id': 'WJA',
-    },
-    {
-      'codigo': 'ITM-00234',
-      'data': DateTime(2025, 10, 22),
-      'item': 'Multímetro XYZ',
-      'categoria_id': 'patrimoniado',
-      'categoria': 'Material Patrimoniado',
-      'sub_categoria_id': 'instrumento',
-      'quantidade': 1,
-      'usuario': 'Ana Silva',
-      'base': 'PSO - Paraiso',
-      'base_id': 'PSO',
-    },
-    {
-      'codigo': 'ITM-00345',
-      'data': DateTime(2025, 10, 23),
-      'item': 'Rolamento 6203',
-      'categoria_id': 'giro',
-      'categoria': 'Material de Giro',
-      'sub_categoria_id': null,
-      'quantidade': -20,
-      'usuario': 'Carlos Souza',
-      'base': 'WJA - Jabaquara',
-      'base_id': 'WJA',
-    },
-    {
-      'codigo': 'ITM-00456',
-      'data': DateTime(2025, 10, 24),
-      'item': 'Furadeira 220V',
-      'categoria_id': 'patrimoniado',
-      'categoria': 'Material Patrimoniado',
-      'sub_categoria_id': 'ferramenta',
-      'quantidade': 1,
-      'usuario': 'Ana Silva',
-      'base': 'TUC - Tucuruvi',
-      'base_id': 'TUC',
-    },
-  ];
-
-  // Mock data - movimentações por usuário
-  final List<Map<String, dynamic>> _userData = [
-    {
-      'usuario': 'João Pereira',
-      'codigo': 'ITM-00123',
-      'item': 'Cabo Elétrico',
-      'quantidade': -5,
-      'data': DateTime(2025, 10, 21),
-      'categoria_id': 'consumo',
-      'categoria': 'Material de Consumo',
-      'sub_categoria_id': null,
-      'base': 'WJA - Jabaquara',
-      'base_id': 'WJA',
-    },
-    {
-      'usuario': 'Ana Silva',
-      'codigo': 'ITM-00234',
-      'item': 'Multímetro XYZ',
-      'quantidade': 2,
-      'data': DateTime(2025, 10, 22),
-      'categoria_id': 'patrimoniado',
-      'categoria': 'Material Patrimoniado',
-      'sub_categoria_id': 'instrumento',
-      'base': 'PSO - Paraiso',
-      'base_id': 'PSO',
-    },
-    {
-      'usuario': 'Ana Silva',
-      'codigo': 'ITM-00456',
-      'item': 'Furadeira 220V',
-      'quantidade': 1,
-      'data': DateTime(2025, 10, 24),
-      'categoria_id': 'patrimoniado',
-      'categoria': 'Material Patrimoniado',
-      'sub_categoria_id': 'ferramenta',
-      'base': 'TUC - Tucuruvi',
-      'base_id': 'TUC',
-    },
-    {
-      'usuario': 'Carlos Souza',
-      'codigo': 'ITM-00345',
-      'item': 'Rolamento 6203',
-      'quantidade': -8,
-      'data': DateTime(2025, 10, 25),
-      'categoria_id': 'giro',
-      'categoria': 'Material de Giro',
-      'sub_categoria_id': null,
-      'base': 'WJA - Jabaquara',
-      'base_id': 'WJA',
-    },
-    {
-      'usuario': 'Carlos Souza',
-      'codigo': 'ITM-00567',
-      'item': 'Parafuso ABC',
-      'quantidade': -15,
-      'data': DateTime(2025, 10, 26),
-      'categoria_id': 'consumo',
-      'categoria': 'Material de Consumo',
-      'sub_categoria_id': null,
-      'base': 'BFU - Barra Funda',
-      'base_id': 'BFU',
-    },
-    {
-      'usuario': 'João Pereira',
-      'codigo': 'ITM-00678',
-      'item': 'Chave de Fenda',
-      'quantidade': 3,
-      'data': DateTime(2025, 10, 27),
-      'categoria_id': 'patrimoniado',
-      'categoria': 'Material Patrimoniado',
-      'sub_categoria_id': 'ferramenta',
-      'base': 'PSO - Paraiso',
-      'base_id': 'PSO',
-    },
-    {
-      'usuario': 'Ana Silva',
-      'codigo': 'ITM-00789',
-      'item': 'Alicate XYZ',
-      'quantidade': 2,
-      'data': DateTime(2025, 10, 28),
-      'categoria_id': 'patrimoniado',
-      'categoria': 'Material Patrimoniado',
-      'sub_categoria_id': 'ferramenta',
-      'base': 'TUC - Tucuruvi',
-      'base_id': 'TUC',
-    },
-    {
-      'usuario': 'Carlos Souza',
-      'codigo': 'ITM-00890',
-      'item': 'Disjuntor 20A',
-      'quantidade': -10,
-      'data': DateTime(2025, 10, 29),
-      'categoria_id': 'consumo',
-      'categoria': 'Material de Consumo',
-      'sub_categoria_id': null,
-      'base': 'WJA - Jabaquara',
-      'base_id': 'WJA',
-    },
-  ];
-
-  // Lista final que será exibida na tabela.
+  // Lista final que será exibida na tabela (formato Map para tabela)
   List<Map<String, dynamic>> _filteredData = [];
 
   @override
@@ -211,8 +68,61 @@ class _RelatoriosPageState extends State<RelatoriosPage>
       _latestCenter = event.camera.center;
       _latestZoom = event.camera.zoom;
     });
-    // inicia com o tipo padrão (Movimentação Geral)
-    _filteredData = List<Map<String, dynamic>>.from(_allData);
+    _loadMovimentacoes();
+  }
+
+  Future<void> _loadMovimentacoes() async {
+    setState(() => _isLoading = true);
+    try {
+      final movimentacoes = await _movimentacaoService.getAllMovimentacoes();
+      setState(() {
+        _allMovimentacoes = movimentacoes;
+        _filteredData = _convertMovimentacoesToMap(_allMovimentacoes);
+        _isLoading = false;
+      });
+    } catch (e) {
+      if (mounted) {
+        setState(() => _isLoading = false);
+        _showErrorSnackBar('Erro ao carregar movimentações: $e');
+      }
+    }
+  }
+
+  List<Map<String, dynamic>> _convertMovimentacoesToMap(
+    List<Movimentacao> movimentacoes,
+  ) {
+    return movimentacoes.map((m) {
+      // Converter tipo para quantidade com sinal
+      int quantidadeComSinal =
+          m.tipo.toLowerCase().contains('saida') ||
+              m.tipo.toLowerCase().contains('saída')
+          ? -m.quantidade.abs()
+          : m.quantidade.abs();
+
+      return {
+        'codigo': m.codigoMaterial,
+        'data': m.timestamp,
+        'item': m.descricao.isNotEmpty
+            ? m.descricao
+            : 'Item ${m.codigoMaterial}',
+        'categoria_id':
+            'geral', // Backend não retorna categoria específica ainda
+        'categoria': 'Material',
+        'sub_categoria_id': null,
+        'quantidade': quantidadeComSinal,
+        'usuario': m.usuario,
+        'base': m.local,
+        'base_id': _extractBaseId(m.local),
+      };
+    }).toList();
+  }
+
+  String _extractBaseId(String local) {
+    // Extrai o código da base (ex: "WJA - Jabaquara" -> "WJA")
+    if (local.contains(' - ')) {
+      return local.split(' - ').first.trim();
+    }
+    return local.length > 3 ? local.substring(0, 3).toUpperCase() : local;
   }
 
   @override
@@ -222,6 +132,7 @@ class _RelatoriosPageState extends State<RelatoriosPage>
     _endDateController.dispose();
     _mapEventSubscription.cancel();
     _mapController.dispose();
+    _movimentacaoService.dispose();
     super.dispose();
   }
 
@@ -236,13 +147,10 @@ class _RelatoriosPageState extends State<RelatoriosPage>
     });
   }
 
-  List<Map<String, dynamic>> get _currentSource =>
-      _selectedReportType == 'Movimentações por Usuário' ? _userData : _allData;
-
   /// Aplica filtros
   void _applyFilters() {
     List<Map<String, dynamic>> tempResults = List<Map<String, dynamic>>.from(
-      _currentSource,
+      _convertMovimentacoesToMap(_allMovimentacoes),
     );
 
     if (_selectedReportType == 'Movimentações por Usuário' &&
@@ -301,7 +209,7 @@ class _RelatoriosPageState extends State<RelatoriosPage>
       _startDateController.clear();
       _endDateController.clear();
 
-      _filteredData = List<Map<String, dynamic>>.from(_currentSource);
+      _filteredData = _convertMovimentacoesToMap(_allMovimentacoes);
     });
   }
 
@@ -806,10 +714,11 @@ class _RelatoriosPageState extends State<RelatoriosPage>
                   prefixIcon: Icon(Icons.person_outline),
                   hintText: 'Escolha um usuário',
                 ),
-                // monta a lista de usuários únicos a partir de _userData
+                // monta a lista de usuários únicos a partir das movimentações
                 items:
-                    (_userData
-                            .map((e) => e['usuario'] as String)
+                    (_allMovimentacoes
+                            .map((e) => e.usuario)
+                            .where((u) => u != 'N/A')
                             .toSet()
                             .toList()
                           ..sort())
@@ -879,9 +788,7 @@ class _RelatoriosPageState extends State<RelatoriosPage>
         setState(() {
           _selectedReportType = label;
           _selectedUser = null;
-          _filteredData = List<Map<String, dynamic>>.from(
-            _currentSource,
-          );
+          _filteredData = _convertMovimentacoesToMap(_allMovimentacoes);
         });
         _applyFilters();
       },
@@ -979,6 +886,13 @@ class _RelatoriosPageState extends State<RelatoriosPage>
       ),
     );
 
+    Widget loadingWidget = const Center(
+      child: Padding(
+        padding: EdgeInsets.all(32.0),
+        child: CircularProgressIndicator(),
+      ),
+    );
+
     Widget noResultsWidget = const Center(
       child: Padding(
         padding: EdgeInsets.all(32.0),
@@ -990,9 +904,9 @@ class _RelatoriosPageState extends State<RelatoriosPage>
       ),
     );
 
-    final Widget dataWidget = _filteredData.isEmpty
-        ? noResultsWidget
-        : tabelaWidget;
+    final Widget dataWidget = _isLoading
+        ? loadingWidget
+        : (_filteredData.isEmpty ? noResultsWidget : tabelaWidget);
 
     Widget _buildDataSection() {
       if (hasBoundedHeight) {
@@ -1126,7 +1040,7 @@ class _RelatoriosPageState extends State<RelatoriosPage>
       'BFU': LatLng(-23.5261, -46.6672),
     };
 
-    final usedBases = _allData.map((e) => e['base_id'] as String).toSet();
+    final usedBases = _filteredData.map((e) => e['base_id'] as String).toSet();
     final List<LatLng> basePoints = usedBases
         .map((base) => baseCoordinates[base] ?? _mapDefaultCenter)
         .toList();

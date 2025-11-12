@@ -5,6 +5,7 @@ import 'package:flutter/services.dart'; // Import para formatadores
 // NOVO: Importar o repositório que acabamos de criar
 // import '../../repositories/movimentacao_repository.dart';
 import '../../services/material_service.dart';
+import '../../services/auth_service.dart';
 import '../../widgets/sidebar.dart';
 import 'package:intl/intl.dart'; // Import para formatar data
 
@@ -65,6 +66,7 @@ class _EstoquePageState extends State<EstoquePage>
   String _searchQuery = '';
   late List<EstoqueMaterial> _materiais;
   final MaterialService _materialService = MaterialService();
+  final AuthService _authService = AuthService();
 
   // --- NOVAS VARIÁVEIS DE ESTADO E HELPERS ---
   final Color metroBlue = const Color(0xFF001489);
@@ -265,8 +267,9 @@ class _EstoquePageState extends State<EstoquePage>
                       TextFormField(
                         controller: codigoController,
                         decoration: _buildDialogInputDecoration('Código *'),
-                        validator: (v) =>
-                            (v == null || v.isEmpty) ? 'Informe o código' : null,
+                        validator: (v) => (v == null || v.isEmpty)
+                            ? 'Informe o código'
+                            : null,
                       ),
                       const SizedBox(height: 16), // AUMENTADO
                       TextFormField(
@@ -278,8 +281,9 @@ class _EstoquePageState extends State<EstoquePage>
                       const SizedBox(height: 16), // AUMENTADO
                       TextFormField(
                         controller: quantidadeController,
-                        decoration:
-                            _buildDialogInputDecoration('Quantidade Inicial *'),
+                        decoration: _buildDialogInputDecoration(
+                          'Quantidade Inicial *',
+                        ),
                         keyboardType: TextInputType.number,
                         inputFormatters: [
                           FilteringTextInputFormatter.digitsOnly,
@@ -289,7 +293,6 @@ class _EstoquePageState extends State<EstoquePage>
                             : null,
                       ),
                       const SizedBox(height: 16), // AUMENTADO
-
                       // --- MUDANÇA: CAMPO DE LOCAL (DROPDOWN) ---
                       DropdownButtonFormField<String>(
                         value: selectedLocal,
@@ -305,20 +308,20 @@ class _EstoquePageState extends State<EstoquePage>
                           });
                         },
                         decoration: _buildDialogInputDecoration('Local *'),
-                        validator: (value) =>
-                            (value == null || value.isEmpty)
-                                ? 'Selecione um local'
-                                : null,
+                        validator: (value) => (value == null || value.isEmpty)
+                            ? 'Selecione um local'
+                            : null,
                         dropdownColor: Colors.white,
                       ),
-                      // --- FIM DA MUDANÇA ---
 
+                      // --- FIM DA MUDANÇA ---
                       const SizedBox(height: 16), // AUMENTADO
                       TextFormField(
                         controller: vencimentoController,
                         readOnly: true,
                         decoration: _buildDialogInputDecoration(
-                            'Vencimento (opcional)'),
+                          'Vencimento (opcional)',
+                        ),
                         onTap: () async {
                           final now = DateTime.now();
                           final picked = await showDatePicker(
@@ -431,11 +434,11 @@ class _EstoquePageState extends State<EstoquePage>
     final formKey = GlobalKey<FormState>();
     final nomeController = TextEditingController(text: material.nome);
     // final localController = TextEditingController(text: material.local); // REMOVIDO
-    String? selectedLocal = material
-        .local; // NOVO
+    String? selectedLocal = material.local; // NOVO
     DateTime? selectedVencimento = material.vencimento;
-    final vencimentoController =
-        TextEditingController(text: _formatDate(material.vencimento));
+    final vencimentoController = TextEditingController(
+      text: _formatDate(material.vencimento),
+    );
 
     // Valida se o local atual existe na lista, se não, reseta
     if (selectedLocal != null &&
@@ -496,7 +499,6 @@ class _EstoquePageState extends State<EstoquePage>
                             (v == null || v.isEmpty) ? 'Informe o nome' : null,
                       ),
                       const SizedBox(height: 16), // AUMENTADO
-
                       // --- MUDANÇA: CAMPO NÃO-EDITÁVEL BONITO ---
                       _buildReadOnlyField(
                         'Quantidade Atual',
@@ -504,7 +506,6 @@ class _EstoquePageState extends State<EstoquePage>
                         Icons.info_outline_rounded,
                       ),
                       const SizedBox(height: 16), // AUMENTADO
-
                       // --- MUDANÇA: CAMPO DE LOCAL (DROPDOWN) ---
                       DropdownButtonFormField<String>(
                         value: selectedLocal,
@@ -520,20 +521,20 @@ class _EstoquePageState extends State<EstoquePage>
                           });
                         },
                         decoration: _buildDialogInputDecoration('Local *'),
-                        validator: (value) =>
-                            (value == null || value.isEmpty)
-                                ? 'Selecione um local'
-                                : null,
+                        validator: (value) => (value == null || value.isEmpty)
+                            ? 'Selecione um local'
+                            : null,
                         dropdownColor: Colors.white,
                       ),
-                      // --- FIM DA MUDANÇA ---
 
+                      // --- FIM DA MUDANÇA ---
                       const SizedBox(height: 16), // AUMENTADO
                       TextFormField(
                         controller: vencimentoController,
                         readOnly: true,
                         decoration: _buildDialogInputDecoration(
-                            'Vencimento (opcional)'),
+                          'Vencimento (opcional)',
+                        ),
                         onTap: () async {
                           final now = DateTime.now();
                           final picked = await showDatePicker(
@@ -576,19 +577,19 @@ class _EstoquePageState extends State<EstoquePage>
 
                         try {
                           // --- MUDANÇA: Chamada de update corrigida ---
-                          final updatedMaterial =
-                              await _materialService.update(
+                          final updatedMaterial = await _materialService.update(
                             material.codigo,
                             // tipo não é mais necessário
                             nome: nomeController.text,
-                            local: selectedLocal!, 
+                            local: selectedLocal!,
                             vencimento: selectedVencimento,
                           );
 
                           // Atualiza a lista local
                           setState(() {
                             final index = _materiais.indexWhere(
-                                (m) => m.codigo == material.codigo);
+                              (m) => m.codigo == material.codigo,
+                            );
                             if (index != -1) {
                               _materiais[index] = updatedMaterial;
                             }
@@ -599,7 +600,8 @@ class _EstoquePageState extends State<EstoquePage>
                           ScaffoldMessenger.of(context).showSnackBar(
                             SnackBar(
                               content: Text(
-                                  'Material ${updatedMaterial.nome} salvo com sucesso'),
+                                'Material ${updatedMaterial.nome} salvo com sucesso',
+                              ),
                               backgroundColor: Colors.green,
                             ),
                           );
@@ -614,7 +616,8 @@ class _EstoquePageState extends State<EstoquePage>
                         } finally {
                           setDialogState(() => isSubmitting = false);
                           setState(
-                              () => _processingIds.remove(material.codigo));
+                            () => _processingIds.remove(material.codigo),
+                          );
                         }
                       },
                 child: isSubmitting
@@ -637,7 +640,6 @@ class _EstoquePageState extends State<EstoquePage>
 
   // --- NOVOS: MÉTODOS DE EXCLUIR ---
   Future<void> _deleteMaterial(String codigo) async {
-
     setState(() => _processingIds.add(codigo));
     try {
       // --- MUDANÇA: Chamada de delete corrigida ---
@@ -675,7 +677,8 @@ class _EstoquePageState extends State<EstoquePage>
       builder: (_) => AlertDialog(
         title: const Text('Confirmar Exclusão'),
         content: Text(
-            'Deseja realmente excluir o material "${material.nome}" (${material.codigo})? Esta ação não pode ser desfeita.'),
+          'Deseja realmente excluir o material "${material.nome}" (${material.codigo})? Esta ação não pode ser desfeita.',
+        ),
         actions: [
           TextButton(
             onPressed: () => Navigator.of(context).pop(false),
@@ -780,12 +783,14 @@ class _EstoquePageState extends State<EstoquePage>
                     );
 
                     try {
+                      // Buscar o nome do usuário logado
+                      final nomeUsuario = await _authService.nome ?? 'Sistema';
+
                       await _materialService.movimentar(
                         codigo: material.codigo,
                         tipo: tipoMovimento,
                         quantidade: quantidade,
-                        usuario:
-                            'admin', // TODO: Substituir pelo usuário logado
+                        usuario: nomeUsuario,
                         local: material.local,
                       );
 
@@ -977,12 +982,11 @@ class _EstoquePageState extends State<EstoquePage>
                     itemBuilder: (context, index) {
                       final material = _filteredMateriais[index];
                       // Encontra o label da base para exibição
-                      final localLabel = _listaDeBases
-                          .firstWhere(
-                            (base) => base['value'] == material.local,
-                            orElse: () => {'label': material.local},
-                          )['label']!;
-                      
+                      final localLabel = _listaDeBases.firstWhere(
+                        (base) => base['value'] == material.local,
+                        orElse: () => {'label': material.local},
+                      )['label']!;
+
                       return Padding(
                         padding: const EdgeInsets.only(bottom: 12),
                         child: Card(
@@ -1082,7 +1086,10 @@ class _EstoquePageState extends State<EstoquePage>
                                       material.quantidade.toString(),
                                     ),
                                     const SizedBox(height: 8),
-                                    _buildInfoRow('Local:', localLabel), // MUDANÇA
+                                    _buildInfoRow(
+                                      'Local:',
+                                      localLabel,
+                                    ), // MUDANÇA
                                     const SizedBox(height: 8),
                                     _buildInfoRow(
                                       'Vencimento:',
@@ -1095,19 +1102,26 @@ class _EstoquePageState extends State<EstoquePage>
                                       children: [
                                         // Botão Excluir
                                         TextButton.icon(
-                                          icon: const Icon(Icons.delete,
-                                              size: 18),
+                                          icon: const Icon(
+                                            Icons.delete,
+                                            size: 18,
+                                          ),
                                           label: const Text('Excluir'),
                                           style: TextButton.styleFrom(
-                                              foregroundColor: Colors.red),
+                                            foregroundColor: Colors.red,
+                                          ),
                                           onPressed: () =>
                                               _showDeleteConfirmDialog(
-                                                  material),
+                                                material,
+                                              ),
                                         ),
                                         const SizedBox(width: 8),
                                         // Botão Editar
                                         TextButton.icon(
-                                          icon: const Icon(Icons.edit, size: 18),
+                                          icon: const Icon(
+                                            Icons.edit,
+                                            size: 18,
+                                          ),
                                           label: const Text('Editar'),
                                           onPressed: () =>
                                               _showEditMaterialDialog(material),
@@ -1121,8 +1135,9 @@ class _EstoquePageState extends State<EstoquePage>
                                           ),
                                           label: const Text('Movimentar'),
                                           style: ElevatedButton.styleFrom(
-                                            backgroundColor:
-                                                const Color(0xFF253250),
+                                            backgroundColor: const Color(
+                                              0xFF253250,
+                                            ),
                                             foregroundColor: Colors.white,
                                           ),
                                           onPressed: () {
@@ -1283,11 +1298,10 @@ class _EstoquePageState extends State<EstoquePage>
                               ],
                               rows: _filteredMateriais.map((material) {
                                 // Encontra o label da base para exibição
-                                final localLabel = _listaDeBases
-                                    .firstWhere(
-                                      (base) => base['value'] == material.local,
-                                      orElse: () => {'label': material.local},
-                                    )['label']!;
+                                final localLabel = _listaDeBases.firstWhere(
+                                  (base) => base['value'] == material.local,
+                                  orElse: () => {'label': material.local},
+                                )['label']!;
 
                                 return DataRow(
                                   cells: [
@@ -1376,7 +1390,8 @@ class _EstoquePageState extends State<EstoquePage>
                                                 height: 20,
                                                 child:
                                                     CircularProgressIndicator(
-                                                        strokeWidth: 2),
+                                                      strokeWidth: 2,
+                                                    ),
                                               ),
                                             )
                                           : Row(
@@ -1391,7 +1406,8 @@ class _EstoquePageState extends State<EstoquePage>
                                                   tooltip: "Editar",
                                                   onPressed: () {
                                                     _showEditMaterialDialog(
-                                                        material);
+                                                      material,
+                                                    );
                                                   },
                                                 ),
                                                 IconButton(
@@ -1399,8 +1415,9 @@ class _EstoquePageState extends State<EstoquePage>
                                                     Icons.swap_vert,
                                                     size: 20,
                                                   ),
-                                                  color:
-                                                      const Color(0xFF253250),
+                                                  color: const Color(
+                                                    0xFF253250,
+                                                  ),
                                                   tooltip: "Movimentar",
                                                   onPressed: () {
                                                     _showMovimentarDialog(
@@ -1411,13 +1428,15 @@ class _EstoquePageState extends State<EstoquePage>
                                                 ),
                                                 IconButton(
                                                   icon: const Icon(
-                                                      Icons.delete,
-                                                      size: 20),
+                                                    Icons.delete,
+                                                    size: 20,
+                                                  ),
                                                   color: Colors.red,
                                                   tooltip: "Excluir",
                                                   onPressed: () {
                                                     _showDeleteConfirmDialog(
-                                                        material);
+                                                      material,
+                                                    );
                                                   },
                                                 ),
                                               ],
