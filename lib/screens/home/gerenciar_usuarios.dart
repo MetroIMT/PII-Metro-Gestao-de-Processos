@@ -47,15 +47,19 @@ class _GerenciarUsuariosState extends State<GerenciarUsuarios>
   Future<void> _checkAdminAndLoad() async {
     try {
       final role = await AuthService().role;
-      setState(() => _currentRole = role); // salva o cargo atual
+      if (mounted) {
+        setState(() => _currentRole = role);
+      }
 
       // se não for admin, ainda permite ver a lista, mas sem adicionar
       await _loadMembers();
-    } catch (_) {
-      WidgetsBinding.instance.addPostFrameCallback((_) {
-        if (!mounted) return;
-        Navigator.pushReplacementNamed(context, '/');
-      });
+    } catch (e) {
+      if (mounted) {
+        WidgetsBinding.instance.addPostFrameCallback((_) {
+          if (!mounted) return;
+          Navigator.pushReplacementNamed(context, '/');
+        });
+      }
     }
   }
 
@@ -63,7 +67,7 @@ class _GerenciarUsuariosState extends State<GerenciarUsuarios>
     try {
       const secure = FlutterSecureStorage();
       final id = await secure.read(key: 'userId');
-      if (id != null && id.isNotEmpty) {
+      if (id != null && id.isNotEmpty && mounted) {
         setState(() => _currentUserId = id);
         return;
       }
@@ -72,7 +76,9 @@ class _GerenciarUsuariosState extends State<GerenciarUsuarios>
     try {
       final prefs = await SharedPreferences.getInstance();
       final id = prefs.getString('userId');
-      if (id != null && id.isNotEmpty) setState(() => _currentUserId = id);
+      if (id != null && id.isNotEmpty && mounted) {
+        setState(() => _currentUserId = id);
+      }
     } catch (_) {}
   }
 
@@ -83,6 +89,8 @@ class _GerenciarUsuariosState extends State<GerenciarUsuarios>
   }
 
   void _toggleRail() {
+    if (!mounted) return;
+
     setState(() {
       _isRailExtended = !_isRailExtended;
       if (_isRailExtended) {
@@ -94,6 +102,8 @@ class _GerenciarUsuariosState extends State<GerenciarUsuarios>
   }
 
   Future<void> _loadMembers() async {
+    if (!mounted) return;
+
     setState(() {
       _isLoading = true;
       _errorMessage = null;
@@ -101,11 +111,15 @@ class _GerenciarUsuariosState extends State<GerenciarUsuarios>
 
     try {
       final members = await _userService.getAll();
+      if (!mounted) return;
+
       setState(() {
         _members = members;
         _isLoading = false;
       });
     } catch (e) {
+      if (!mounted) return;
+
       setState(() {
         _errorMessage = e.toString();
         _isLoading = false;
@@ -135,6 +149,7 @@ class _GerenciarUsuariosState extends State<GerenciarUsuarios>
         telefone: telefone,
         role: role,
       );
+
       await _loadMembers();
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
@@ -160,6 +175,8 @@ class _GerenciarUsuariosState extends State<GerenciarUsuarios>
     String? telefone,
     String? role,
   }) async {
+    if (!mounted) return false;
+
     setState(() => _processingIds.add(id));
     try {
       await _userService.update(
@@ -185,11 +202,15 @@ class _GerenciarUsuariosState extends State<GerenciarUsuarios>
       }
       return false;
     } finally {
-      setState(() => _processingIds.remove(id));
+      if (mounted) {
+        setState(() => _processingIds.remove(id));
+      }
     }
   }
 
   Future<bool> _removeMember(String id) async {
+    if (!mounted) return false;
+
     setState(() => _processingIds.add(id));
     try {
       await _userService.delete(id);
@@ -208,7 +229,9 @@ class _GerenciarUsuariosState extends State<GerenciarUsuarios>
       }
       return false;
     } finally {
-      setState(() => _processingIds.remove(id));
+      if (mounted) {
+        setState(() => _processingIds.remove(id));
+      }
     }
   }
 
@@ -261,8 +284,11 @@ class _GerenciarUsuariosState extends State<GerenciarUsuarios>
             titlePadding: const EdgeInsets.fromLTRB(24, 24, 24, 16),
             title: Row(
               children: [
-                Icon(Icons.person_add_alt_1_rounded,
-                    color: metroBlue, size: 28),
+                Icon(
+                  Icons.person_add_alt_1_rounded,
+                  color: metroBlue,
+                  size: 28,
+                ),
                 const SizedBox(width: 12),
                 Text(
                   'Adicionar membro',
@@ -277,8 +303,8 @@ class _GerenciarUsuariosState extends State<GerenciarUsuarios>
 
             // --- MUDANÇA: Aumento do padding do conteúdo ---
             contentPadding: const EdgeInsets.fromLTRB(24, 24, 24, 24),
-            // --- FIM MUDANÇA ---
 
+            // --- FIM MUDANÇA ---
             content: SizedBox(
               width: dialogWidth,
               child: Form(
@@ -296,10 +322,23 @@ class _GerenciarUsuariosState extends State<GerenciarUsuarios>
                       const SizedBox(height: 12),
                       TextFormField(
                         controller: emailCtrl,
-                        decoration: _buildDialogInputDecoration('Email *'),
+                        decoration: _buildDialogInputDecoration(
+                          'Email * (ex: nome@metrosp.com.br)',
+                        ),
                         keyboardType: TextInputType.emailAddress,
-                        validator: (v) =>
-                            (v == null || v.isEmpty) ? 'Informe o email' : null,
+                        validator: (v) {
+                          if (v == null || v.isEmpty) return 'Informe o email';
+                          final emailNorm = v.trim().toLowerCase();
+                          if (!emailNorm.endsWith('@metrosp.com.br')) {
+                            return 'Email deve ser @metrosp.com.br';
+                          }
+                          if (!RegExp(
+                            r'^[a-z0-9._%+-]+@metrosp\.com\.br$',
+                          ).hasMatch(emailNorm)) {
+                            return 'Email inválido';
+                          }
+                          return null;
+                        },
                       ),
                       const SizedBox(height: 12),
                       TextFormField(
@@ -403,8 +442,11 @@ class _GerenciarUsuariosState extends State<GerenciarUsuarios>
                           telefone: phoneCtrl.text.trim(),
                           role: selectedRole,
                         );
-                        setDialogState(() => isSubmitting = false);
-                        if (ok) navigator.pop();
+                        if (ok) {
+                          navigator.pop();
+                        } else {
+                          setDialogState(() => isSubmitting = false);
+                        }
                       },
                 child: isSubmitting
                     ? const SizedBox(
@@ -475,8 +517,8 @@ class _GerenciarUsuariosState extends State<GerenciarUsuarios>
 
             // --- MUDANÇA: Aumento do padding do conteúdo ---
             contentPadding: const EdgeInsets.fromLTRB(24, 24, 24, 24),
-            // --- FIM MUDANÇA ---
 
+            // --- FIM MUDANÇA ---
             content: SizedBox(
               width: dialogWidth,
               child: Form(
@@ -494,10 +536,23 @@ class _GerenciarUsuariosState extends State<GerenciarUsuarios>
                       const SizedBox(height: 12),
                       TextFormField(
                         controller: emailCtrl,
-                        decoration: _buildDialogInputDecoration('Email *'),
+                        decoration: _buildDialogInputDecoration(
+                          'Email * (ex: nome@metrosp.com.br)',
+                        ),
                         keyboardType: TextInputType.emailAddress,
-                        validator: (v) =>
-                            (v == null || v.isEmpty) ? 'Informe o email' : null,
+                        validator: (v) {
+                          if (v == null || v.isEmpty) return 'Informe o email';
+                          final emailNorm = v.trim().toLowerCase();
+                          if (!emailNorm.endsWith('@metrosp.com.br')) {
+                            return 'Email deve ser @metrosp.com.br';
+                          }
+                          if (!RegExp(
+                            r'^[a-z0-9._%+-]+@metrosp\.com\.br$',
+                          ).hasMatch(emailNorm)) {
+                            return 'Email inválido';
+                          }
+                          return null;
+                        },
                       ),
                       const SizedBox(height: 12),
                       TextFormField(
@@ -593,8 +648,11 @@ class _GerenciarUsuariosState extends State<GerenciarUsuarios>
                           telefone: phoneCtrl.text.trim(),
                           role: selectedRole,
                         );
-                        setDialogState(() => isSubmitting = false);
-                        if (ok) navigator.pop();
+                        if (ok) {
+                          navigator.pop();
+                        } else {
+                          setDialogState(() => isSubmitting = false);
+                        }
                       },
                 child: isSubmitting
                     ? const SizedBox(
@@ -763,9 +821,7 @@ class _GerenciarUsuariosState extends State<GerenciarUsuarios>
                 if (_isLoading)
                   Expanded(
                     child: Center(
-                      child: CircularProgressIndicator(
-                        color: metroBlue,
-                      ),
+                      child: CircularProgressIndicator(color: metroBlue),
                     ),
                   )
                 else if (_errorMessage != null)
@@ -783,9 +839,7 @@ class _GerenciarUsuariosState extends State<GerenciarUsuarios>
                           Text(
                             _errorMessage!,
                             textAlign: TextAlign.center,
-                            style: const TextStyle(
-                              color: Colors.black87,
-                            ),
+                            style: const TextStyle(color: Colors.black87),
                           ),
                           const SizedBox(height: 16),
                           ElevatedButton(
@@ -805,9 +859,7 @@ class _GerenciarUsuariosState extends State<GerenciarUsuarios>
                     child: Center(
                       child: Text(
                         'Nenhum usuário cadastrado',
-                        style: TextStyle(
-                          color: Colors.black54,
-                        ),
+                        style: TextStyle(color: Colors.black54),
                       ),
                     ),
                   )
@@ -962,9 +1014,9 @@ class _GerenciarUsuariosState extends State<GerenciarUsuarios>
                                                         height: 20,
                                                         child:
                                                             CircularProgressIndicator(
-                                                          strokeWidth: 2,
-                                                          color: metroBlue,
-                                                        ),
+                                                              strokeWidth: 2,
+                                                              color: metroBlue,
+                                                            ),
                                                       ),
                                                     ),
                                                   )
@@ -974,19 +1026,15 @@ class _GerenciarUsuariosState extends State<GerenciarUsuarios>
                                                       Icons.delete,
                                                       color: Colors.red,
                                                     ),
-                                                    onPressed: (user.id !=
-                                                                null &&
+                                                    onPressed:
+                                                        (user.id != null &&
                                                             user.id !=
                                                                 _currentUserId)
                                                         ? () async {
-                                                            final confirm =
-                                                                await showDialog<
-                                                                    bool>(
+                                                            final confirm = await showDialog<bool>(
                                                               context: context,
-                                                              builder: (_) =>
-                                                                  AlertDialog(
-                                                                title:
-                                                                    const Text(
+                                                              builder: (_) => AlertDialog(
+                                                                title: const Text(
                                                                   'Remover membro',
                                                                 ),
                                                                 content: Text(
@@ -994,30 +1042,28 @@ class _GerenciarUsuariosState extends State<GerenciarUsuarios>
                                                                 ),
                                                                 actions: [
                                                                   TextButton(
-                                                                    onPressed:
-                                                                        () =>
-                                                                            Navigator.of(
-                                                                              context,
-                                                                            ).pop(
-                                                                      false,
-                                                                    ),
+                                                                    onPressed: () =>
+                                                                        Navigator.of(
+                                                                          context,
+                                                                        ).pop(
+                                                                          false,
+                                                                        ),
                                                                     child:
                                                                         const Text(
-                                                                      'Não',
-                                                                    ),
+                                                                          'Não',
+                                                                        ),
                                                                   ),
                                                                   TextButton(
-                                                                    onPressed:
-                                                                        () =>
-                                                                            Navigator.of(
-                                                                              context,
-                                                                            ).pop(
-                                                                      true,
-                                                                    ),
+                                                                    onPressed: () =>
+                                                                        Navigator.of(
+                                                                          context,
+                                                                        ).pop(
+                                                                          true,
+                                                                        ),
                                                                     child:
                                                                         const Text(
-                                                                      'Sim',
-                                                                    ),
+                                                                          'Sim',
+                                                                        ),
                                                                   ),
                                                                 ],
                                                               ),
@@ -1032,8 +1078,8 @@ class _GerenciarUsuariosState extends State<GerenciarUsuarios>
                                                             }
                                                           }
                                                         : null,
-                                                    tooltip: (user.id !=
-                                                                null &&
+                                                    tooltip:
+                                                        (user.id != null &&
                                                             user.id ==
                                                                 _currentUserId)
                                                         ? 'Não é possível remover o usuário atual'

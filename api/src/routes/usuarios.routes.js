@@ -100,16 +100,19 @@ router.post("/", auth(), requireAdmin, async (req, res) => {
 
     const senhaHash = await bcrypt.hash(String(senha), 10);
     const doc = {
-      nome,
+      nome: String(nome).trim(),
       email: emailNorm,
       senhaHash,
-      cpf,
-      telefone,
+      cpf: String(cpf).trim(),
+      telefone: String(telefone).trim(),
       role,
       ativo: !!ativo,
       criadoEm: new Date(),
       atualizadoEm: new Date(),
     };
+
+    console.log("📝 Documento a ser inserido:", JSON.stringify(doc, null, 2));
+
     const { insertedId } = await db.collection("usuarios").insertOne(doc);
     res.status(201).json({
       _id: insertedId,
@@ -124,6 +127,17 @@ router.post("/", auth(), requireAdmin, async (req, res) => {
     });
   } catch (error) {
     console.error("Erro ao criar usuário:", error);
+
+    // Se for erro de validação do schema
+    if (error.code === 121) {
+      console.error("❌ Erro de validação do schema MongoDB:");
+      console.error(JSON.stringify(error, null, 2));
+      return res.status(400).json({
+        error: "Erro de validação dos dados",
+        details: error.errInfo?.details,
+      });
+    }
+
     res.status(500).json({ error: "Falha ao criar usuário" });
   }
 });
