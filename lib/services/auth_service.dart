@@ -237,4 +237,25 @@ class AuthService {
 
     return null;
   }
+
+  /// Returns the name of the current user, reading secure storage first and
+  /// falling back to SharedPreferences. Returns null if not present.
+  Future<String?> get nome async {
+    try {
+      final value = await _storage.read(key: 'nome');
+      if (value != null && value.isNotEmpty) return value;
+    } catch (_) {
+      // ignore
+    }
+
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      final v = prefs.getString('nome');
+      if (v != null && v.isNotEmpty) return v;
+    } catch (_) {
+      // ignore
+    }
+
+    return null;
+  }
 }

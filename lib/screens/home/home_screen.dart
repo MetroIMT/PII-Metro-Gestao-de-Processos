@@ -15,6 +15,7 @@ import 'gerenciar_usuarios.dart';
 import '../../widgets/sidebar.dart';
 import '../../services/material_service.dart';
 import '../../services/movimentacao_service.dart';
+import '../../services/auth_service.dart';
 
 // Classe PieChartPainter (Sem alterações)
 class PieChartPainter extends CustomPainter {
@@ -105,6 +106,11 @@ class _HomeScreenState extends State<HomeScreen>
   // --- Serviços ---
   final MaterialService _materialService = MaterialService();
   final MovimentacaoService _movimentacaoService = MovimentacaoService();
+  final AuthService _authService = AuthService();
+
+  // --- Estado: Nome do Usuário ---
+  String _nomeUsuario = 'Usuário';
+  bool _isLoadingNome = true;
 
   // --- Estado: Movimentações ---
   List<Movimentacao> _recentMovimentacoes = [];
@@ -138,6 +144,8 @@ class _HomeScreenState extends State<HomeScreen>
     MovimentacaoRepository.instance.movimentacoesNotifier.addListener(
       _onAlertsCountChanged,
     );
+    // Carregar nome do usuário
+    _loadNomeUsuario();
     // carregar materiais do backend para atualizar o card de estoque
     _loadMateriais();
     // carregar últimas movimentações do backend para o card do dashboard
@@ -146,6 +154,25 @@ class _HomeScreenState extends State<HomeScreen>
     // --- MUDANÇA: Carregar os alertas REAIS ---
     _loadDashboardAlerts();
     // --- FIM DA MUDANÇA ---
+  }
+
+  Future<void> _loadNomeUsuario() async {
+    try {
+      final nome = await _authService.nome;
+      if (mounted) {
+        setState(() {
+          _nomeUsuario = nome ?? 'Usuário';
+          _isLoadingNome = false;
+        });
+      }
+    } catch (e) {
+      if (mounted) {
+        setState(() {
+          _nomeUsuario = 'Usuário';
+          _isLoadingNome = false;
+        });
+      }
+    }
   }
 
   Future<void> _loadMateriais() async {
@@ -229,7 +256,33 @@ class _HomeScreenState extends State<HomeScreen>
 
         if (isLowStock && isNearExpiry) {
           if (lowStockSeverity >= nearExpirySeverity) {
-            generatedAlerts.add(AlertItem(
+            generatedAlerts.add(
+              AlertItem(
+                codigo: m.codigo,
+                nome: m.nome,
+                quantidade: m.quantidade,
+                local: m.local,
+                vencimento: m.vencimento,
+                type: AlertType.lowStock,
+                severity: lowStockSeverity,
+              ),
+            );
+          } else {
+            generatedAlerts.add(
+              AlertItem(
+                codigo: m.codigo,
+                nome: m.nome,
+                quantidade: m.quantidade,
+                local: m.local,
+                vencimento: m.vencimento,
+                type: AlertType.nearExpiry,
+                severity: nearExpirySeverity,
+              ),
+            );
+          }
+        } else if (isLowStock) {
+          generatedAlerts.add(
+            AlertItem(
               codigo: m.codigo,
               nome: m.nome,
               quantidade: m.quantidade,
@@ -237,9 +290,11 @@ class _HomeScreenState extends State<HomeScreen>
               vencimento: m.vencimento,
               type: AlertType.lowStock,
               severity: lowStockSeverity,
-            ));
-          } else {
-            generatedAlerts.add(AlertItem(
+            ),
+          );
+        } else if (isNearExpiry) {
+          generatedAlerts.add(
+            AlertItem(
               codigo: m.codigo,
               nome: m.nome,
               quantidade: m.quantidade,
@@ -247,28 +302,8 @@ class _HomeScreenState extends State<HomeScreen>
               vencimento: m.vencimento,
               type: AlertType.nearExpiry,
               severity: nearExpirySeverity,
-            ));
-          }
-        } else if (isLowStock) {
-          generatedAlerts.add(AlertItem(
-            codigo: m.codigo,
-            nome: m.nome,
-            quantidade: m.quantidade,
-            local: m.local,
-            vencimento: m.vencimento,
-            type: AlertType.lowStock,
-            severity: lowStockSeverity,
-          ));
-        } else if (isNearExpiry) {
-          generatedAlerts.add(AlertItem(
-            codigo: m.codigo,
-            nome: m.nome,
-            quantidade: m.quantidade,
-            local: m.local,
-            vencimento: m.vencimento,
-            type: AlertType.nearExpiry,
-            severity: nearExpirySeverity,
-          ));
+            ),
+          );
         }
       }
 
@@ -407,8 +442,7 @@ class _HomeScreenState extends State<HomeScreen>
   Widget build(BuildContext context) {
     final isMobile = MediaQuery.of(context).size.width < 600;
 
-    final EdgeInsets contentPadding =
-        EdgeInsets.all(isMobile ? 16 : 24);
+    final EdgeInsets contentPadding = EdgeInsets.all(isMobile ? 16 : 24);
 
     return Scaffold(
       key: _scaffoldKey,
@@ -524,14 +558,32 @@ class _HomeScreenState extends State<HomeScreen>
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Text(
-            'Bem-vindo de volta, Usuário!', // TODO: Trocar por nome real
-            style: TextStyle(
-              fontSize: isMobile ? 22 : 28,
-              fontWeight: FontWeight.w400,
-              color: const Color(0xFF2D2D2D),
-            ),
-          ),
+          _isLoadingNome
+              ? Row(
+                  children: [
+                    Text(
+                      'Bem-vindo de volta, ',
+                      style: TextStyle(
+                        fontSize: isMobile ? 22 : 28,
+                        fontWeight: FontWeight.w400,
+                        color: const Color(0xFF2D2D2D),
+                      ),
+                    ),
+                    SizedBox(
+                      width: 100,
+                      height: isMobile ? 22 : 28,
+                      child: const LinearProgressIndicator(),
+                    ),
+                  ],
+                )
+              : Text(
+                  'Bem-vindo de volta, $_nomeUsuario!',
+                  style: TextStyle(
+                    fontSize: isMobile ? 22 : 28,
+                    fontWeight: FontWeight.w400,
+                    color: const Color(0xFF2D2D2D),
+                  ),
+                ),
           const SizedBox(height: 4),
           Text(
             'Aqui está um resumo da sua operação hoje.',
@@ -710,8 +762,9 @@ class _HomeScreenState extends State<HomeScreen>
 
     // Lógica de Ícone e Cor
     final bool isEntrada = mov.tipo == 'Entrada';
-    final IconData iconData =
-        isEntrada ? Icons.arrow_downward : Icons.arrow_upward;
+    final IconData iconData = isEntrada
+        ? Icons.arrow_downward
+        : Icons.arrow_upward;
     final Color iconColor = isEntrada ? Colors.green : Colors.red;
 
     return Padding(
@@ -749,8 +802,10 @@ class _HomeScreenState extends State<HomeScreen>
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
-            Text('Erro ao carregar movimentações: $_recentError',
-                style: const TextStyle(color: Colors.red)),
+            Text(
+              'Erro ao carregar movimentações: $_recentError',
+              style: const TextStyle(color: Colors.red),
+            ),
             const SizedBox(height: 8),
             ElevatedButton(
               onPressed: _loadRecentMovimentacoes,
@@ -788,10 +843,12 @@ class _HomeScreenState extends State<HomeScreen>
     ];
 
     final int totalMateriais = todosMateriais.length;
-    final int materiaisDisponiveis =
-        todosMateriais.where((m) => m.quantidade > 0).length;
-    final int materiaisEmFalta =
-        todosMateriais.where((m) => m.quantidade <= 0).length;
+    final int materiaisDisponiveis = todosMateriais
+        .where((m) => m.quantidade > 0)
+        .length;
+    final int materiaisEmFalta = todosMateriais
+        .where((m) => m.quantidade <= 0)
+        .length;
 
     final double porcentagemDisponivel = totalMateriais > 0
         ? (materiaisDisponiveis / totalMateriais) * 100
@@ -865,8 +922,8 @@ class _HomeScreenState extends State<HomeScreen>
                         color: porcentagemDisponivel > 85
                             ? Colors.green
                             : porcentagemDisponivel > 70
-                                ? Colors.orange
-                                : Colors.red,
+                            ? Colors.orange
+                            : Colors.red,
                         borderRadius: BorderRadius.circular(12),
                       ),
                       child: Text(
@@ -1012,7 +1069,6 @@ class _HomeScreenState extends State<HomeScreen>
     Color color,
     VoidCallback onTap, {
     bool hasAlert = false,
-    Color? color2,
     int? alertCount,
     Widget? content,
   }) {
@@ -1108,7 +1164,8 @@ class _HomeScreenState extends State<HomeScreen>
                     children: [
                       Expanded(
                         // O 'content' agora é dinâmico
-                        child: content ??
+                        child:
+                            content ??
                             const Center(
                               child: Text(
                                 'Dados do card vão aqui',
@@ -1120,7 +1177,9 @@ class _HomeScreenState extends State<HomeScreen>
                       Align(
                         alignment: Alignment.bottomRight,
                         child: CardActionButton(
-                            borderColor: color, onPressed: onTap),
+                          borderColor: color,
+                          onPressed: onTap,
+                        ),
                       ),
                     ],
                   ),
@@ -1274,10 +1333,12 @@ class _HomeScreenState extends State<HomeScreen>
 
     // 1. Calcular Estatísticas
     final count = allAlerts.length;
-    final lowStock =
-        allAlerts.where((a) => a.type == AlertType.lowStock).length;
-    final nearExpiry =
-        allAlerts.where((a) => a.type == AlertType.nearExpiry).length;
+    final lowStock = allAlerts
+        .where((a) => a.type == AlertType.lowStock)
+        .length;
+    final nearExpiry = allAlerts
+        .where((a) => a.type == AlertType.nearExpiry)
+        .length;
 
     // 2. Obter os 3 mais urgentes (ordenados por severidade)
     final sortedAlerts = List<AlertItem>.from(allAlerts);
@@ -1321,7 +1382,6 @@ class _HomeScreenState extends State<HomeScreen>
         ),
         const SizedBox(height: 12),
         const Divider(height: 16), // Linha divisória (Altura Fixa)
-
         // 4. Lista de Alertas Urgentes (AGORA EXPANDIDA E COM SCROLL)
         Expanded(
           child: topAlerts.isEmpty
@@ -1363,7 +1423,11 @@ class _HomeScreenState extends State<HomeScreen>
 
   // --- MUDANÇA: NOVO HELPER PARA CARD DE RELATÓRIOS ---
   Widget _buildReportRow(
-      String title, String subtitle, IconData icon, Color color) {
+    String title,
+    String subtitle,
+    IconData icon,
+    Color color,
+  ) {
     return Padding(
       padding: const EdgeInsets.symmetric(vertical: 6.0),
       child: Row(
@@ -1395,13 +1459,19 @@ class _HomeScreenState extends State<HomeScreen>
           // "Botões" falsos de PDF/Excel
           Row(
             children: [
-              Icon(Icons.picture_as_pdf_outlined,
-                  color: Colors.grey.shade400, size: 18),
+              Icon(
+                Icons.picture_as_pdf_outlined,
+                color: Colors.grey.shade400,
+                size: 18,
+              ),
               const SizedBox(width: 4),
-              Icon(Icons.table_chart_outlined,
-                  color: Colors.grey.shade400, size: 18),
+              Icon(
+                Icons.table_chart_outlined,
+                color: Colors.grey.shade400,
+                size: 18,
+              ),
             ],
-          )
+          ),
         ],
       ),
     );
@@ -1466,6 +1536,7 @@ class _HomeScreenState extends State<HomeScreen>
       ],
     );
   }
+
   // --- FIM DA MUDANÇA ---
 }
 
