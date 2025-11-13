@@ -29,6 +29,7 @@ class _AlertsPageState extends State<AlertsPage>
   List<AlertItem> _allAlerts = []; // Armazena os alertas reais
   bool _isLoading = true; // Controla o estado de carregamento
   String? _errorMessage; // Armazena mensagens de erro
+  bool _isSeverityMenuOpen = false;
 
   @override
   void initState() {
@@ -437,6 +438,68 @@ class _AlertsPageState extends State<AlertsPage>
     }
   }
 
+  Future<void> _showSeverityMenu(BuildContext anchorContext) async {
+    final renderBox = anchorContext.findRenderObject() as RenderBox?;
+    final overlayState = Overlay.of(anchorContext);
+    final overlayBox = overlayState?.context.findRenderObject() as RenderBox?;
+
+    if (renderBox == null || overlayBox == null) return;
+
+    setState(() => _isSeverityMenuOpen = true);
+
+    final target = renderBox.localToGlobal(Offset.zero);
+    final size = renderBox.size;
+    const double gap = 6;
+    final double left = target.dx;
+    final double top = target.dy + size.height + gap;
+    final double right = overlayBox.size.width - left - size.width;
+    final double bottom = overlayBox.size.height - top;
+
+    final selected = await showMenu<int>(
+      context: context,
+      position: RelativeRect.fromLTRB(left, top, right, bottom),
+      color: Colors.white,
+      elevation: 8,
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
+      constraints: BoxConstraints.tightFor(width: size.width),
+      items: _severityMenuItems(),
+    );
+
+    if (!mounted) return;
+    setState(() {
+      _isSeverityMenuOpen = false;
+      if (selected != null) {
+        _minSeverity = selected;
+      }
+    });
+  }
+
+  List<PopupMenuEntry<int>> _severityMenuItems() {
+    return List.generate(3, (index) {
+      final value = index + 1;
+      final bool isSelected = _minSeverity == value;
+      return PopupMenuItem<int>(
+        value: value,
+        height: 44,
+        child: Row(
+          children: [
+            Text(
+              '≥ $value',
+              style: TextStyle(
+                fontWeight: isSelected ? FontWeight.w600 : FontWeight.normal,
+                color: isSelected ? metroBlue : Colors.black87,
+              ),
+            ),
+            if (isSelected) ...[
+              const Spacer(),
+              Icon(Icons.check, color: metroBlue, size: 18),
+            ],
+          ],
+        ),
+      );
+    });
+  }
+
   List<AlertItem> get _visibleAlerts {
     String q;
     try {
@@ -806,28 +869,59 @@ class _AlertsPageState extends State<AlertsPage>
               ),
             ),
             const SizedBox(height: 6),
-            DropdownButtonFormField<int>(
-              value: _minSeverity,
-              iconEnabledColor: metroBlue,
-              decoration: InputDecoration(
-                isDense: true,
-                filled: true,
-                fillColor: Colors.grey.shade100,
-                border: OutlineInputBorder(
-                  borderRadius: BorderRadius.circular(12),
-                  borderSide: BorderSide.none,
-                ),
-                contentPadding: const EdgeInsets.symmetric(
-                  horizontal: 12,
-                  vertical: 10,
-                ),
-              ),
-              items: const [
-                DropdownMenuItem(value: 1, child: Text('≥ 1')),
-                DropdownMenuItem(value: 2, child: Text('≥ 2')),
-                DropdownMenuItem(value: 3, child: Text('≥ 3')),
-              ],
-              onChanged: (v) => setState(() => _minSeverity = v ?? 1),
+            Builder(
+              builder: (fieldContext) {
+                return Material(
+                  color: Colors.transparent,
+                  child: InkWell(
+                    borderRadius: BorderRadius.circular(12),
+                    onTap: () => _showSeverityMenu(fieldContext),
+                    child: AnimatedContainer(
+                      duration: const Duration(milliseconds: 150),
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 12,
+                        vertical: 12,
+                      ),
+                      decoration: BoxDecoration(
+                        color: Colors.white,
+                        borderRadius: BorderRadius.circular(12),
+                        border: Border.all(
+                          color: _isSeverityMenuOpen
+                              ? metroBlue
+                              : Colors.grey.shade300,
+                          width: 1.2,
+                        ),
+                        boxShadow: _isSeverityMenuOpen
+                            ? [
+                                BoxShadow(
+                                  color: metroBlue.withOpacity(0.15),
+                                  blurRadius: 14,
+                                  offset: const Offset(0, 6),
+                                ),
+                              ]
+                            : null,
+                      ),
+                      child: Row(
+                        children: [
+                          Text(
+                            '≥ $_minSeverity',
+                            style: const TextStyle(
+                              fontWeight: FontWeight.w600,
+                            ),
+                          ),
+                          const Spacer(),
+                          Icon(
+                            _isSeverityMenuOpen
+                                ? Icons.keyboard_arrow_up
+                                : Icons.keyboard_arrow_down,
+                            color: Colors.black54,
+                          ),
+                        ],
+                      ),
+                    ),
+                  ),
+                );
+              },
             ),
           ],
         ),
