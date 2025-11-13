@@ -632,26 +632,18 @@ class _HomeScreenState extends State<HomeScreen>
       builder: (context, constraints) {
         final int crossAxisCount;
         if (constraints.maxWidth < 650) {
-          crossAxisCount = 1;
-        } else if (constraints.maxWidth < 1100) {
-          crossAxisCount = 2;
+          crossAxisCount = 1; // celular: 1 card por linha
         } else {
-          crossAxisCount = 3;
+          crossAxisCount = 2; // tablet/desktop: sempre 2 cards por linha
         }
 
         final double childAspectRatio;
         if (crossAxisCount == 1) {
-          const double desiredCardHeight =
-              430; // Altura fixa para evitar overflow em telas estreitas
+          const double desiredCardHeight = 430;
           childAspectRatio = constraints.maxWidth / desiredCardHeight;
-        } else if (crossAxisCount == 2) {
-          // --- MUDANÇA: Ajuste de Aspect Ratio (Mais altura) ---
-          childAspectRatio = 0.95; // Era 1.2
-          // --- FIM DA MUDANÇA ---
         } else {
-          // --- MUDANÇA: Ajuste de Aspect Ratio (Mais altura) ---
-          childAspectRatio = 1.0; // Era 1.1
-          // --- FIM DA MUDANÇA ---
+          childAspectRatio =
+              1.6; // para diminuir o tamanho vertical dos cards em telas maiores
         }
 
         return GridView(
@@ -665,15 +657,12 @@ class _HomeScreenState extends State<HomeScreen>
             childAspectRatio: childAspectRatio,
           ),
           children: [
-            // Card de Estoque Atual (Funcional)
             _buildEstoqueCard(
               () => Navigator.push(
                 context,
                 MaterialPageRoute(builder: (_) => const ToolPage()),
               ),
             ),
-
-            // Card de Alertas (prioridade alta)
             _buildDashboardCard(
               'Alertas (estoque baixo / vencimento)',
               Icons.warning_amber,
@@ -684,27 +673,10 @@ class _HomeScreenState extends State<HomeScreen>
                   MaterialPageRoute(builder: (_) => const AlertsPage()),
                 );
               },
-              // --- MUDANÇA: USA O ESTADO REAL ---
               hasAlert: _dashboardAlerts.isNotEmpty,
               alertCount: _dashboardAlerts.length,
-              // --- FIM DA MUDANÇA ---
               content: _buildAlertsCardContent(),
             ),
-
-            // Card de Instrumentos
-            _buildDashboardCard(
-              'Instrumentos próximos da calibração',
-              Icons.timer,
-              Colors.orange,
-              () {},
-              content: _buildStatContent(
-                "3",
-                "Precisam de atenção",
-                Colors.orange.shade800,
-              ),
-            ),
-
-            // AJUSTE: Card de Movimentações Recentes
             _buildDashboardCard(
               'Movimentações recentes',
               Icons.swap_horiz,
@@ -715,31 +687,8 @@ class _HomeScreenState extends State<HomeScreen>
                   MaterialPageRoute(builder: (_) => const MovimentacoesPage()),
                 );
               },
-              // Conteúdo carregado a partir do backend (últimas 5 movimentações)
               content: _buildRecentMovimentacoesContent(),
             ),
-
-            // Card Gerenciar Usuários
-            _buildDashboardCard(
-              'Gerenciar Usuários',
-              Icons.people,
-              Colors.blue,
-              () {
-                Navigator.push(
-                  context,
-                  MaterialPageRoute(builder: (_) => const GerenciarUsuarios()),
-                );
-              },
-              content: _isLoadingUsuarios
-                  ? const Center(child: CircularProgressIndicator())
-                  : _buildStatContent(
-                      _usuariosAtivos.toString(),
-                      "Usuários ativos",
-                      Colors.blue.shade800,
-                    ),
-            ),
-
-            // --- MUDANÇA: CARD DE RELATÓRIOS ATUALIZADO ---
             _buildDashboardCard(
               'Relatórios',
               Icons.article_outlined,
@@ -750,10 +699,8 @@ class _HomeScreenState extends State<HomeScreen>
                   MaterialPageRoute(builder: (_) => const RelatoriosPage()),
                 );
               },
-              // Novo conteúdo complexo
               content: _buildReportsCardContent(),
             ),
-            // --- FIM DA MUDANÇA ---
           ],
         );
       },
@@ -893,7 +840,6 @@ class _HomeScreenState extends State<HomeScreen>
         borderRadius: BorderRadius.circular(12),
         child: Container(
           decoration: BoxDecoration(
-            // Gradiente removido -> cor sólida
             color: Colors.white,
             borderRadius: BorderRadius.circular(12),
             boxShadow: [
@@ -909,13 +855,12 @@ class _HomeScreenState extends State<HomeScreen>
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                // Título e ícone
+                // ---------- CABEÇALHO ----------
                 Row(
                   children: [
                     Container(
                       padding: const EdgeInsets.all(10),
                       decoration: BoxDecoration(
-                        // Gradiente removido -> cor sólida
                         color: metroBlue,
                         borderRadius: BorderRadius.circular(10),
                         boxShadow: [
@@ -935,7 +880,7 @@ class _HomeScreenState extends State<HomeScreen>
                     const SizedBox(width: 12),
                     Expanded(
                       child: Text(
-                        'Estoque Total', // Título alterado
+                        'Estoque Total',
                         style: TextStyle(
                           fontWeight: FontWeight.bold,
                           color: Colors.grey.shade800,
@@ -943,7 +888,6 @@ class _HomeScreenState extends State<HomeScreen>
                         ),
                       ),
                     ),
-                    // Indicador de porcentagem
                     Container(
                       padding: const EdgeInsets.symmetric(
                         horizontal: 8,
@@ -971,80 +915,72 @@ class _HomeScreenState extends State<HomeScreen>
 
                 const SizedBox(height: 16),
 
-                // --- MUDANÇA: CORREÇÃO DE OVERFLOW DO BOTÃO ---
-                Expanded(
-                  child: Column(
-                    children: [
-                      Expanded(
-                        child: Row(
-                          children: [
-                            // Estatísticas
-                            Expanded(
-                              flex: 3,
-                              child: Column(
-                                crossAxisAlignment: CrossAxisAlignment.start,
-                                mainAxisAlignment: MainAxisAlignment.center,
-                                children: [
-                                  _buildEstoqueStat(
-                                    'Total de materiais',
-                                    '$totalMateriais',
-                                    Icons.category,
-                                    metroBlue,
-                                  ),
-                                  const SizedBox(height: 12),
-                                  _buildEstoqueStat(
-                                    'Disponíveis',
-                                    '$materiaisDisponiveis',
-                                    Icons.check_circle_outline,
-                                    Colors.green,
-                                  ),
-                                  const SizedBox(height: 12),
-                                  _buildEstoqueStat(
-                                    'Em falta',
-                                    '$materiaisEmFalta',
-                                    Icons.error_outline,
-                                    Colors.red,
-                                  ),
-                                ],
-                              ),
-                            ),
+                // ---------- CONTEÚDO ----------
+                Row(
+                  crossAxisAlignment: CrossAxisAlignment.center,
+                  children: [
+                    // Estatísticas
+                    Expanded(
+                      flex: 3,
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          _buildEstoqueStat(
+                            'Total de materiais',
+                            '$totalMateriais',
+                            Icons.category,
+                            metroBlue,
+                          ),
+                          const SizedBox(height: 12),
+                          _buildEstoqueStat(
+                            'Disponíveis',
+                            '$materiaisDisponiveis',
+                            Icons.check_circle_outline,
+                            Colors.green,
+                          ),
+                          const SizedBox(height: 12),
+                          _buildEstoqueStat(
+                            'Em falta',
+                            '$materiaisEmFalta',
+                            Icons.error_outline,
+                            Colors.red,
+                          ),
+                        ],
+                      ),
+                    ),
 
-                            // Gráfico de pizza
-                            Expanded(
-                              flex: 2,
-                              child: Container(
-                                height: double.infinity,
-                                padding: const EdgeInsets.all(8.0),
-                                child: CustomPaint(
-                                  painter: PieChartPainter(
-                                    // Prevenção de divisão por zero
-                                    disponivel: totalMateriais > 0
-                                        ? materiaisDisponiveis / totalMateriais
-                                        : 0,
-                                    emFalta: totalMateriais > 0
-                                        ? materiaisEmFalta / totalMateriais
-                                        : 0,
-                                    corDisponivel: Colors.green,
-                                  ),
-                                  size: const Size(100, 100),
-                                ),
-                              ),
-                            ),
-                          ],
+                    const SizedBox(width: 8),
+
+                    // Gráfico
+                    SizedBox(
+                      width: 140,
+                      height: 140,
+                      child: CustomPaint(
+                        painter: PieChartPainter(
+                          disponivel: totalMateriais > 0
+                              ? materiaisDisponiveis / totalMateriais
+                              : 0,
+                          emFalta: totalMateriais > 0
+                              ? materiaisEmFalta / totalMateriais
+                              : 0,
+                          corDisponivel: Colors.green,
+                          corEmFalta: Colors.red,
                         ),
                       ),
-                      // Botão de ação (AGORA DENTRO DO EXPANDED)
-                      Align(
-                        alignment: Alignment.bottomRight,
-                        child: CardActionButton(
-                          borderColor: metroBlue,
-                          onPressed: onTap,
-                        ),
-                      ),
-                    ],
+                    ),
+                  ],
+                ),
+
+                const SizedBox(height: 12),
+
+                // ---------- BOTÃO NO RODAPÉ ----------
+                Align(
+                  alignment: Alignment.bottomRight,
+                  child: CardActionButton(
+                    borderColor: metroBlue,
+                    onPressed: onTap,
                   ),
                 ),
-                // --- FIM DA MUDANÇA ---
               ],
             ),
           ),
