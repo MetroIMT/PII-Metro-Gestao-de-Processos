@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 
-enum AlertType { lowStock, nearExpiry }
+enum AlertType { lowStock, nearExpiry, calibration }
 
 class AlertItem {
   final String codigo;

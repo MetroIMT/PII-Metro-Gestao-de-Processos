@@ -426,8 +426,16 @@ class _AlertsPageState extends State<AlertsPage>
     }
   }
 
-  String _typeLabel(AlertType t) =>
-      t == AlertType.lowStock ? 'Estoque baixo' : 'Vencimento próximo';
+  String _typeLabel(AlertType t) {
+    switch (t) {
+      case AlertType.lowStock:
+        return 'Estoque baixo';
+      case AlertType.nearExpiry:
+        return 'Vencimento próximo';
+      case AlertType.calibration:
+        return 'Calibração';
+    }
+  }
 
   List<AlertItem> get _visibleAlerts {
     String q;
@@ -920,6 +928,25 @@ class _AlertsPageState extends State<AlertsPage>
               ),
               onSelected: (_) =>
                   setState(() => _filterType = AlertType.nearExpiry),
+            ),
+            ChoiceChip(
+              label: const Text('Calibração'),
+              selected: _filterType == AlertType.calibration,
+              selectedColor: Colors.blueAccent.withOpacity(0.12),
+              backgroundColor: Colors.grey.shade100,
+              side: BorderSide(
+                color: _filterType == AlertType.calibration
+                    ? Colors.blueAccent.withOpacity(0.6)
+                    : Colors.grey.shade300,
+              ),
+              labelStyle: TextStyle(
+                color: _filterType == AlertType.calibration
+                    ? Colors.blueAccent
+                    : Colors.black87,
+                fontWeight: FontWeight.w500,
+              ),
+              onSelected: (_) =>
+                  setState(() => _filterType = AlertType.calibration),
             ),
           ],
         ),
