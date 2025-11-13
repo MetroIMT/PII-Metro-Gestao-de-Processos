@@ -838,20 +838,24 @@ class _AlertsPageState extends State<AlertsPage>
     final size = MediaQuery.of(context).size;
     final bool isMobileView = size.width < 600;
 
-    final Widget searchField = TextField(
-      style: const TextStyle(fontWeight: FontWeight.w500),
-      decoration: InputDecoration(
-        labelText: 'Buscar alerta...',
-        hintText: 'Digite nome, código ou local',
-        prefixIcon: const Icon(Icons.search),
-        filled: true,
-        fillColor: Colors.grey.shade100,
-        border: OutlineInputBorder(
-          borderRadius: BorderRadius.circular(12),
-          borderSide: BorderSide.none,
+    final Widget searchField = Padding(
+      padding: const EdgeInsets.only(top: 24),
+      child: TextField(
+        style: const TextStyle(fontWeight: FontWeight.w500),
+        decoration: InputDecoration(
+          labelText: 'Buscar alerta...',
+          hintText: 'Digite nome, código ou local',
+          floatingLabelBehavior: FloatingLabelBehavior.never,
+          prefixIcon: const Icon(Icons.search),
+          filled: true,
+          fillColor: Colors.grey.shade100,
+          border: OutlineInputBorder(
+            borderRadius: BorderRadius.circular(12),
+            borderSide: BorderSide.none,
+          ),
         ),
+        onChanged: (v) => setState(() => _query = v),
       ),
-      onChanged: (v) => setState(() => _query = v),
     );
 
     Widget severitySelector(double width) {
