@@ -3,9 +3,11 @@ import '../../widgets/sidebar.dart';
 import 'dart:io';
 import 'package:image_picker/image_picker.dart';
 import '../../services/user_service.dart';
+import '../../services/auth_service.dart';
 import '../../models/user.dart';
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import 'package:shared_preferences/shared_preferences.dart';
+import '../login/login_screen.dart';
 
 class AdminPage extends StatefulWidget {
   const AdminPage({super.key});
@@ -43,9 +45,6 @@ class _AdminPageState extends State<AdminPage>
   final ImagePicker _picker = ImagePicker();
   File? _avatarFile;
   String? _avatarUrl;
-
-  // Sessões ativas (vão ser carregadas do backend quando disponível)
-  List<Map<String, dynamic>> _sessions = [];
 
   bool _isRailExtended = false;
   late AnimationController _animationController;
@@ -202,41 +201,6 @@ class _AdminPageState extends State<AdminPage>
     });
   }
 
-  Future<void> _fetchSessions() async {
-    final id = _user?.id ?? await _getStoredUserId();
-    if (id == null) return;
-
-    try {
-      final list = await _userService.getSessions(id);
-      final parsed = list.map((s) {
-        DateTime? last;
-        final raw = s['lastSeen'];
-        if (raw is String) {
-          try {
-            last = DateTime.parse(raw);
-          } catch (_) {
-            last = null;
-          }
-        } else if (raw is DateTime) {
-          last = raw;
-        }
-        return {
-          'id': s['id']?.toString(),
-          'device': s['device'] ?? 'Desconhecido',
-          'ip': s['ip'],
-          'lastSeen': last ?? DateTime.now(),
-        };
-      }).toList();
-      if (!mounted) return;
-      setState(() {
-        _sessions = parsed;
-      });
-    } catch (e) {
-      // se falhar, mantemos sessões locais e silenciosamente falhamos
-      // (a lista de sessões não é crítica)
-    }
-  }
-
   // Helper seguro para exibir SnackBars sem usar diretamente `context` após awaits
   void _showSnackbar(
     String message, {
@@ -320,8 +284,6 @@ class _AdminPageState extends State<AdminPage>
         }
         _isLoadingProfile = false;
       });
-      // carrega sessões do backend (se disponível)
-      await _fetchSessions();
     } catch (e) {
       setState(() {
         _profileError = e.toString();
@@ -331,38 +293,6 @@ class _AdminPageState extends State<AdminPage>
   }
 
   // name editing removed; no local save function
-
-  void _revokeSession(String id) {
-    // Tenta revogar no backend, se possível
-    final Future<String?> userIdFuture = _user?.id != null
-        ? Future.value(_user!.id)
-        : _getStoredUserId();
-    userIdFuture.then((userId) async {
-      if (userId == null) {
-        setState(() {
-          _sessions.removeWhere((s) => s['id'] == id);
-        });
-        if (!mounted) return;
-        _showSnackbar(
-          'Sessão local encerrada',
-          behavior: SnackBarBehavior.floating,
-        );
-        return;
-      }
-
-      try {
-        await _userService.revokeSession(userId, id);
-        if (!mounted) return;
-        setState(() {
-          _sessions.removeWhere((s) => s['id'] == id);
-        });
-        _showSnackbar('Sessão encerrada', behavior: SnackBarBehavior.floating);
-      } catch (e) {
-        if (!mounted) return;
-        _showSnackbar('Erro ao encerrar sessão: $e');
-      }
-    });
-  }
 
   // PICKERS
   Future<void> _pickFromGallery() async {
@@ -570,7 +500,10 @@ class _AdminPageState extends State<AdminPage>
                   color: Colors.black87,
                 ),
               ),
-              // removed edit button per request
+              trailing: TextButton(
+                onPressed: _editName,
+                child: const Text('Editar'),
+              ),
             ),
 
             const Divider(height: 24),
@@ -670,9 +603,6 @@ class _AdminPageState extends State<AdminPage>
             ),
 
             const SizedBox(height: 24),
-
-            // Sessões ativas (simples)
-            _buildSessionsCard(),
           ],
         ),
       ),
@@ -788,53 +718,6 @@ class _AdminPageState extends State<AdminPage>
         );
       },
     );
-  }
-
-  Widget _buildSessionsCard() {
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        const Text(
-          'Sessões ativas',
-          style: TextStyle(fontWeight: FontWeight.bold),
-        ),
-        const SizedBox(height: 8),
-        Card(
-          color: Colors.grey.shade50,
-          child: Padding(
-            padding: const EdgeInsets.all(12.0),
-            child: Column(
-              children: _sessions.isEmpty
-                  ? [
-                      const SizedBox(height: 8),
-                      const Text('Nenhuma sessão ativa.'),
-                    ]
-                  : _sessions.map((s) {
-                      final last = s['lastSeen'] as DateTime;
-                      return ListTile(
-                        leading: const Icon(Icons.devices),
-                        title: Text(s['device']),
-                        subtitle: Text(
-                          '${s['ip']} • Último: ${_formatRelative(last)}',
-                        ),
-                        trailing: TextButton(
-                          onPressed: () => _revokeSession(s['id'] as String),
-                          child: const Text('Encerrar'),
-                        ),
-                      );
-                    }).toList(),
-            ),
-          ),
-        ),
-      ],
-    );
-  }
-
-  String _formatRelative(DateTime dt) {
-    final diff = DateTime.now().difference(dt);
-    if (diff.inMinutes < 60) return '${diff.inMinutes}m atrás';
-    if (diff.inHours < 24) return '${diff.inHours}h atrás';
-    return '${diff.inDays}d atrás';
   }
 
   // Human-friendly label for role values stored in DB
@@ -1191,6 +1074,27 @@ class _AdminPageState extends State<AdminPage>
     } catch (e) {
       if (!mounted) return;
       _showSnackbar('Erro ao atualizar telefone: $e');
+    }
+  }
+
+  Future<void> _editName() async {
+    final current = _user?.nome ?? '';
+    final value = await _showEditDialog('Nome', current);
+    if (value == null) return;
+    final id = _user?.id ?? await _getStoredUserId();
+    if (id == null) return;
+    try {
+      final updated = await _userService.update(id, nome: value);
+      if (!mounted) return;
+      setState(() {
+        _user = updated;
+        _nameController.text = updated.nome;
+      });
+      if (!mounted) return;
+      _showSnackbar('Nome atualizado');
+    } catch (e) {
+      if (!mounted) return;
+      _showSnackbar('Erro ao atualizar nome: $e');
     }
   }
 }

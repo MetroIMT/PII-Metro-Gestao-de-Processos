@@ -44,44 +44,13 @@ router.post("/login", async (req, res) => {
       }
     );
 
-    // Record a session document so the UI can show active sessions.
-    try {
-      const db = getDB();
-      const userIdStr = usuario._id.toString();
-      const ua = req.get("user-agent") || "Desconhecido";
-      const ip = req.headers["x-forwarded-for"] || req.ip || null;
-
-      const sessionDoc = {
-        userId: userIdStr,
-        device: ua,
-        ip: ip,
-        lastSeen: new Date(),
-        criadoEm: new Date(),
-      };
-
-      const { insertedId } = await db
-        .collection("sessions")
-        .insertOne(sessionDoc);
-
-      return res.json({
-        token,
-        role: usuario.role,
-        nome: usuario.nome,
-        id: userIdStr,
-        expiresIn: 8 * 60 * 60,
-        sessionId: insertedId ? String(insertedId) : null,
-      });
-    } catch (e) {
-      // If session save fails, still return token but log error.
-      console.error("Erro ao gravar sessão:", e);
-      return res.json({
-        token,
-        role: usuario.role,
-        nome: usuario.nome,
-        id: usuario._id.toString(),
-        expiresIn: 8 * 60 * 60,
-      });
-    }
+    return res.json({
+      token,
+      role: usuario.role,
+      nome: usuario.nome,
+      id: usuario._id.toString(),
+      expiresIn: 8 * 60 * 60,
+    });
   } catch (err) {
     console.error(err);
     return res.status(500).json({ error: "Erro interno ao autenticar." });

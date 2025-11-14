@@ -174,6 +174,7 @@ class _GerenciarUsuariosState extends State<GerenciarUsuarios>
     String? cpf,
     String? telefone,
     String? role,
+    String? senha,
   }) async {
     if (!mounted) return false;
 
@@ -186,6 +187,7 @@ class _GerenciarUsuariosState extends State<GerenciarUsuarios>
         cpf: cpf,
         telefone: telefone,
         role: role,
+        senha: senha,
       );
       await _loadMembers();
       if (mounted) {
