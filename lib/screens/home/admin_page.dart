@@ -333,18 +333,23 @@ class _AdminPageState extends State<AdminPage>
   // name editing removed; no local save function
 
   void _revokeSession(String id) {
-    // Tenta revogar no backend, se possível
-    final Future<String?> userIdFuture = _user?.id != null
+    final session = _sessions.firstWhere((s) => s['id'] == id, orElse: () => {});
+    if (session.isEmpty) return;
+
+    // Optimistically remove from UI
+    setState(() {
+      _sessions.removeWhere((s) => s['id'] == id);
+    });
+
+    final userIdFuture = _user?.id != null
         ? Future.value(_user!.id)
         : _getStoredUserId();
+
     userIdFuture.then((userId) async {
       if (userId == null) {
-        setState(() {
-          _sessions.removeWhere((s) => s['id'] == id);
-        });
-        if (!mounted) return;
+        // This should not happen if we have a session, but as a fallback...
         _showSnackbar(
-          'Sessão local encerrada',
+          'Sessão local encerrada (usuário não encontrado)',
           behavior: SnackBarBehavior.floating,
         );
         return;
@@ -352,14 +357,24 @@ class _AdminPageState extends State<AdminPage>
 
       try {
         await _userService.revokeSession(userId, id);
-        if (!mounted) return;
-        setState(() {
-          _sessions.removeWhere((s) => s['id'] == id);
-        });
         _showSnackbar('Sessão encerrada', behavior: SnackBarBehavior.floating);
+
+        // Additionally, check if it was the current session
+        final currentSessionId = await const FlutterSecureStorage().read(key: 'sessionId');
+        if (id == currentSessionId) {
+            // The user will be logged out on the next authenticated request.
+            // Or we could force a logout here.
+            // For now, just showing a message.
+            _showSnackbar('Você encerrou sua sessão atual. Você será desconectado.', behavior: SnackBarBehavior.floating, backgroundColor: Colors.orange);
+        }
+
       } catch (e) {
         if (!mounted) return;
-        _showSnackbar('Erro ao encerrar sessão: $e');
+        // If revoking failed, add it back to the list
+        setState(() {
+          _sessions.add(session);
+        });
+        _showSnackbar('Erro ao encerrar sessão: $e', backgroundColor: Colors.red);
       }
     });
   }
@@ -570,7 +585,10 @@ class _AdminPageState extends State<AdminPage>
                   color: Colors.black87,
                 ),
               ),
-              // removed edit button per request
+              trailing: TextButton(
+                onPressed: _editName,
+                child: const Text('Editar'),
+              ),
             ),
 
             const Divider(height: 24),
@@ -1191,6 +1209,27 @@ class _AdminPageState extends State<AdminPage>
     } catch (e) {
       if (!mounted) return;
       _showSnackbar('Erro ao atualizar telefone: $e');
+    }
+  }
+
+  Future<void> _editName() async {
+    final current = _user?.nome ?? '';
+    final value = await _showEditDialog('Nome', current);
+    if (value == null) return;
+    final id = _user?.id ?? await _getStoredUserId();
+    if (id == null) return;
+    try {
+      final updated = await _userService.update(id, nome: value);
+      if (!mounted) return;
+      setState(() {
+        _user = updated;
+        _nameController.text = updated.nome;
+      });
+      if (!mounted) return;
+      _showSnackbar('Nome atualizado');
+    } catch (e) {
+      if (!mounted) return;
+      _showSnackbar('Erro ao atualizar nome: $e');
     }
   }
 }
