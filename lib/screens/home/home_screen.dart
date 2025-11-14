@@ -630,21 +630,31 @@ class _HomeScreenState extends State<HomeScreen>
   Widget _buildHomeGrid() {
     return LayoutBuilder(
       builder: (context, constraints) {
-        final int crossAxisCount;
-        if (constraints.maxWidth < 650) {
-          crossAxisCount = 1; // celular: 1 card por linha
+        final double maxWidth = constraints.maxWidth;
+
+        // 🔹 1 coluna em celular, 2 colunas no resto (tablet/desktop)
+        final int crossAxisCount = maxWidth < 650 ? 1 : 2;
+
+        // mesmos paddings/spacings que você já usa
+        const double gridHorizontalPadding = 24.0;
+        const double crossAxisSpacing = 16.0;
+
+        // calcula largura aproximada de cada card
+        final double totalSpacing =
+            crossAxisSpacing * (crossAxisCount - 1) + gridHorizontalPadding;
+        final double cardWidth = (maxWidth - totalSpacing) / crossAxisCount;
+
+        // altura "ideal" pros cards
+        double desiredHeight;
+        if (crossAxisCount == 1) {
+          // celular: cards mais altinhos
+          desiredHeight = 430;
         } else {
-          crossAxisCount = 2; // tablet/desktop: sempre 2 cards por linha
+          // tablet / desktop: ajusta pra não ficar gigante
+          desiredHeight = maxWidth > 1000 ? 320 : 360;
         }
 
-        final double childAspectRatio;
-        if (crossAxisCount == 1) {
-          const double desiredCardHeight = 430;
-          childAspectRatio = constraints.maxWidth / desiredCardHeight;
-        } else {
-          childAspectRatio =
-              1.6; // para diminuir o tamanho vertical dos cards em telas maiores
-        }
+        final double childAspectRatio = cardWidth / desiredHeight;
 
         return GridView(
           shrinkWrap: true,
@@ -652,17 +662,20 @@ class _HomeScreenState extends State<HomeScreen>
           padding: const EdgeInsets.only(right: 24.0, bottom: 8.0),
           gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
             crossAxisCount: crossAxisCount,
-            crossAxisSpacing: 16,
+            crossAxisSpacing: crossAxisSpacing,
             mainAxisSpacing: 16,
             childAspectRatio: childAspectRatio,
           ),
           children: [
+            // Card de Estoque Atual
             _buildEstoqueCard(
               () => Navigator.push(
                 context,
                 MaterialPageRoute(builder: (_) => const ToolPage()),
               ),
             ),
+
+            // Card de Alertas
             _buildDashboardCard(
               'Alertas (estoque baixo / vencimento)',
               Icons.warning_amber,
@@ -677,6 +690,8 @@ class _HomeScreenState extends State<HomeScreen>
               alertCount: _dashboardAlerts.length,
               content: _buildAlertsCardContent(),
             ),
+
+            // Movimentações recentes
             _buildDashboardCard(
               'Movimentações recentes',
               Icons.swap_horiz,
@@ -689,6 +704,8 @@ class _HomeScreenState extends State<HomeScreen>
               },
               content: _buildRecentMovimentacoesContent(),
             ),
+
+            // Relatórios
             _buildDashboardCard(
               'Relatórios',
               Icons.article_outlined,
@@ -972,15 +989,6 @@ class _HomeScreenState extends State<HomeScreen>
                 ),
 
                 const SizedBox(height: 12),
-
-                // ---------- BOTÃO NO RODAPÉ ----------
-                Align(
-                  alignment: Alignment.bottomRight,
-                  child: CardActionButton(
-                    borderColor: metroBlue,
-                    onPressed: onTap,
-                  ),
-                ),
               ],
             ),
           ),
