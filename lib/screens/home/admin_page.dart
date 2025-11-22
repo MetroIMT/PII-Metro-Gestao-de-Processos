@@ -8,6 +8,7 @@ import '../../models/user.dart';
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import '../login/login_screen.dart';
+import 'package:flutter/services.dart';
 
 class AdminPage extends StatefulWidget {
   const AdminPage({super.key});
@@ -20,6 +21,11 @@ class AdminPage extends StatefulWidget {
 class _AdminPageState extends State<AdminPage>
     with SingleTickerProviderStateMixin {
   static const Color metroBlue = Color(0xFF001489);
+  static const List<Map<String, String>> _roleOptions = [
+    {'value': 'tecnico', 'label': 'Técnico'},
+    {'value': 'gestor', 'label': 'Gestor'},
+    {'value': 'admin', 'label': 'Administrador'},
+  ];
 
   final TextEditingController _nameController = TextEditingController(
     text: 'Breno Augusto Gandolf',
@@ -140,6 +146,8 @@ class _AdminPageState extends State<AdminPage>
         return AlertDialog(
           backgroundColor: Colors.white,
           surfaceTintColor: Colors.white,
+          shape: _dialogShape,
+          insetPadding: _dialogInsetPadding(context),
           title: const Text('Usar URL da imagem'),
           content: TextField(
             controller: controller,
@@ -150,10 +158,15 @@ class _AdminPageState extends State<AdminPage>
           actions: [
             TextButton(
               onPressed: () => Navigator.pop(context, false),
+              style: TextButton.styleFrom(foregroundColor: metroBlue),
               child: const Text('Cancelar'),
             ),
             ElevatedButton(
               onPressed: () => Navigator.pop(context, true),
+               style: ElevatedButton.styleFrom(
+                 backgroundColor: metroBlue,
+                 foregroundColor: Colors.white,
+               ),
               child: const Text('OK'),
             ),
           ],
@@ -503,6 +516,7 @@ class _AdminPageState extends State<AdminPage>
               ),
               trailing: TextButton(
                 onPressed: _editName,
+                style: TextButton.styleFrom(foregroundColor: metroBlue),
                 child: const Text('Editar'),
               ),
             ),
@@ -553,6 +567,7 @@ class _AdminPageState extends State<AdminPage>
               ),
               trailing: TextButton(
                 onPressed: _editCpf,
+                style: TextButton.styleFrom(foregroundColor: metroBlue),
                 child: const Text('Editar'),
               ),
             ),
@@ -576,6 +591,7 @@ class _AdminPageState extends State<AdminPage>
               ),
               trailing: TextButton(
                 onPressed: _editTelefone,
+                style: TextButton.styleFrom(foregroundColor: metroBlue),
                 child: const Text('Editar'),
               ),
             ),
@@ -599,6 +615,7 @@ class _AdminPageState extends State<AdminPage>
               ),
               trailing: TextButton(
                 onPressed: _editRole,
+                style: TextButton.styleFrom(foregroundColor: metroBlue),
                 child: const Text('Editar'),
               ),
             ),
@@ -662,6 +679,7 @@ class _AdminPageState extends State<AdminPage>
               children: [
                 TextButton(
                   onPressed: _showAvatarOptions,
+                  style: TextButton.styleFrom(foregroundColor: metroBlue),
                   child: const Text('Alterar foto'),
                 ),
                 if (_avatarFile != null ||
@@ -735,9 +753,75 @@ class _AdminPageState extends State<AdminPage>
     }
   }
 
+  RoundedRectangleBorder get _dialogShape =>
+      RoundedRectangleBorder(borderRadius: BorderRadius.circular(10));
+
+  EdgeInsets _dialogInsetPadding(BuildContext context) {
+    final width = MediaQuery.of(context).size.width;
+    if (width >= 900) {
+      final double horizontal = (width * 0.25).clamp(220.0, 380.0);
+      return EdgeInsets.symmetric(horizontal: horizontal, vertical: 80);
+    }
+    return const EdgeInsets.symmetric(horizontal: 24, vertical: 24);
+  }
+
+  Future<String?> _showRoleSelectionMenu(
+    BuildContext anchorContext,
+    String current,
+  ) async {
+    final renderBox = anchorContext.findRenderObject() as RenderBox?;
+    final overlayState = Overlay.of(anchorContext);
+    final overlayBox = overlayState?.context.findRenderObject() as RenderBox?;
+
+    if (renderBox == null || overlayBox == null) return null;
+
+    final target = renderBox.localToGlobal(Offset.zero);
+    final size = renderBox.size;
+    const double gap = 6;
+    final double left = target.dx;
+    final double top = target.dy + size.height + gap;
+    final double right = overlayBox.size.width - left - size.width;
+    final double bottom = overlayBox.size.height - top;
+
+    final selected = await showMenu<String>(
+      context: context,
+      position: RelativeRect.fromLTRB(left, top, right, bottom),
+      color: Colors.white,
+      elevation: 8,
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+      constraints: BoxConstraints.tightFor(width: size.width),
+      items: _roleOptions.map((option) {
+        final bool isSelected = option['value'] == current;
+        return PopupMenuItem<String>(
+          value: option['value'],
+          height: 44,
+          child: Row(
+            children: [
+              Text(
+                option['label']!,
+                style: TextStyle(
+                  fontWeight:
+                      isSelected ? FontWeight.w600 : FontWeight.normal,
+                  color: isSelected ? metroBlue : Colors.black87,
+                ),
+              ),
+              if (isSelected) ...[
+                const Spacer(),
+                Icon(Icons.check, color: metroBlue, size: 18),
+              ],
+            ],
+          ),
+        );
+      }).toList(),
+    );
+
+    return selected;
+  }
+
   Future<void> _editRole() async {
     final current = _user?.role ?? 'tecnico';
     String selected = current;
+    bool isRoleMenuOpen = false;
 
     final ok = await showDialog<bool?>(
       context: context,
@@ -745,31 +829,104 @@ class _AdminPageState extends State<AdminPage>
         return AlertDialog(
           backgroundColor: Colors.white,
           surfaceTintColor: Colors.white,
+          shape: _dialogShape,
+          insetPadding: _dialogInsetPadding(dialogContext),
           title: const Text('Alterar função'),
           content: StatefulBuilder(
             builder: (context, setStateDialog) {
-              return DropdownButton<String>(
-                value: selected,
-                items: const [
-                  DropdownMenuItem(value: 'tecnico', child: Text('Técnico')),
-                  DropdownMenuItem(value: 'gestor', child: Text('Gestor')),
-                  DropdownMenuItem(
-                    value: 'admin',
-                    child: Text('Administrador'),
+              return Column(
+                mainAxisSize: MainAxisSize.min,
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  const Text(
+                    'Selecione a função',
+                    style: TextStyle(
+                      fontSize: 12,
+                      fontWeight: FontWeight.w600,
+                      color: Colors.black54,
+                    ),
+                  ),
+                  const SizedBox(height: 6),
+                  Builder(
+                    builder: (fieldContext) {
+                      return Material(
+                        color: Colors.transparent,
+                        child: InkWell(
+                          borderRadius: BorderRadius.circular(12),
+                          onTap: () async {
+                            setStateDialog(() => isRoleMenuOpen = true);
+                            final result = await _showRoleSelectionMenu(
+                              fieldContext,
+                              selected,
+                            );
+                            if (result != null) {
+                              setStateDialog(() => selected = result);
+                            }
+                            setStateDialog(() => isRoleMenuOpen = false);
+                          },
+                          child: AnimatedContainer(
+                            duration: const Duration(milliseconds: 150),
+                            padding: const EdgeInsets.symmetric(
+                              horizontal: 12,
+                              vertical: 12,
+                            ),
+                            decoration: BoxDecoration(
+                              color: Colors.white,
+                              borderRadius: BorderRadius.circular(12),
+                              border: Border.all(
+                                color: isRoleMenuOpen
+                                    ? metroBlue
+                                    : Colors.grey.shade300,
+                                width: 1.2,
+                              ),
+                              boxShadow: isRoleMenuOpen
+                                  ? [
+                                      BoxShadow(
+                                        color: metroBlue.withOpacity(0.15),
+                                        blurRadius: 14,
+                                        offset: const Offset(0, 6),
+                                      ),
+                                    ]
+                                  : null,
+                            ),
+                            child: Row(
+                              children: [
+                                Text(
+                                  _roleLabel(selected),
+                                  style: const TextStyle(
+                                    fontWeight: FontWeight.w600,
+                                  ),
+                                ),
+                                const Spacer(),
+                                Icon(
+                                  isRoleMenuOpen
+                                      ? Icons.keyboard_arrow_up
+                                      : Icons.keyboard_arrow_down,
+                                  color: Colors.black54,
+                                ),
+                              ],
+                            ),
+                          ),
+                        ),
+                      );
+                    },
                   ),
                 ],
-                onChanged: (v) =>
-                    setStateDialog(() => selected = v ?? selected),
               );
             },
           ),
           actions: [
             TextButton(
               onPressed: () => Navigator.pop(dialogContext, false),
+              style: TextButton.styleFrom(foregroundColor: metroBlue),
               child: const Text('Cancelar'),
             ),
             ElevatedButton(
               onPressed: () => Navigator.pop(dialogContext, true),
+              style: ElevatedButton.styleFrom(
+                backgroundColor: metroBlue,
+                foregroundColor: Colors.white,
+              ),
               child: const Text('Salvar'),
             ),
           ],
@@ -880,6 +1037,8 @@ class _AdminPageState extends State<AdminPage>
             return AlertDialog(
               backgroundColor: Colors.white,
               surfaceTintColor: Colors.white,
+              shape: _dialogShape,
+              insetPadding: _dialogInsetPadding(dialogContext),
               title: const Text('Alterar senha'),
               content: Column(
                 mainAxisSize: MainAxisSize.min,
@@ -996,11 +1155,15 @@ class _AdminPageState extends State<AdminPage>
                   onPressed: isProcessing
                       ? null
                       : () => Navigator.of(dialogContext).pop(),
+                  style: TextButton.styleFrom(foregroundColor: metroBlue),
                   child: const Text('Cancelar'),
                 ),
                 ElevatedButton(
                   onPressed: isProcessing ? null : attemptChange,
-                  style: ElevatedButton.styleFrom(backgroundColor: metroBlue),
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: metroBlue,
+                    foregroundColor: Colors.white,
+                  ),
                   child: isProcessing
                       ? const SizedBox(
                           width: 20,
@@ -1017,27 +1180,43 @@ class _AdminPageState extends State<AdminPage>
     );
   }
 
-  Future<String?> _showEditDialog(String title, String initial) async {
+  Future<String?> _showEditDialog(
+    String title,
+    String initial, {
+    bool digitsOnly = false,
+  }) async {
     final controller = TextEditingController(text: initial);
+    final List<TextInputFormatter>? formatters =
+        digitsOnly ? [FilteringTextInputFormatter.digitsOnly] : null;
+
     final ok = await showDialog<bool?>(
       context: context,
       builder: (context) {
         return AlertDialog(
           backgroundColor: Colors.white,
           surfaceTintColor: Colors.white,
+          shape: _dialogShape,
+          insetPadding: _dialogInsetPadding(context),
           title: Text('Editar $title'),
           content: TextField(
             controller: controller,
+            keyboardType: digitsOnly ? TextInputType.number : TextInputType.text,
+            inputFormatters: formatters,
             decoration: InputDecoration(hintText: title),
             autofocus: true,
           ),
           actions: [
             TextButton(
               onPressed: () => Navigator.pop(context, false),
+              style: TextButton.styleFrom(foregroundColor: metroBlue),
               child: const Text('Cancelar'),
             ),
             ElevatedButton(
               onPressed: () => Navigator.pop(context, true),
+              style: ElevatedButton.styleFrom(
+                backgroundColor: metroBlue,
+                foregroundColor: Colors.white,
+              ),
               child: const Text('Salvar'),
             ),
           ],
@@ -1050,7 +1229,7 @@ class _AdminPageState extends State<AdminPage>
 
   Future<void> _editCpf() async {
     final current = _user?.cpf ?? '';
-    final value = await _showEditDialog('CPF', current);
+    final value = await _showEditDialog('CPF', current, digitsOnly: true);
     if (value == null) return;
     final id = _user?.id ?? await _getStoredUserId();
     if (id == null) return;
@@ -1068,7 +1247,7 @@ class _AdminPageState extends State<AdminPage>
 
   Future<void> _editTelefone() async {
     final current = _user?.telefone ?? '';
-    final value = await _showEditDialog('Telefone', current);
+    final value = await _showEditDialog('Telefone', current, digitsOnly: true);
     if (value == null) return;
     final id = _user?.id ?? await _getStoredUserId();
     if (id == null) return;

@@ -480,6 +480,8 @@ class _HomeScreenState extends State<HomeScreen>
           ? AppBar(
               elevation: 0,
               backgroundColor: Colors.white,
+              surfaceTintColor: Colors.white,
+              scrolledUnderElevation: 0,
               leading: IconButton(
                 icon: AnimatedIcon(
                   icon: AnimatedIcons.menu_close,
@@ -520,23 +522,25 @@ class _HomeScreenState extends State<HomeScreen>
             ),
 
           // Conteúdo principal
-          AnimatedPadding(
-            duration: const Duration(milliseconds: 300),
-            padding: EdgeInsets.only(
-              left: !isMobile ? (_isRailExtended ? 180 : 70) : 0,
-            ),
-            child: SingleChildScrollView(
-              padding: contentPadding,
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  if (!isMobile)
-                    Padding(
-                      padding: const EdgeInsets.only(bottom: 24.0),
-                      child: Row(
-                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                        children: [
-                          Row(
+          Positioned.fill(
+            child: AnimatedPadding(
+              duration: const Duration(milliseconds: 300),
+              padding: EdgeInsets.only(
+                left: !isMobile ? (_isRailExtended ? 180 : 70) : 0,
+              ),
+              child: ScrollConfiguration(
+                behavior: ScrollConfiguration.of(context).copyWith(
+                  scrollbars: false,
+                ),
+                child: SingleChildScrollView(
+                  padding: contentPadding,
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      if (!isMobile)
+                        Padding(
+                          padding: const EdgeInsets.only(bottom: 24.0),
+                          child: Row(
                             children: [
                               IconButton(
                                 icon: Icon(
@@ -558,20 +562,12 @@ class _HomeScreenState extends State<HomeScreen>
                               ),
                             ],
                           ),
-                          Hero(
-                            tag: 'logo',
-                            child: Image.asset(
-                              'assets/LogoMetro.png',
-                              height: 40,
-                            ),
-                          ),
-                        ],
-                      ),
-                    ),
-                  _buildWelcomeHeader(isMobile),
-                  // --- MUDANÇA: AÇÕES RÁPIDAS REMOVIDAS ---
-                  _buildHomeGrid(),
-                ],
+                        ),
+                      _buildWelcomeHeader(isMobile),
+                      _buildHomeGrid(),
+                    ],
+                  ),
+                ),
               ),
             ),
           ),
@@ -1408,16 +1404,22 @@ class _HomeScreenState extends State<HomeScreen>
                     ),
                   ),
                 )
-              : ListView.builder(
-                  padding: EdgeInsets.zero,
-                  itemCount: top3Alerts.length,
-                  // Permite rolagem para ver conteúdo que não cabe, corrigindo o clipping
-                  itemBuilder: (context, i) {
-                    return Padding(
-                      padding: const EdgeInsets.symmetric(vertical: 4.0),
-                      child: _buildAlertRow(top3Alerts[i], context),
-                    );
-                  },
+              : ScrollConfiguration(
+                  behavior: ScrollConfiguration.of(context).copyWith(
+                    scrollbars: false,
+                  ),
+                  child: ListView.builder(
+                    padding: EdgeInsets.zero,
+                    primary: false,
+                    physics: const BouncingScrollPhysics(),
+                    itemCount: top3Alerts.length,
+                    itemBuilder: (context, i) {
+                      return Padding(
+                        padding: const EdgeInsets.symmetric(vertical: 4.0),
+                        child: _buildAlertRow(top3Alerts[i], context),
+                      );
+                    },
+                  ),
                 ),
         ),
       ],
@@ -1560,20 +1562,26 @@ class _HomeScreenState extends State<HomeScreen>
         const Divider(height: 16),
         // 2. Lista de prévia (Usa ListView para rolar se necessário)
         Expanded(
-          child: ListView.builder(
-            padding: EdgeInsets.zero,
-            itemCount: availableReports.length,
-            // Permite rolagem para ver conteúdo que não cabe, corrigindo o clipping
-            itemBuilder: (context, index) {
-              final report = availableReports[index];
-              return _buildActionableReportRow(
-                context,
-                report['title'],
-                report['subtitle'],
-                report['icon'],
-                reportColor,
-              );
-            },
+          child: ScrollConfiguration(
+            behavior: ScrollConfiguration.of(context).copyWith(
+              scrollbars: false,
+            ),
+            child: ListView.builder(
+              padding: EdgeInsets.zero,
+              primary: false,
+              physics: const BouncingScrollPhysics(),
+              itemCount: availableReports.length,
+              itemBuilder: (context, index) {
+                final report = availableReports[index];
+                return _buildActionableReportRow(
+                  context,
+                  report['title'],
+                  report['subtitle'],
+                  report['icon'],
+                  reportColor,
+                );
+              },
+            ),
           ),
         ),
       ],
