@@ -26,6 +26,7 @@ class _MovimentacoesPageState extends State<MovimentacoesPage>
   List<Movimentacao> _filteredMovimentacoes = [];
   String _searchTerm = '';
   final TextEditingController _searchController = TextEditingController();
+  final FocusNode _searchFocusNode = FocusNode();
   bool _isLoading = true;
   String? _error;
 
@@ -47,6 +48,10 @@ class _MovimentacoesPageState extends State<MovimentacoesPage>
         _searchTerm = _searchController.text;
         _filterMovimentacoes();
       });
+    });
+
+    _searchFocusNode.addListener(() {
+      setState(() {});
     });
   }
 
@@ -70,6 +75,7 @@ class _MovimentacoesPageState extends State<MovimentacoesPage>
   void dispose() {
     _animationController.dispose();
     _searchController.dispose();
+    _searchFocusNode.dispose();
     _movimentacaoService.dispose();
     super.dispose();
   }
@@ -119,6 +125,8 @@ class _MovimentacoesPageState extends State<MovimentacoesPage>
           ? AppBar(
               elevation: 0,
               backgroundColor: Colors.white,
+              surfaceTintColor: Colors.white,
+              scrolledUnderElevation: 0,
               leading: IconButton(
                 icon: AnimatedIcon(
                   icon: AnimatedIcons.menu_close,
@@ -191,7 +199,6 @@ class _MovimentacoesPageState extends State<MovimentacoesPage>
                             ),
                           ],
                         ),
-                        Image.asset('assets/LogoMetro.png', height: 40),
                       ],
                     ),
                   ),
@@ -202,16 +209,6 @@ class _MovimentacoesPageState extends State<MovimentacoesPage>
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
                         if (!isMobile) const SizedBox(height: 8),
-                        if (isMobile)
-                          Text(
-                            'Histórico de Movimentações',
-                            style: Theme.of(context).textTheme.headlineMedium
-                                ?.copyWith(
-                                  fontWeight: FontWeight.bold,
-                                  color: metroBlue,
-                                ),
-                          ),
-                        if (isMobile) const SizedBox(height: 8),
                         const Text(
                           'Visualize todas as entradas e saídas de materiais do estoque.',
                           style: TextStyle(fontSize: 16, color: Colors.black54),
@@ -242,9 +239,11 @@ class _MovimentacoesPageState extends State<MovimentacoesPage>
           children: [
             TextField(
               controller: _searchController,
+              focusNode: _searchFocusNode,
               decoration: InputDecoration(
-                labelText: 'Buscar movimentação...',
-                hintText: 'Digite o nome, código, tipo, usuário ou local',
+                hintText: _searchFocusNode.hasFocus
+                    ? 'Digite o nome, código, tipo, usuário ou local'
+                    : 'Buscar movimentação...',
                 prefixIcon: const Icon(Icons.search),
                 border: OutlineInputBorder(
                   borderRadius: BorderRadius.circular(12),

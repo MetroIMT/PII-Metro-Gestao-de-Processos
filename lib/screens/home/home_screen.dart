@@ -480,6 +480,8 @@ class _HomeScreenState extends State<HomeScreen>
           ? AppBar(
               elevation: 0,
               backgroundColor: Colors.white,
+              surfaceTintColor: Colors.white,
+              scrolledUnderElevation: 0,
               leading: IconButton(
                 icon: AnimatedIcon(
                   icon: AnimatedIcons.menu_close,
@@ -520,58 +522,53 @@ class _HomeScreenState extends State<HomeScreen>
             ),
 
           // Conteúdo principal
-          AnimatedPadding(
-            duration: const Duration(milliseconds: 300),
-            padding: EdgeInsets.only(
-              left: !isMobile ? (_isRailExtended ? 180 : 70) : 0,
-            ),
-            child: SingleChildScrollView(
-              padding: contentPadding,
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  if (!isMobile)
-                    Padding(
-                      padding: const EdgeInsets.only(bottom: 24.0),
-                      child: Row(
-                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                        children: [
-                          Row(
-                            children: [
-                              IconButton(
-                                icon: Icon(
-                                  _isRailExtended
-                                      ? Icons.menu_open
-                                      : Icons.menu,
-                                  color: metroBlue,
+          Positioned.fill(
+            child: AnimatedPadding(
+              duration: const Duration(milliseconds: 300),
+              padding: EdgeInsets.only(
+                left: !isMobile ? (_isRailExtended ? 180 : 70) : 0,
+              ),
+              child: SingleChildScrollView(
+                padding: contentPadding,
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    if (!isMobile)
+                      Padding(
+                        padding: const EdgeInsets.only(bottom: 24.0),
+                        child: Row(
+                          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                          children: [
+                            Row(
+                              children: [
+                                IconButton(
+                                  icon: Icon(
+                                    _isRailExtended
+                                        ? Icons.menu_open
+                                        : Icons.menu,
+                                    color: metroBlue,
+                                  ),
+                                  onPressed: _toggleRail,
                                 ),
-                                onPressed: _toggleRail,
-                              ),
-                              const SizedBox(width: 12),
-                              Text(
-                                'Home',
-                                style: TextStyle(
-                                  fontSize: 24,
-                                  fontWeight: FontWeight.bold,
-                                  color: metroBlue,
+                                const SizedBox(width: 12),
+                                Text(
+                                  'Home',
+                                  style: TextStyle(
+                                    fontSize: 24,
+                                    fontWeight: FontWeight.bold,
+                                    color: metroBlue,
+                                  ),
                                 ),
-                              ),
-                            ],
-                          ),
-                          Hero(
-                            tag: 'logo',
-                            child: Image.asset(
-                              'assets/LogoMetro.png',
-                              height: 40,
+                              ],
                             ),
-                          ),
-                        ],
+                          ],
+                        ),
                       ),
-                    ),
-                  _buildWelcomeHeader(isMobile),
-                  // --- MUDANÇA: AÇÕES RÁPIDAS REMOVIDAS ---
-                  _buildHomeGrid(),
-                ],
+                    _buildWelcomeHeader(isMobile),
+                    // --- MUDANÇA: AÇÕES RÁPIDAS REMOVIDAS ---
+                    _buildHomeGrid(),
+                  ],
+                ),
               ),
             ),
           ),

@@ -138,6 +138,8 @@ class _AdminPageState extends State<AdminPage>
       context: context,
       builder: (context) {
         return AlertDialog(
+          backgroundColor: Colors.white,
+          surfaceTintColor: Colors.white,
           title: const Text('Usar URL da imagem'),
           content: TextField(
             controller: controller,
@@ -451,7 +453,6 @@ class _AdminPageState extends State<AdminPage>
               ),
             ],
           ),
-          Image.asset('assets/LogoMetro.png', height: 40),
         ],
       ),
     );
@@ -742,6 +743,8 @@ class _AdminPageState extends State<AdminPage>
       context: context,
       builder: (dialogContext) {
         return AlertDialog(
+          backgroundColor: Colors.white,
+          surfaceTintColor: Colors.white,
           title: const Text('Alterar função'),
           content: StatefulBuilder(
             builder: (context, setStateDialog) {
@@ -875,6 +878,8 @@ class _AdminPageState extends State<AdminPage>
             final strength = _passwordStrength(_newPasswordController.text);
 
             return AlertDialog(
+              backgroundColor: Colors.white,
+              surfaceTintColor: Colors.white,
               title: const Text('Alterar senha'),
               content: Column(
                 mainAxisSize: MainAxisSize.min,
@@ -1018,6 +1023,8 @@ class _AdminPageState extends State<AdminPage>
       context: context,
       builder: (context) {
         return AlertDialog(
+          backgroundColor: Colors.white,
+          surfaceTintColor: Colors.white,
           title: Text('Editar $title'),
           content: TextField(
             controller: controller,

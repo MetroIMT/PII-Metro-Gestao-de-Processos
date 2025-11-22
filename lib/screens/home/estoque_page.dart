@@ -849,6 +849,7 @@ class _EstoquePageState extends State<EstoquePage>
   @override
   Widget build(BuildContext context) {
     final metroBlue = const Color(0xFF001489);
+    final bool isMobileScreen = MediaQuery.of(context).size.width < 600;
 
     // Original body (extracted so we can reuse it with or without sidebar)
     Widget bodyContent = Padding(
@@ -883,7 +884,7 @@ class _EstoquePageState extends State<EstoquePage>
                 ),
                 const SizedBox(width: 8),
                 IconButton(
-                  icon: const Icon(Icons.filter_list),
+                  icon: Icon(Icons.filter_list, color: metroBlue),
                   onPressed: () {
                     // Implementar filtragem avançada
                   },
@@ -895,75 +896,104 @@ class _EstoquePageState extends State<EstoquePage>
           // Informações de contagem e estatísticas
           Padding(
             padding: const EdgeInsets.only(bottom: 16.0),
-            child: Row(
-              mainAxisAlignment: MainAxisAlignment.spaceBetween,
-              children: [
-                Text(
-                  'Itens no estoque: ${_filteredMateriais.length}',
-                  style: TextStyle(
-                    fontSize: 16,
-                    fontWeight: FontWeight.w500,
-                    color: Colors.grey.shade700,
-                  ),
-                ),
-                Row(
-                  children: [
-                    Container(
-                      padding: const EdgeInsets.symmetric(
-                        horizontal: 12,
-                        vertical: 6,
+            child: LayoutBuilder(
+              builder: (context, constraints) {
+                final bool isCompact = constraints.maxWidth < 500;
+
+                Widget availabilityChip({
+                  required MaterialColor baseColor,
+                  required IconData icon,
+                  required String label,
+                }) {
+                  return Container(
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 12,
+                      vertical: 6,
+                    ),
+                    decoration: BoxDecoration(
+                      color: baseColor.withAlpha((0.1 * 255).round()),
+                      borderRadius: BorderRadius.circular(20),
+                      border: Border.all(color: baseColor, width: 1),
+                    ),
+                    child: Row(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        Icon(icon, color: baseColor, size: 16),
+                        const SizedBox(width: 4),
+                        Text(
+                          label,
+                          style: TextStyle(
+                            color: baseColor.shade700,
+                            fontWeight: FontWeight.w500,
+                          ),
+                        ),
+                      ],
+                    ),
+                  );
+                }
+
+                final availableChip = availabilityChip(
+                  baseColor: Colors.green,
+                  icon: Icons.check_circle,
+                  label:
+                      'Disponíveis: ${_materiais.where((m) => m.quantidade > 0).length}',
+                );
+                final missingChip = availabilityChip(
+                  baseColor: Colors.red,
+                  icon: Icons.warning,
+                  label:
+                      'Em falta: ${_materiais.where((m) => m.quantidade <= 0).length}',
+                );
+
+                if (isCompact) {
+                  return Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        'Itens no estoque: ${_filteredMateriais.length}',
+                        style: TextStyle(
+                          fontSize: 16,
+                          fontWeight: FontWeight.w500,
+                          color: Colors.grey.shade700,
+                        ),
                       ),
-                      decoration: BoxDecoration(
-                        color: Colors.green.withAlpha((0.1 * 255).round()),
-                        borderRadius: BorderRadius.circular(20),
-                        border: Border.all(color: Colors.green, width: 1),
-                      ),
-                      child: Row(
+                      const SizedBox(height: 12),
+                      Wrap(
+                        spacing: 12,
+                        runSpacing: 8,
                         children: [
-                          Icon(
-                            Icons.check_circle,
-                            color: Colors.green,
-                            size: 16,
-                          ),
-                          SizedBox(width: 4),
-                          Text(
-                            'Disponíveis: ${_materiais.where((m) => m.quantidade > 0).length}',
-                            style: TextStyle(
-                              color: Colors.green.shade700,
-                              fontWeight: FontWeight.w500,
-                            ),
-                          ),
+                          availableChip,
+                          missingChip,
                         ],
+                      ),
+                    ],
+                  );
+                }
+
+                return Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  children: [
+                    Expanded(
+                      child: Text(
+                        'Itens no estoque: ${_filteredMateriais.length}',
+                        style: TextStyle(
+                          fontSize: 16,
+                          fontWeight: FontWeight.w500,
+                          color: Colors.grey.shade700,
+                        ),
+                        overflow: TextOverflow.ellipsis,
                       ),
                     ),
-                    SizedBox(width: 12),
-                    Container(
-                      padding: const EdgeInsets.symmetric(
-                        horizontal: 12,
-                        vertical: 6,
-                      ),
-                      decoration: BoxDecoration(
-                        color: Colors.red.withAlpha((0.1 * 255).round()),
-                        borderRadius: BorderRadius.circular(20),
-                        border: Border.all(color: Colors.red, width: 1),
-                      ),
-                      child: Row(
-                        children: [
-                          Icon(Icons.warning, color: Colors.red, size: 16),
-                          SizedBox(width: 4),
-                          Text(
-                            'Em falta: ${_materiais.where((m) => m.quantidade <= 0).length}',
-                            style: TextStyle(
-                              color: Colors.red.shade700,
-                              fontWeight: FontWeight.w500,
-                            ),
-                          ),
-                        ],
-                      ),
+                    Row(
+                      children: [
+                        availableChip,
+                        const SizedBox(width: 12),
+                        missingChip,
+                      ],
                     ),
                   ],
-                ),
-              ],
+                );
+              },
             ),
           ),
 
@@ -991,10 +1021,27 @@ class _EstoquePageState extends State<EstoquePage>
                         padding: const EdgeInsets.only(bottom: 12),
                         child: Card(
                           elevation: 2,
+                          color: Colors.white,
                           shape: RoundedRectangleBorder(
                             borderRadius: BorderRadius.circular(12),
                           ),
                           child: ExpansionTile(
+                            shape: RoundedRectangleBorder(
+                              borderRadius: BorderRadius.circular(12),
+                            ),
+                            collapsedShape: RoundedRectangleBorder(
+                              borderRadius: BorderRadius.circular(12),
+                            ),
+                            collapsedBackgroundColor: Colors.white,
+                            backgroundColor: Colors.white,
+                            iconColor: metroBlue,
+                            collapsedIconColor: metroBlue,
+                            textColor: Colors.black87,
+                            collapsedTextColor: Colors.black87,
+                            tilePadding: const EdgeInsets.symmetric(
+                              horizontal: 16,
+                              vertical: 8,
+                            ),
                             title: Row(
                               children: [
                                 // Ícone baseado na quantidade
@@ -1079,7 +1126,6 @@ class _EstoquePageState extends State<EstoquePage>
                                 ),
                                 child: Column(
                                   children: [
-                                    const Divider(),
                                     const SizedBox(height: 8),
                                     _buildInfoRow(
                                       'Quantidade:',
@@ -1089,18 +1135,16 @@ class _EstoquePageState extends State<EstoquePage>
                                     _buildInfoRow(
                                       'Local:',
                                       localLabel,
-                                    ), // MUDANÇA
+                                    ),
                                     const SizedBox(height: 8),
                                     _buildInfoRow(
                                       'Vencimento:',
                                       _formatDate(material.vencimento),
                                     ),
                                     const SizedBox(height: 12),
-                                    // --- MUDANÇA: ADICIONADO BOTÃO DE EXCLUIR E EDITAR (MOBILE) ---
                                     Row(
                                       mainAxisAlignment: MainAxisAlignment.end,
                                       children: [
-                                        // Botão Excluir
                                         TextButton.icon(
                                           icon: const Icon(
                                             Icons.delete,
@@ -1116,7 +1160,6 @@ class _EstoquePageState extends State<EstoquePage>
                                               ),
                                         ),
                                         const SizedBox(width: 8),
-                                        // Botão Editar
                                         TextButton.icon(
                                           icon: const Icon(
                                             Icons.edit,
@@ -1127,7 +1170,6 @@ class _EstoquePageState extends State<EstoquePage>
                                               _showEditMaterialDialog(material),
                                         ),
                                         const SizedBox(width: 8),
-                                        // Botão Movimentar (Primário)
                                         ElevatedButton.icon(
                                           icon: const Icon(
                                             Icons.swap_vert,
@@ -1135,9 +1177,7 @@ class _EstoquePageState extends State<EstoquePage>
                                           ),
                                           label: const Text('Movimentar'),
                                           style: ElevatedButton.styleFrom(
-                                            backgroundColor: const Color(
-                                              0xFF253250,
-                                            ),
+                                            backgroundColor: metroBlue,
                                             foregroundColor: Colors.white,
                                           ),
                                           onPressed: () {
@@ -1149,7 +1189,6 @@ class _EstoquePageState extends State<EstoquePage>
                                         ),
                                       ],
                                     ),
-                                    // --- FIM DA MUDANÇA ---
                                   ],
                                 ),
                               ),
@@ -1402,7 +1441,7 @@ class _EstoquePageState extends State<EstoquePage>
                                                     Icons.edit,
                                                     size: 20,
                                                   ),
-                                                  color: Colors.blue,
+                                                  color: metroBlue,
                                                   tooltip: "Editar",
                                                   onPressed: () {
                                                     _showEditMaterialDialog(
@@ -1415,9 +1454,7 @@ class _EstoquePageState extends State<EstoquePage>
                                                     Icons.swap_vert,
                                                     size: 20,
                                                   ),
-                                                  color: const Color(
-                                                    0xFF253250,
-                                                  ),
+                                                  color: metroBlue,
                                                   tooltip: "Movimentar",
                                                   onPressed: () {
                                                     _showMovimentarDialog(
@@ -1513,7 +1550,7 @@ class _EstoquePageState extends State<EstoquePage>
     }
 
     // Otherwise, build a layout that includes the Sidebar (responsive)
-    final isMobile = MediaQuery.of(context).size.width < 600;
+    final isMobile = isMobileScreen;
 
     return Scaffold(
       key: _scaffoldKey,
@@ -1522,6 +1559,8 @@ class _EstoquePageState extends State<EstoquePage>
           ? AppBar(
               elevation: 0,
               backgroundColor: Colors.white,
+              surfaceTintColor: Colors.white,
+              scrolledUnderElevation: 0,
               leading: widget.showBackButton
                   ? IconButton(
                       icon: Icon(Icons.arrow_back, color: metroBlue),
@@ -1535,22 +1574,12 @@ class _EstoquePageState extends State<EstoquePage>
                       ),
                       onPressed: () => _scaffoldKey.currentState?.openDrawer(),
                     ),
-              title: Row(
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  if (widget.showBackButton && isMobile)
-                    IconButton(
-                      icon: Icon(Icons.menu, color: metroBlue),
-                      onPressed: () => _scaffoldKey.currentState?.openDrawer(),
-                    ),
-                  Text(
-                    widget.title,
-                    style: TextStyle(
-                      fontWeight: FontWeight.bold,
-                      color: metroBlue,
-                    ),
-                  ),
-                ],
+              title: Text(
+                widget.title,
+                style: TextStyle(
+                  fontWeight: FontWeight.bold,
+                  color: metroBlue,
+                ),
               ),
               centerTitle: true,
               actions: [
@@ -1625,7 +1654,6 @@ class _EstoquePageState extends State<EstoquePage>
                             ),
                           ],
                         ),
-                        Image.asset('assets/LogoMetro.png', height: 40),
                       ],
                     ),
                   ),

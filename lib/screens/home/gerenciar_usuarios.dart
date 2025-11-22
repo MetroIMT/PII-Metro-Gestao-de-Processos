@@ -777,7 +777,6 @@ class _GerenciarUsuariosState extends State<GerenciarUsuarios>
                             ),
                           ],
                         ),
-                        Image.asset('assets/LogoMetro.png', height: 40),
                       ],
                     ),
                   ),

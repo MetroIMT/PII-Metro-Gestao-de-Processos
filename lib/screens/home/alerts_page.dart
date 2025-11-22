@@ -1063,6 +1063,8 @@ class _AlertsPageState extends State<AlertsPage>
       appBar: isMobile
           ? AppBar(
               backgroundColor: Colors.white,
+              surfaceTintColor: Colors.white,
+              scrolledUnderElevation: 0,
               elevation: 0,
               leading: IconButton(
                 icon: AnimatedIcon(
@@ -1139,7 +1141,6 @@ class _AlertsPageState extends State<AlertsPage>
                             ),
                           ],
                         ),
-                        Image.asset('assets/LogoMetro.png', height: 40),
                       ],
                     ),
                   ),
@@ -1176,6 +1177,7 @@ class _AlertsPageState extends State<AlertsPage>
   // Novo helper: card otimizado para mobile (empilhado, textos quebram)
   Widget _buildAlertCardMobile(AlertItem a, int index) {
     return Card(
+      color: Colors.white,
       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
       elevation: 2,
       child: InkWell(
@@ -1270,7 +1272,8 @@ class _AlertsPageState extends State<AlertsPage>
                       vertical: 6,
                     ),
                     decoration: BoxDecoration(
-                      color: Colors.grey.shade100,
+                      color: Colors.white,
+                      border: Border.all(color: Colors.grey.shade200),
                       borderRadius: BorderRadius.circular(8),
                     ),
                     child: Text(
@@ -1284,7 +1287,8 @@ class _AlertsPageState extends State<AlertsPage>
                       vertical: 6,
                     ),
                     decoration: BoxDecoration(
-                      color: Colors.grey.shade100,
+                      color: Colors.white,
+                      border: Border.all(color: Colors.grey.shade200),
                       borderRadius: BorderRadius.circular(8),
                     ),
                     child: Text(

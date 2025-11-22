@@ -303,6 +303,7 @@ class _RelatoriosPageState extends State<RelatoriosPage>
       await showModalBottomSheet(
         context: context,
         isScrollControlled: true,
+        backgroundColor: Colors.white,
         shape: const RoundedRectangleBorder(
           borderRadius: BorderRadius.vertical(top: Radius.circular(16)),
         ),
@@ -322,6 +323,8 @@ class _RelatoriosPageState extends State<RelatoriosPage>
       await showDialog(
         context: context,
         builder: (context) => Dialog(
+          backgroundColor: Colors.white,
+          surfaceTintColor: Colors.white,
           insetPadding: const EdgeInsets.symmetric(
             horizontal: 120.0,
             vertical: 40.0,
@@ -354,6 +357,8 @@ class _RelatoriosPageState extends State<RelatoriosPage>
           ? AppBar(
               elevation: 0,
               backgroundColor: Colors.white,
+              surfaceTintColor: Colors.white,
+              scrolledUnderElevation: 0,
               leading: IconButton(
                 icon: AnimatedIcon(
                   icon: AnimatedIcons.menu_close,
@@ -425,7 +430,6 @@ class _RelatoriosPageState extends State<RelatoriosPage>
                             ),
                           ],
                         ),
-                        Image.asset('assets/LogoMetro.png', height: 40),
                       ],
                     ),
                   ),
@@ -448,6 +452,15 @@ class _RelatoriosPageState extends State<RelatoriosPage>
   // ---------- FILTROS ----------
 
   Widget _buildFilterCardContents({bool closeButton = false}) {
+    final ButtonStyle applyButtonStyle = ElevatedButton.styleFrom(
+      backgroundColor: metroBlue,
+      foregroundColor: Colors.white,
+      shape: RoundedRectangleBorder(
+        borderRadius: BorderRadius.circular(10),
+      ),
+      padding: const EdgeInsets.symmetric(vertical: 14),
+    );
+
     return Column(
       mainAxisSize: MainAxisSize.min,
       crossAxisAlignment: CrossAxisAlignment.start,
@@ -489,6 +502,19 @@ class _RelatoriosPageState extends State<RelatoriosPage>
               initialDate: _selectedStartDate ?? DateTime.now(),
               firstDate: DateTime(2000),
               lastDate: _selectedEndDate ?? DateTime(2100),
+              builder: (context, child) {
+                return Theme(
+                  data: Theme.of(context).copyWith(
+                    colorScheme: ColorScheme.light(
+                      primary: metroBlue,
+                      onPrimary: Colors.white,
+                      onSurface: Colors.black87,
+                    ),
+                    dialogBackgroundColor: Colors.white,
+                  ),
+                  child: child ?? const SizedBox.shrink(),
+                );
+              },
             );
             if (date != null) {
               setState(() {
@@ -519,6 +545,19 @@ class _RelatoriosPageState extends State<RelatoriosPage>
               initialDate: initialDate,
               firstDate: firstDate,
               lastDate: DateTime(2100),
+              builder: (context, child) {
+                return Theme(
+                  data: Theme.of(context).copyWith(
+                    colorScheme: ColorScheme.light(
+                      primary: metroBlue,
+                      onPrimary: Colors.white,
+                      onSurface: Colors.black87,
+                    ),
+                    dialogBackgroundColor: Colors.white,
+                  ),
+                  child: child ?? const SizedBox.shrink(),
+                );
+              },
             );
             if (date != null) {
               setState(() {
@@ -610,6 +649,7 @@ class _RelatoriosPageState extends State<RelatoriosPage>
             const SizedBox(width: 8),
             Expanded(
               child: ElevatedButton(
+                style: applyButtonStyle,
                 onPressed: () {
                   _applyFilters();
                   if (Navigator.of(context).canPop()) {
@@ -635,6 +675,8 @@ class _RelatoriosPageState extends State<RelatoriosPage>
           top: 12,
           right: 12,
           child: Material(
+            color: Colors.white,
+            surfaceTintColor: Colors.white,
             elevation: 4,
             shape: RoundedRectangleBorder(
               borderRadius: BorderRadius.circular(10),
@@ -666,6 +708,16 @@ class _RelatoriosPageState extends State<RelatoriosPage>
     totalItems;
     totalSaidas;
     totalEntradas;
+
+    final ButtonStyle exportButtonStyle = ElevatedButton.styleFrom(
+      backgroundColor: Colors.grey.shade200,
+      foregroundColor: Colors.black87,
+      elevation: 0,
+      shape: RoundedRectangleBorder(
+        borderRadius: BorderRadius.circular(10),
+      ),
+      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+    );
 
     return Card(
       elevation: 2,
@@ -743,11 +795,13 @@ class _RelatoriosPageState extends State<RelatoriosPage>
               spacing: 8,
               children: [
                 ElevatedButton.icon(
+                  style: exportButtonStyle,
                   onPressed: _exportPdf,
                   icon: const Icon(Icons.picture_as_pdf_outlined),
                   label: const Text('Exportar PDF'),
                 ),
                 ElevatedButton.icon(
+                  style: exportButtonStyle,
                   onPressed: _exportExcel,
                   icon: const Icon(Icons.table_chart_outlined),
                   label: const Text('Exportar Excel'),
