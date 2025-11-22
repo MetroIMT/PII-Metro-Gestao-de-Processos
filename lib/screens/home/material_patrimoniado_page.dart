@@ -45,7 +45,7 @@ class _MaterialPatrimoniadoPageState extends State<MaterialPatrimoniadoPage> {
       materiais: _materiais!,
       tipo: 'patrimoniado',
       withSidebar: true,
-      sidebarSelectedIndex: 1,
+      sidebarSelectedIndex: 2,
       showBackButton: true,
     );
   }

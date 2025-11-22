@@ -44,7 +44,7 @@ class _MaterialGiroPageState extends State<MaterialGiroPage> {
       materiais: _materiais!,
       tipo: 'giro',
       withSidebar: true,
-      sidebarSelectedIndex: 1,
+      sidebarSelectedIndex: 2,
       showBackButton: true,
     );
   }

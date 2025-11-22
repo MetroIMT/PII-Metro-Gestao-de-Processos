@@ -151,7 +151,7 @@ class _MovimentacoesPageState extends State<MovimentacoesPage>
             )
           : null,
       drawer: isMobile
-          ? Drawer(child: Sidebar(expanded: true, selectedIndex: 2))
+          ? Drawer(child: Sidebar(expanded: true, selectedIndex: 3))
           : null,
       body: Stack(
         children: [
@@ -163,7 +163,7 @@ class _MovimentacoesPageState extends State<MovimentacoesPage>
               top: 0,
               bottom: 0,
               width: _isRailExtended ? 180 : 70,
-              child: Sidebar(expanded: _isRailExtended, selectedIndex: 2),
+              child: Sidebar(expanded: _isRailExtended, selectedIndex: 3),
             ),
 
           AnimatedPadding(

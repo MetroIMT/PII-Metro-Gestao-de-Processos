@@ -44,7 +44,7 @@ class _MaterialConsumoPageState extends State<MaterialConsumoPage> {
       materiais: _materiais!,
       tipo: 'consumo',
       withSidebar: true,
-      sidebarSelectedIndex: 1,
+      sidebarSelectedIndex: 2,
       showBackButton: true,
     );
   }

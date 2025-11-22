@@ -173,7 +173,7 @@ class _EstoqueCategoriasPageState extends State<EstoqueCategoriasPage>
           ? Drawer(
               child: Sidebar(
                 expanded: true,
-                selectedIndex: 1, // 1 = Estoque
+                selectedIndex: 2, // 2 = Estoque
               ),
             )
           : null,
@@ -192,7 +192,7 @@ class _EstoqueCategoriasPageState extends State<EstoqueCategoriasPage>
               width: _isRailExtended ? 180 : 70,
               child: Sidebar(
                 expanded: _isRailExtended,
-                selectedIndex: 1, // 1 = Estoque
+                selectedIndex: 2, // 2 = Estoque
               ),
             ),
 
