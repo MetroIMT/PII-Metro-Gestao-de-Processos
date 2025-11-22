@@ -20,6 +20,26 @@ class _RelatoriosPageState extends State<RelatoriosPage>
   static const LatLng _mapDefaultCenter = LatLng(-23.55, -46.63);
   static const double _mapDefaultZoom = 11.0;
 
+  // Lista completa de Bases para Filtro e Mapa
+  static const List<MapEntry<String, String>> _allBaseOptions = [
+    MapEntry('ALL', 'Todas as Bases'),
+    MapEntry('WJA', 'WJA - Jabaquara'),
+    MapEntry('PSO', 'PSO - Paraiso'),
+    MapEntry('TRD', 'TRD - Tiradentes'),
+    MapEntry('TUC', 'TUC - Tucuruvi'),
+    MapEntry('LUM', 'LUM - Luminárias'),
+    MapEntry('IMG', 'IMG - Imigrantes'),
+    MapEntry('BFU', 'BFU - Barra Funda'),
+    MapEntry('BAS', 'BAS - Brás'),
+    MapEntry('CEC', 'CEC - Cecília'),
+    MapEntry('MAT', 'MAT - Matheus'),
+    MapEntry('VTD', 'VTD - Vila Matilde'),
+    MapEntry('VPT', 'VPT – Vila Prudente'),
+    MapEntry('PIT', 'PIT – Pátio Itaquera'),
+    MapEntry('POT', 'POT – Pátio Oratório'),
+    MapEntry('PAT', 'PAT – Pátio Jabaquara'),
+  ];
+
   // --- Sidebar ---
   bool _isRailExtended = false;
   late AnimationController _animationController;
@@ -45,7 +65,8 @@ class _RelatoriosPageState extends State<RelatoriosPage>
   DateTime? _selectedEndDate;
   String? _selectedCategory;
   String? _selectedSubCategory;
-  String? _selectedBase;
+  // Alterado: Inicia com 'ALL' (Todas as bases)
+  List<String> _selectedBases = ['ALL'];
   String? _selectedUser;
 
   final TextEditingController _startDateController = TextEditingController();
@@ -89,15 +110,14 @@ class _RelatoriosPageState extends State<RelatoriosPage>
   }
 
   List<Map<String, dynamic>> _convertMovimentacoesToMap(
-    List<Movimentacao> movimentacoes,
-  ) {
+      List<Movimentacao> movimentacoes) {
     return movimentacoes.map((m) {
       // Converter tipo para quantidade com sinal
       int quantidadeComSinal =
           m.tipo.toLowerCase().contains('saida') ||
-              m.tipo.toLowerCase().contains('saída')
-          ? -m.quantidade.abs()
-          : m.quantidade.abs();
+                  m.tipo.toLowerCase().contains('saída')
+              ? -m.quantidade.abs()
+              : m.quantidade.abs();
 
       return {
         'codigo': m.codigoMaterial,
@@ -123,6 +143,13 @@ class _RelatoriosPageState extends State<RelatoriosPage>
       return local.split(' - ').first.trim();
     }
     return local.length > 3 ? local.substring(0, 3).toUpperCase() : local;
+  }
+
+  // Helper function para obter o nome completo da base
+  String _getBaseName(String baseId) {
+    return _allBaseOptions
+        .firstWhere((e) => e.key == baseId, orElse: () => MapEntry('', baseId))
+        .value;
   }
 
   @override
@@ -185,9 +212,10 @@ class _RelatoriosPageState extends State<RelatoriosPage>
       }
     }
 
-    if (_selectedBase != null) {
+    // Filtro de bases: Se _selectedBases contém 'ALL', NÃO aplica filtro.
+    if (_selectedBases.isNotEmpty && !_selectedBases.contains('ALL')) {
       tempResults = tempResults.where((row) {
-        return row['base_id'] == _selectedBase;
+        return _selectedBases.contains(row['base_id']);
       }).toList();
     }
 
@@ -203,7 +231,7 @@ class _RelatoriosPageState extends State<RelatoriosPage>
       _selectedEndDate = null;
       _selectedCategory = null;
       _selectedSubCategory = null;
-      _selectedBase = null;
+      _selectedBases = ['ALL']; // Reseta para 'Todas'
       _selectedUser = null;
 
       _startDateController.clear();
@@ -383,7 +411,7 @@ class _RelatoriosPageState extends State<RelatoriosPage>
             )
           : null,
       drawer: isMobile
-          ? Drawer(child: Sidebar(expanded: true, selectedIndex: 5))
+          ? Drawer(child: Sidebar(expanded: true, selectedIndex: 4))
           : null,
       body: Stack(
         children: [
@@ -395,7 +423,7 @@ class _RelatoriosPageState extends State<RelatoriosPage>
               top: 0,
               bottom: 0,
               width: _isRailExtended ? 180 : 70,
-              child: Sidebar(expanded: _isRailExtended, selectedIndex: 5),
+              child: Sidebar(expanded: _isRailExtended, selectedIndex: 4),
             ),
           AnimatedPadding(
             duration: const Duration(milliseconds: 300),
@@ -465,6 +493,26 @@ class _RelatoriosPageState extends State<RelatoriosPage>
       ),
       padding: const EdgeInsets.symmetric(vertical: 14),
     );
+
+    // Corrigindo o estilo do botão Limpar
+    final ButtonStyle clearButtonStyle = OutlinedButton.styleFrom(
+        foregroundColor: Colors.black54, // Texto em cinza escuro/preto
+        side: const BorderSide(
+            color: Colors.grey, width: 1.0)); // Borda em cinza
+
+    // Lógica de exibição do texto do filtro de bases
+    String baseFilterDisplayText;
+    if (_selectedBases.contains('ALL')) {
+      baseFilterDisplayText = 'Todas as Bases';
+    } else if (_selectedBases.isEmpty) {
+      // Se estiver vazia, trata como todas (embora a lógica do dialog evite isso)
+      baseFilterDisplayText = 'Todas as Bases';
+    } else {
+      // Mapeia IDs para nomes completos
+      baseFilterDisplayText = _selectedBases
+          .map((id) => _getBaseName(id))
+          .join(', ');
+    }
 
     return Column(
       mainAxisSize: MainAxisSize.min,
@@ -603,38 +651,19 @@ class _RelatoriosPageState extends State<RelatoriosPage>
           },
         ),
         const SizedBox(height: 12),
-        const Text('Base de manutenção'),
+        const Text('Base de manutenção (Multi-seleção)'),
         const SizedBox(height: 8),
-        DropdownButtonFormField<String>(
-          dropdownColor: Colors.white,
+        TextFormField(
+          readOnly: true,
+          // Exibe o nome das bases selecionadas
+          controller: TextEditingController(text: baseFilterDisplayText),
           decoration: const InputDecoration(
             border: OutlineInputBorder(),
-            hintText: 'Selecione a base',
+            hintText: 'Selecione as bases',
             prefixIcon: Icon(Icons.home_work_outlined),
           ),
-          value: _selectedBase,
-          items: const [
-            DropdownMenuItem(value: 'WJA', child: Text('WJA - Jabaquara')),
-            DropdownMenuItem(value: 'PSO', child: Text('PSO - Paraiso')),
-            DropdownMenuItem(value: 'TRD', child: Text('TRD - Tiradentes')),
-            DropdownMenuItem(value: 'TUC', child: Text('TUC - Tucuruvi')),
-            DropdownMenuItem(value: 'LUM', child: Text('LUM - Luminárias')),
-            DropdownMenuItem(value: 'IMG', child: Text('IMG - Imigrantes')),
-            DropdownMenuItem(value: 'BFU', child: Text('BFU - Barra Funda')),
-            DropdownMenuItem(value: 'BAS', child: Text('BAS - Brás')),
-            DropdownMenuItem(value: 'CEC', child: Text('CEC - Cecília')),
-            DropdownMenuItem(value: 'MAT', child: Text('MAT - Matheus')),
-            DropdownMenuItem(value: 'VTD', child: Text('VTD - Vila Matilde')),
-            DropdownMenuItem(value: 'VPT', child: Text('VPT – Vila Prudente')),
-            DropdownMenuItem(value: 'PIT', child: Text('PIT – Pátio Itaquera')),
-            DropdownMenuItem(value: 'POT', child: Text('POT – Pátio Oratório')),
-            DropdownMenuItem(
-              value: 'PAT',
-              child: Text('PAT – Pátio Jabaquara'),
-            ),
-          ],
-          onChanged: (value) {
-            setState(() => _selectedBase = value);
+          onTap: () async {
+            await _openMultiSelectBaseDialog();
           },
         ),
         const SizedBox(height: 16),
@@ -642,6 +671,7 @@ class _RelatoriosPageState extends State<RelatoriosPage>
           children: [
             Expanded(
               child: OutlinedButton(
+                style: clearButtonStyle, // Aplica o novo estilo neutro
                 onPressed: () {
                   _clearFilters();
                   if (Navigator.of(context).canPop()) {
@@ -667,6 +697,132 @@ class _RelatoriosPageState extends State<RelatoriosPage>
           ],
         ),
       ],
+    );
+  }
+
+  // Diálogo para Multi-seleção de Bases
+  Future<void> _openMultiSelectBaseDialog() async {
+    // Se 'ALL' está selecionado, inicializa a seleção temporária com bases vazias
+    // para permitir a seleção individual. Caso contrário, usa as bases selecionadas.
+    Set<String> tempSelectedBases =
+        _selectedBases.contains('ALL') ? {} : Set.from(_selectedBases);
+
+    // Lista das bases a serem exibidas (apenas bases individuais)
+    final List<MapEntry<String, String>> individualBaseOptions =
+        _allBaseOptions.where((base) => base.key != 'ALL').toList();
+
+    await showDialog(
+      context: context,
+      builder: (context) {
+        // CORREÇÃO: Limitar a largura do diálogo (de 400 para 500)
+        return Center(
+          child: ConstrainedBox(
+            constraints: const BoxConstraints(maxWidth: 500), // Largura Máxima Ajustada
+            child: AlertDialog(
+              title: const Text('Selecionar Bases'),
+              // CORREÇÃO: Força o fundo e tintura de superfície para branco
+              backgroundColor: Colors.white,
+              surfaceTintColor: Colors.white,
+              // CORREÇÃO: Limita a altura do conteúdo para ser compacto
+              content: Container(
+                width: double.maxFinite,
+                constraints: const BoxConstraints(maxHeight: 300),
+                child: StatefulBuilder(
+                  builder: (BuildContext context, StateSetter setStateDialog) {
+                    final bool isAllSelected = tempSelectedBases.isEmpty;
+
+                    return SingleChildScrollView(
+                      child: Column(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          // Opção "Todas as Bases"
+                          CheckboxListTile(
+                            title: Text(
+                              _allBaseOptions.first.value,
+                              style: TextStyle(
+                                color: isAllSelected ? metroBlue : Colors.black87,
+                                fontWeight: isAllSelected
+                                    ? FontWeight.bold
+                                    : FontWeight.normal,
+                              ),
+                            ),
+                            value: isAllSelected,
+                            tileColor: Colors.white,
+                            activeColor: metroBlue,
+                            checkColor: Colors.white,
+                            splashRadius: 0,
+                            onChanged: (bool? newValue) {
+                              if (newValue == true) {
+                                setStateDialog(() {
+                                  tempSelectedBases.clear(); // Seleciona ALL
+                                });
+                              }
+                            },
+                          ),
+                          const Divider(height: 1, color: Colors.grey),
+
+                          // Bases Individuais
+                          ...individualBaseOptions.map((base) {
+                            bool isChecked = tempSelectedBases.contains(base.key);
+
+                            return CheckboxListTile(
+                              title: Text(base.value),
+                              value: isChecked,
+                              tileColor: Colors.white,
+                              activeColor: metroBlue,
+                              checkColor: Colors.white,
+                              splashRadius: 0,
+                              onChanged: (bool? newValue) {
+                                if (newValue == null) return;
+
+                                setStateDialog(() {
+                                  if (newValue) {
+                                    tempSelectedBases.add(base.key);
+                                  } else {
+                                    tempSelectedBases.remove(base.key);
+                                  }
+                                });
+                              },
+                            );
+                          }).toList(),
+                        ],
+                      ),
+                    );
+                  },
+                ),
+              ),
+              actions: [
+                TextButton(
+                  // CORREÇÃO: Cinza neutro para Cancelar
+                  style: TextButton.styleFrom(
+                    foregroundColor: Colors.black54,
+                  ),
+                  onPressed: () => Navigator.of(context).pop(),
+                  child: const Text('Cancelar'),
+                ),
+                TextButton(
+                  // CORREÇÃO: Azul principal para OK
+                  style: TextButton.styleFrom(
+                    foregroundColor: metroBlue,
+                  ),
+                  onPressed: () {
+                    // Se o conjunto de seleção individual estiver vazio, salva ['ALL']
+                    List<String> finalSelection =
+                        tempSelectedBases.isEmpty ? ['ALL'] : tempSelectedBases.toList();
+
+                    setState(() {
+                      _selectedBases = finalSelection;
+                    });
+                    _applyFilters();
+                    Navigator.of(context).pop();
+                  },
+                  child: const Text('OK'),
+                ),
+              ],
+            ),
+          ),
+        );
+      },
     );
   }
 
@@ -747,12 +903,13 @@ class _RelatoriosPageState extends State<RelatoriosPage>
               style: TextStyle(fontSize: 14, color: Colors.black87),
             ),
             const SizedBox(height: 8),
+            // Ordem invertida: Movimentação Geral primeiro
             Wrap(
               spacing: 8,
               runSpacing: 8,
               children: [
-                _reportTypeButton('Movimentações por Usuário', Icons.person),
                 _reportTypeButton('Movimentação Geral', Icons.all_inclusive),
+                _reportTypeButton('Movimentações por Usuário', Icons.person),
               ],
             ),
 
@@ -766,24 +923,24 @@ class _RelatoriosPageState extends State<RelatoriosPage>
               const SizedBox(height: 8),
               DropdownButtonFormField<String>(
                 value: _selectedUser,
+                dropdownColor: Colors.white, // Corrigido para branco
                 decoration: const InputDecoration(
                   border: OutlineInputBorder(),
                   prefixIcon: Icon(Icons.person_outline),
                   hintText: 'Escolha um usuário',
                 ),
                 // monta a lista de usuários únicos a partir das movimentações
-                items:
-                    (_allMovimentacoes
-                            .map((e) => e.usuario)
-                            .where((u) => u != 'N/A')
-                            .toSet()
-                            .toList()
-                          ..sort())
-                        .map(
-                          (user) =>
-                              DropdownMenuItem(value: user, child: Text(user)),
-                        )
-                        .toList(),
+                items: (_allMovimentacoes
+                      .map((e) => e.usuario)
+                      .where((u) => u != 'N/A')
+                      .toSet()
+                      .toList()
+                    ..sort())
+                    .map(
+                      (user) =>
+                          DropdownMenuItem(value: user, child: Text(user)),
+                    )
+                    .toList(),
                 onChanged: (value) {
                   setState(() {
                     _selectedUser = value;
@@ -1091,17 +1248,35 @@ class _RelatoriosPageState extends State<RelatoriosPage>
   // ---------- MAPA ----------
 
   Widget _buildMapCard({bool isCompact = false}) {
-    final Map<String, LatLng> baseCoordinates = {
-      'WJA': LatLng(-23.6434, -46.6415),
-      'PSO': LatLng(-23.5733, -46.6401),
-      'TUC': LatLng(-23.4851, -46.6126),
-      'TRD': LatLng(-23.5505, -46.6333),
-      'BFU': LatLng(-23.5261, -46.6672),
+    // Mapa completo de bases e coordenadas (incluindo placeholders ajustados)
+    const Map<String, LatLng> allBaseCoordinates = {
+      'WJA': LatLng(-23.6434, -46.6415), // Jabaquara
+      'PSO': LatLng(-23.5733, -46.6401), // Paraiso
+      'TUC': LatLng(-23.4851, -46.6126), // Tucuruvi
+      'TRD': LatLng(-23.5505, -46.6333), // Tiradentes
+      'BFU': LatLng(-23.5261, -46.6672), // Barra Funda
+      // Coordenadas placeholder mais distribuídas em SP
+      'LUM': LatLng(-23.5938, -46.5452), // Luminárias (Leste)
+      'IMG': LatLng(-23.6067, -46.6186), // Imigrantes (Sudeste)
+      'BAS': LatLng(-23.5484, -46.6214), // Brás (Centro-Leste)
+      'CEC': LatLng(-23.5350, -46.6570), // Cecília (Centro-Oeste)
+      'MAT': LatLng(-23.5870, -46.5020), // Matheus (Extremo Leste)
+      'VTD': LatLng(-23.5440, -46.5360), // Vila Matilde (Leste)
+      'VPT': LatLng(-23.5856, -46.5919), // Vila Prudente (Sul)
+      'PIT': LatLng(-23.5410, -46.4670), // Pátio Itaquera (Extremo Leste)
+      'POT': LatLng(-23.5925, -46.5490), // Pátio Oratório (Sudeste)
+      'PAT': LatLng(-23.6500, -46.6450), // Pátio Jabaquara (Sul - perto de WJA)
     };
 
-    final usedBases = _filteredData.map((e) => e['base_id'] as String).toSet();
-    final List<LatLng> basePoints = usedBases
-        .map((base) => baseCoordinates[base] ?? _mapDefaultCenter)
+    // Bases a serem exibidas: todas se 'ALL' estiver na lista, ou apenas as selecionadas
+    final Set<String> basesToDisplay = _selectedBases.contains('ALL')
+        ? allBaseCoordinates.keys.toSet() // Mostra todas se o filtro for 'ALL'
+        : _selectedBases.toSet(); // Mostra apenas as bases selecionadas
+
+    // Pontos para enquadrar o mapa (apenas os marcadores que serão exibidos)
+    final List<LatLng> basePointsForFit = basesToDisplay
+        .map((baseId) => allBaseCoordinates[baseId])
+        .whereType<LatLng>()
         .toList();
 
     return Card(
@@ -1132,11 +1307,13 @@ class _RelatoriosPageState extends State<RelatoriosPage>
           if (isCompact)
             SizedBox(
               height: 360,
-              child: _buildMapStack(baseCoordinates, usedBases, basePoints),
+              child: _buildMapStack(
+                  allBaseCoordinates, basesToDisplay, basePointsForFit),
             )
           else
             Expanded(
-              child: _buildMapStack(baseCoordinates, usedBases, basePoints),
+              child: _buildMapStack(
+                  allBaseCoordinates, basesToDisplay, basePointsForFit),
             ),
         ],
       ),
@@ -1145,8 +1322,8 @@ class _RelatoriosPageState extends State<RelatoriosPage>
 
   Widget _buildMapStack(
     Map<String, LatLng> baseCoordinates,
-    Set<String> usedBases,
-    List<LatLng> basePoints,
+    Set<String> basesToDisplay,
+    List<LatLng> basePointsForFit,
   ) {
     return Stack(
       children: [
@@ -1167,7 +1344,7 @@ class _RelatoriosPageState extends State<RelatoriosPage>
               userAgentPackageName: 'com.example.app',
             ),
             MarkerLayer(
-              markers: usedBases.map((base) {
+              markers: basesToDisplay.map((base) {
                 final coord = baseCoordinates[base] ?? _mapDefaultCenter;
                 return Marker(
                   point: coord,
@@ -1229,12 +1406,12 @@ class _RelatoriosPageState extends State<RelatoriosPage>
                 tooltip: 'Centralizar São Paulo',
                 onPressed: _resetMapView,
               ),
-              if (basePoints.length > 1) ...[
+              if (basePointsForFit.length > 1) ...[
                 const SizedBox(height: 8),
                 _buildMapControlButton(
                   icon: Icons.zoom_out_map,
                   tooltip: 'Enquadrar bases',
-                  onPressed: () => _fitMapToPoints(basePoints),
+                  onPressed: () => _fitMapToPoints(basePointsForFit),
                 ),
               ],
             ],
