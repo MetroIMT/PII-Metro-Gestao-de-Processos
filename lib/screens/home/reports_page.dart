@@ -402,46 +402,51 @@ class _RelatoriosPageState extends State<RelatoriosPage>
             padding: EdgeInsets.only(
               left: !isMobile ? (_isRailExtended ? 180 : 70) : 0,
             ),
-            child: Column(
-              children: [
-                if (!isMobile)
-                  Padding(
-                    padding: const EdgeInsets.fromLTRB(24, 24, 24, 0),
-                    child: Row(
-                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                      children: [
-                        Row(
-                          children: [
-                            IconButton(
-                              icon: Icon(
-                                _isRailExtended ? Icons.menu_open : Icons.menu,
-                                color: metroBlue,
+            child: ScrollConfiguration(
+              behavior: ScrollConfiguration.of(context).copyWith(
+                scrollbars: false,
+              ),
+              child: Column(
+                children: [
+                  if (!isMobile)
+                    Padding(
+                      padding: const EdgeInsets.fromLTRB(24, 24, 24, 0),
+                      child: Row(
+                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                        children: [
+                          Row(
+                            children: [
+                              IconButton(
+                                icon: Icon(
+                                  _isRailExtended ? Icons.menu_open : Icons.menu,
+                                  color: metroBlue,
+                                ),
+                                onPressed: _toggleRail,
                               ),
-                              onPressed: _toggleRail,
-                            ),
-                            const SizedBox(width: 12),
-                            Text(
-                              'Relatórios',
-                              style: TextStyle(
-                                fontSize: 24,
-                                fontWeight: FontWeight.bold,
-                                color: metroBlue,
+                              const SizedBox(width: 12),
+                              Text(
+                                'Relatórios',
+                                style: TextStyle(
+                                  fontSize: 24,
+                                  fontWeight: FontWeight.bold,
+                                  color: metroBlue,
+                                ),
                               ),
-                            ),
-                          ],
-                        ),
-                      ],
+                            ],
+                          ),
+                        ],
+                      ),
+                    ),
+                  Expanded(
+                    child: Padding(
+                      padding: EdgeInsets.all(isMobile ? 16 : 24),
+                      child: isMobile
+                          ? _buildMobileReportsLayout()
+                          : _buildDesktopReportsLayout(),
                     ),
                   ),
-                Expanded(
-                  child: Padding(
-                    padding: EdgeInsets.all(isMobile ? 16 : 24),
-                    child: isMobile
-                        ? _buildMobileReportsLayout()
-                        : _buildDesktopReportsLayout(),
-                  ),
-                ),
-              ],
+                ],
+              ),
             ),
           ),
         ],

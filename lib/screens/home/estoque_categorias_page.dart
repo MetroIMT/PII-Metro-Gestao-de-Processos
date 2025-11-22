@@ -247,26 +247,32 @@ class _EstoqueCategoriasPageState extends State<EstoqueCategoriasPage>
 
                         if (isMobileContent) {
                           // Mobile: SingleChildScrollView com Column
-                          return SingleChildScrollView(
-                            padding: EdgeInsets.zero,
-                            child: Column(
-                              children: categorias.map((categoria) {
-                                return Padding(
-                                  padding: const EdgeInsets.only(bottom: 16.0),
-                                  child: _EstoqueCategoriaCard(
-                                    title: categoria['titulo'],
-                                    icon: categoria['icone'],
-                                    color: categoria['cor'],
-                                    materiais: categoria['materiais'],
-                                    onTap: () => Navigator.push(
-                                      context,
-                                      MaterialPageRoute(
-                                        builder: (_) => categoria['pagina'](),
+                          return ScrollConfiguration(
+                            behavior: ScrollConfiguration.of(context).copyWith(
+                              scrollbars: false,
+                            ),
+                            child: SingleChildScrollView(
+                              padding: EdgeInsets.zero,
+                              child: Column(
+                                children: categorias.map((categoria) {
+                                  return Padding(
+                                    padding:
+                                        const EdgeInsets.only(bottom: 16.0),
+                                    child: _EstoqueCategoriaCard(
+                                      title: categoria['titulo'],
+                                      icon: categoria['icone'],
+                                      color: categoria['cor'],
+                                      materiais: categoria['materiais'],
+                                      onTap: () => Navigator.push(
+                                        context,
+                                        MaterialPageRoute(
+                                          builder: (_) => categoria['pagina'](),
+                                        ),
                                       ),
                                     ),
-                                  ),
-                                );
-                              }).toList(),
+                                  );
+                                }).toList(),
+                              ),
                             ),
                           );
                         } else {
@@ -295,11 +301,11 @@ class _EstoqueCategoriasPageState extends State<EstoqueCategoriasPage>
                             padding: EdgeInsets.zero,
                             gridDelegate:
                                 SliverGridDelegateWithFixedCrossAxisCount(
-                                  crossAxisCount: crossAxisCount,
-                                  crossAxisSpacing: 16,
-                                  mainAxisSpacing: 16,
-                                  childAspectRatio: childAspectRatio,
-                                ),
+                              crossAxisCount: crossAxisCount,
+                              crossAxisSpacing: 16,
+                              mainAxisSpacing: 16,
+                              childAspectRatio: childAspectRatio,
+                            ),
                             itemCount: categorias.length,
                             itemBuilder: (context, index) {
                               final categoria = categorias[index];
