@@ -8,6 +8,7 @@ import '../screens/home/home_screen.dart';
 import '../screens/home/reports_page.dart';
 import '../screens/home/admin_page.dart';
 import '../screens/home/alerts_page.dart';
+import '../screens/home/dashboard.dart';
 
 class Sidebar extends StatefulWidget {
   final bool expanded;
@@ -103,9 +104,17 @@ class _SidebarState extends State<Sidebar> {
           ),
           _sidebarItem(
             context,
+            Icons.data_thresholding_outlined,
+            'Dashboard',
+            1,
+            expanded,
+            selectedIndex,
+          ),
+          _sidebarItem(
+            context,
             Icons.inventory_2,
             'Estoque',
-            1,
+            2,
             expanded,
             selectedIndex,
           ),
@@ -113,7 +122,7 @@ class _SidebarState extends State<Sidebar> {
             context,
             Icons.swap_horiz,
             'Movimentações',
-            2,
+            3,
             expanded,
             selectedIndex,
           ),
@@ -121,7 +130,7 @@ class _SidebarState extends State<Sidebar> {
             context,
             Icons.warning_amber_rounded,
             'Alertas',
-            3,
+            4,
             expanded,
             selectedIndex,
           ),
@@ -129,7 +138,7 @@ class _SidebarState extends State<Sidebar> {
             context,
             Icons.article,
             'Relatórios',
-            4,
+            5,
             expanded,
             selectedIndex,
           ),
@@ -138,7 +147,7 @@ class _SidebarState extends State<Sidebar> {
               context,
               Icons.person_add,
               'Gerenciar usuários',
-              5,
+              6,
               expanded,
               selectedIndex,
             ),
@@ -148,7 +157,7 @@ class _SidebarState extends State<Sidebar> {
             context,
             Icons.logout,
             'Sair',
-            6,
+            7,
             expanded,
             selectedIndex,
           ),
@@ -193,34 +202,40 @@ class _SidebarState extends State<Sidebar> {
           case 1:
             Navigator.pushReplacement(
               context,
-              MaterialPageRoute(builder: (_) => const ToolPage()),
+              MaterialPageRoute(builder: (_) => const InsightsDashboardPage()),
             );
             break;
           case 2:
             Navigator.pushReplacement(
               context,
-              MaterialPageRoute(builder: (_) => const MovimentacoesPage()),
+              MaterialPageRoute(builder: (_) => const ToolPage()),
             );
             break;
           case 3:
             Navigator.pushReplacement(
               context,
-              MaterialPageRoute(builder: (_) => const AlertsPage()),
+              MaterialPageRoute(builder: (_) => const MovimentacoesPage()),
             );
             break;
           case 4:
             Navigator.pushReplacement(
               context,
-              MaterialPageRoute(builder: (_) => const RelatoriosPage()),
+              MaterialPageRoute(builder: (_) => const AlertsPage()),
             );
             break;
           case 5:
             Navigator.pushReplacement(
               context,
-              MaterialPageRoute(builder: (_) => const GerenciarUsuarios()),
+              MaterialPageRoute(builder: (_) => const RelatoriosPage()),
             );
             break;
           case 6:
+            Navigator.pushReplacement(
+              context,
+              MaterialPageRoute(builder: (_) => const GerenciarUsuarios()),
+            );
+            break;
+          case 7:
             final shouldLogout = await showDialog<bool>(
               context: context,
               builder: (context) {
