@@ -219,6 +219,8 @@ class _InsightsDashboardPageState extends State<InsightsDashboardPage>
           ? AppBar(
               elevation: 0,
               backgroundColor: Colors.white,
+              surfaceTintColor: Colors.white,
+              scrolledUnderElevation: 0,
               leading: IconButton(
                 icon: AnimatedIcon(
                   icon: AnimatedIcons.menu_close,
@@ -246,7 +248,6 @@ class _InsightsDashboardPageState extends State<InsightsDashboardPage>
           : null,
       body: Stack(
         children: [
-          // Sidebar (Desktop)
           if (!isMobile)
             AnimatedPositioned(
               duration: const Duration(milliseconds: 300),
@@ -254,46 +255,89 @@ class _InsightsDashboardPageState extends State<InsightsDashboardPage>
               left: 0,
               top: 0,
               bottom: 0,
-              // Largura aumentada para melhor visualização
-              width: _isRailExtended ? 200 : 70, 
+              width: _isRailExtended ? 180 : 70,
               child: Sidebar(expanded: _isRailExtended, selectedIndex: 1),
             ),
-
-          // Conteúdo principal
-          AnimatedPadding(
-            duration: const Duration(milliseconds: 300),
-            padding: EdgeInsets.only(
-              left: !isMobile ? (_isRailExtended ? 200 : 70) : 0,
-            ),
-            child: SingleChildScrollView(
-              padding: const EdgeInsets.all(24.0),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  if (!isMobile) _buildDesktopHeader(), 
-
-                  const SizedBox(height: 30),
-
-                  if (_isLoading)
-                    const Center(child: CircularProgressIndicator())
-                  else if (_totalItensCadastrados == -1)
-                    Center(
-                      child: Column(
-                        children: [
-                          const Text('❌ Falha ao carregar dados do servidor.'),
-                          const SizedBox(height: 8),
-                          ElevatedButton(
-                            onPressed: _loadData,
-                            child: const Text('Tentar Novamente'),
+          Positioned.fill(
+            child: AnimatedPadding(
+              duration: const Duration(milliseconds: 300),
+              padding: EdgeInsets.only(
+                left: !isMobile ? (_isRailExtended ? 180 : 70) : 0,
+              ),
+              child: ScrollConfiguration(
+                behavior: ScrollConfiguration.of(context).copyWith(
+                  scrollbars: false,
+                ),
+                child: SingleChildScrollView(
+                  padding: const EdgeInsets.all(24.0),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      if (!isMobile)
+                        Padding(
+                          padding: const EdgeInsets.only(bottom: 24),
+                          child: Row(
+                            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                            children: [
+                              Row(
+                                children: [
+                                  IconButton(
+                                    icon: Icon(
+                                      _isRailExtended
+                                          ? Icons.menu_open
+                                          : Icons.menu,
+                                      color: metroBlue,
+                                    ),
+                                    onPressed: _toggleRail,
+                                  ),
+                                  const SizedBox(width: 12),
+                                  Text(
+                                    'Dashboard de Insights',
+                                    style: const TextStyle(
+                                      fontSize: 24,
+                                      fontWeight: FontWeight.bold,
+                                      color: metroBlue,
+                                    ),
+                                  ),
+                                ],
+                              ),
+                              Image.asset(
+                                'assets/LogoMetro.png',
+                                height: 40,
+                              ),
+                            ],
                           ),
-                        ],
+                        ),
+                      const SizedBox(height: 6),
+                      const SizedBox(height: 6),
+                      const Text(
+                        'Análise detalhada de estoque e tendências de movimentação (Últimos 30 dias)',
+                        style: TextStyle(fontSize: 16, color: Colors.black54),
                       ),
-                    )
-                  else
-                    _buildInsightsGrid(),
-
-                  const SizedBox(height: 24),
-                ],
+                      const SizedBox(height: 24),
+                      if (_isLoading)
+                        const Center(child: CircularProgressIndicator())
+                      else if (_totalItensCadastrados == -1)
+                        Center(
+                          child: Column(
+                            children: [
+                              const Text(
+                                '❌ Falha ao carregar dados do servidor.',
+                              ),
+                              const SizedBox(height: 8),
+                              ElevatedButton(
+                                onPressed: _loadData,
+                                child: const Text('Tentar Novamente'),
+                              ),
+                            ],
+                          ),
+                        )
+                      else
+                        _buildInsightsGrid(),
+                      const SizedBox(height: 24),
+                    ],
+                  ),
+                ),
               ),
             ),
           ),
@@ -344,8 +388,8 @@ class _InsightsDashboardPageState extends State<InsightsDashboardPage>
 
   Widget _buildInsightsGrid() {
     final isMobile = MediaQuery.of(context).size.width < 600;
-    // Proporção mais alta (1.5) para que o gráfico não fique "achatado" em desktop
-    final chartAspectRatio = isMobile ? 1.0 : 1.5; 
+    // Proporção um pouco menor para cards mais compactos
+    final chartAspectRatio = isMobile ? 0.95 : 1.25; 
 
     return Column(
       children: [
@@ -358,13 +402,13 @@ class _InsightsDashboardPageState extends State<InsightsDashboardPage>
           builder: (context, constraints) {
             final crossAxisCount = constraints.maxWidth < 900 ? 1 : 2;
             // CORREÇÃO: Removido flc.GridView
-            return GridView.count(
-              shrinkWrap: true,
-              physics: const NeverScrollableScrollPhysics(),
-              crossAxisCount: crossAxisCount,
-              crossAxisSpacing: 24.0, 
-              mainAxisSpacing: 24.0,
-              childAspectRatio: chartAspectRatio,
+        return GridView.count(
+          shrinkWrap: true,
+          physics: const NeverScrollableScrollPhysics(),
+          crossAxisCount: crossAxisCount,
+          crossAxisSpacing: 16.0, 
+          mainAxisSpacing: 16.0,
+          childAspectRatio: chartAspectRatio,
               children: [
                 // GRÁFICO 1: Distribuição de Estoque (Pie Chart)
                 _buildChartCard(
@@ -393,9 +437,9 @@ class _InsightsDashboardPageState extends State<InsightsDashboardPage>
               shrinkWrap: true,
               physics: const NeverScrollableScrollPhysics(),
               crossAxisCount: crossAxisCount,
-              crossAxisSpacing: 24.0,
-              mainAxisSpacing: 24.0,
-              childAspectRatio: chartAspectRatio,
+              crossAxisSpacing: 16.0,
+              mainAxisSpacing: 16.0,
+              childAspectRatio: isMobile ? 0.9 : chartAspectRatio,
               children: [
                 // GRÁFICO 3: Tendência de Movimentação (Line Chart)
                 _buildChartCard(
@@ -424,9 +468,9 @@ class _InsightsDashboardPageState extends State<InsightsDashboardPage>
               shrinkWrap: true,
               physics: const NeverScrollableScrollPhysics(),
               crossAxisCount: crossAxisCount,
-              crossAxisSpacing: 24.0,
-              mainAxisSpacing: 24.0,
-              childAspectRatio: chartAspectRatio,
+              crossAxisSpacing: 16.0,
+              mainAxisSpacing: 16.0,
+              childAspectRatio: isMobile ? 0.9 : chartAspectRatio,
               children: [
                 // GRÁFICO 5: Top 5 Materiais Críticos (Vertical Bar Chart - Estilizado)
                 _buildChartCard(
@@ -456,35 +500,45 @@ class _InsightsDashboardPageState extends State<InsightsDashboardPage>
     double? height,
   }) {
     return Card(
-      elevation: 6, 
-      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)), 
+      elevation: 4,
+      color: Colors.white,
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
       child: Container(
         height: height,
-        padding: const EdgeInsets.all(24.0), 
+        padding: const EdgeInsets.all(18.0),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             Row(
               children: [
-                Icon(icon, color: metroBlue, size: 20),
-                const SizedBox(width: 8),
+                Container(
+                  padding: const EdgeInsets.all(6),
+                  decoration: BoxDecoration(
+                    color: metroBlue.withOpacity(0.08),
+                    borderRadius: BorderRadius.circular(8),
+                  ),
+                  child: Icon(icon, color: metroBlue, size: 18),
+                ),
+                const SizedBox(width: 10),
                 Expanded(
                   child: Text(
                     title,
                     style: const TextStyle(
-                      fontSize: 18,
-                      fontWeight: FontWeight.bold,
-                      color: metroBlue,
+                      fontSize: 16,
+                      fontWeight: FontWeight.w600,
+                      color: Colors.black87,
                     ),
                     overflow: TextOverflow.ellipsis,
                   ),
                 ),
               ],
             ),
-            const Divider(height: 20),
+            const SizedBox(height: 12),
+            const Divider(height: 1),
+            const SizedBox(height: 12),
             Expanded(
               child: Padding(
-                padding: const EdgeInsets.symmetric(horizontal: 10.0),
+                padding: const EdgeInsets.symmetric(horizontal: 4.0),
                 child: chart,
               ),
             ),
@@ -499,8 +553,17 @@ class _InsightsDashboardPageState extends State<InsightsDashboardPage>
   Widget _buildKeyIndicatorsRow() {
     return LayoutBuilder(
       builder: (context, constraints) {
-        final isMobile = constraints.maxWidth < 600;
-        final int count = constraints.maxWidth < 900 ? 2 : 4; 
+        final double width = constraints.maxWidth;
+        final bool isMobile = width < 600;
+        final bool isCompact = width < 520;
+        final int count = isCompact
+            ? 1
+            : (width < 900 ? 2 : 4);
+        final double childRatio = count == 1
+            ? 1.4
+            : count == 2
+                ? 1.15
+                : 2.2;
 
         List<Widget> indicators = [
           _buildIndicator(
@@ -540,9 +603,9 @@ class _InsightsDashboardPageState extends State<InsightsDashboardPage>
           shrinkWrap: true,
           physics: const NeverScrollableScrollPhysics(),
           crossAxisCount: count,
-          crossAxisSpacing: 24.0, // Aumentei o espaçamento
-          mainAxisSpacing: 24.0,
-          childAspectRatio: isMobile ? 2.5 : 2.5, // Aumentei a proporção para evitar overflow nos textos e números grandes
+          crossAxisSpacing: 16.0,
+          mainAxisSpacing: 16.0,
+          childAspectRatio: childRatio,
           children: indicators,
         );
       },
@@ -559,57 +622,67 @@ class _InsightsDashboardPageState extends State<InsightsDashboardPage>
     String? subtitle,
   }) {
     return Card(
-      elevation: 4,
-      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+      elevation: 3,
+      color: Colors.white,
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
       child: Padding(
-        padding: const EdgeInsets.all(20.0),
+        padding: const EdgeInsets.all(12.0),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
-          mainAxisAlignment: MainAxisAlignment.spaceBetween,
           children: [
             Row(
               children: [
-                CircleAvatar(
-                  backgroundColor: color.withOpacity(0.1),
-                  radius: 18,
-                  child: Icon(icon, color: color, size: 20),
+                Container(
+                  width: 36,
+                  height: 36,
+                  decoration: BoxDecoration(
+                    color: color.withOpacity(0.1),
+                    borderRadius: BorderRadius.circular(10),
+                  ),
+                  child: Icon(icon, color: color, size: 18),
                 ),
-                const SizedBox(width: 12),
+                const SizedBox(width: 10),
                 Expanded(
                   child: Text(
                     title,
                     style: TextStyle(
-                      fontSize: isMobile ? 14 : 16,
-                      color: Colors.black87,
+                      fontSize: isMobile ? 12 : 13,
+                      color: Colors.grey.shade700,
                       fontWeight: FontWeight.w600,
                     ),
-                    overflow: TextOverflow.ellipsis,
                     maxLines: 2,
+                    overflow: TextOverflow.ellipsis,
                   ),
                 ),
               ],
             ),
-            Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
-                  value,
-                  style: TextStyle(
-                    fontSize: isMobile ? 32 : 40, // Reduzido para 40
-                    fontWeight: FontWeight.bold,
-                    color: color,
-                  ),
+            const SizedBox(height: 10),
+            FittedBox(
+              fit: BoxFit.scaleDown,
+              alignment: Alignment.centerLeft,
+              child: Text(
+                value,
+                style: TextStyle(
+                  fontSize: isMobile ? 24 : 32,
+                  fontWeight: FontWeight.bold,
+                  color: Colors.black87,
                 ),
-                if (subtitle != null)
-                  Text(
-                    subtitle,
-                    style: TextStyle(
-                      fontSize: 12,
-                      color: Colors.grey.shade500,
-                    ),
-                  ),
-              ],
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
+              ),
             ),
+            if (subtitle != null) ...[
+              const SizedBox(height: 4),
+              Text(
+                subtitle,
+                style: TextStyle(
+                  fontSize: 11,
+                  color: Colors.grey.shade600,
+                ),
+                maxLines: 2,
+                overflow: TextOverflow.ellipsis,
+              ),
+            ],
           ],
         ),
       ),
