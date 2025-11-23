@@ -6,6 +6,7 @@ import '../../services/movimentacao_service.dart';
 import '../../models/material.dart'; // Assume EstoqueMaterial ou similar
 import '../../models/movimentacao.dart'; // Assume Movimentacao
 import '../../widgets/sidebar.dart'; // Importa a Sidebar
+import '../../services/auth_service.dart'; // Adiciona o serviço de autenticação
 
 // Modelo de dados para Pie Chart
 class StockTypeData {
@@ -26,15 +27,13 @@ class InsightsDashboardPage extends StatefulWidget {
 class _InsightsDashboardPageState extends State<InsightsDashboardPage>
     with SingleTickerProviderStateMixin {
   // Cores corporativas e de alerta (Nova Paleta)
-  static const Color metroBlue = Color(0xFF001489); // Cor Principal
-  static const Color alertRed = Color(0xFFDC3545);      // Red de Alerta (Mais moderno)
-  static const Color successGreen = Color(0xFF28A745);  // Green de Sucesso/Positivo
-  static const Color accentOrange = Color(0xFFFD7E14); // Laranja de destaque
+  static const Color metroBlue = Color(0xFF001489); 
+  static const Color alertRed = Color.fromARGB(255, 199, 11, 30);      
+  static const Color successGreen = Color.fromARGB(255, 2, 183, 44);  
+  static const Color accentOrange = Color(0xFFFD7E14); 
+  static const Color blueChart = Color.fromARGB(255, 36, 18, 236); 
   
-  // Paleta de cores para Gráficos
-  static const Color chartPrimary = Color(0xFF007BFF);  // Azul vibrante
-  static const Color chartSecondary = Color(0xFF17A2B8); // Ciano
-  static const Color chartTertiary = Color(0xFF6C757D);  // Cinza
+  static final Color chartBlueAccent = metroBlue.withOpacity(0.85); 
 
   // Lógica da Sidebar
   bool _isRailExtended = false;
@@ -43,6 +42,10 @@ class _InsightsDashboardPageState extends State<InsightsDashboardPage>
 
   final MaterialService _materialService = MaterialService();
   final MovimentacaoService _movimentacaoService = MovimentacaoService();
+
+  // NOVO: Estado para controle de acesso
+  String? _currentRole;
+  bool _isAuthorized = false; 
 
   // Estados para dados dos gráficos e KPIs
   int _totalItensCadastrados = 0;
@@ -63,7 +66,36 @@ class _InsightsDashboardPageState extends State<InsightsDashboardPage>
       vsync: this,
       duration: const Duration(milliseconds: 300),
     );
-    _loadData();
+    _checkAdminAndLoad(); // Inicia a checagem de permissão
+  }
+
+  // NOVO: Função para checar permissão e carregar dados (similar a gerenciar_usuarios)
+  Future<void> _checkAdminAndLoad() async {
+    try {
+      final role = await AuthService().role;
+      if (mounted) {
+        setState(() {
+          _currentRole = role;
+          _isAuthorized = role == 'admin';
+        });
+
+        if (_isAuthorized) {
+          await _loadData();
+        } else {
+          // Se não for admin, para o loading state
+          setState(() => _isLoading = false);
+        }
+      }
+    } catch (e) {
+      if (mounted) {
+        setState(() {
+          _currentRole = null;
+          _isAuthorized = false;
+          _isLoading = false;
+        });
+        print('Erro ao carregar permissão: $e');
+      }
+    }
   }
 
   @override
@@ -128,8 +160,8 @@ class _InsightsDashboardPageState extends State<InsightsDashboardPage>
 
       // Distribuição de Estoque por Tipo (para Pie Chart)
       final List<StockTypeData> distribution = [
-        // Usando cores da nova paleta
-        StockTypeData('Giro', giroTotal, chartPrimary),
+        // Usando cores consistentes com o tema
+        StockTypeData('Giro', giroTotal, blueChart),  // MUDADO de chartBlueAccent
         StockTypeData('Consumo', consumoTotal, alertRed),
         StockTypeData('Patrimoniado', patrimoniadoTotal, successGreen),
       ].where((d) => d.totalQuantity > 0).toList(); // Filtra zero
@@ -212,6 +244,31 @@ class _InsightsDashboardPageState extends State<InsightsDashboardPage>
   Widget build(BuildContext context) {
     final isMobile = MediaQuery.of(context).size.width < 600;
 
+    // NOVO: Bloco de conteúdo centralizado com tratamento de estados
+    Widget centralContent;
+
+    if (!_isAuthorized) {
+      centralContent = _buildUnauthorizedContainer(context);
+    } else if (_isLoading) {
+      centralContent = const Center(child: CircularProgressIndicator());
+    } else if (_totalItensCadastrados == -1) {
+      centralContent = _buildErrorContent();
+    } else {
+      centralContent = Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          const SizedBox(height: 8), // Pequeno espaçamento após o header
+          const Text(
+            'Análise detalhada de estoque e tendências de movimentação (Últimos 30 dias)',
+            style: TextStyle(fontSize: 16, color: Colors.black54),
+          ),
+          const SizedBox(height: 24),
+          _buildInsightsGrid(),
+          const SizedBox(height: 24),
+        ],
+      );
+    }
+
     return Scaffold(
       key: _scaffoldKey,
       backgroundColor: Colors.grey.shade100,
@@ -232,7 +289,7 @@ class _InsightsDashboardPageState extends State<InsightsDashboardPage>
                 },
               ),
               title: const Text(
-                'Dashboard de Insights',
+                'Dashboard',
                 style: TextStyle(color: metroBlue, fontWeight: FontWeight.bold),
               ),
               actions: [
@@ -273,68 +330,11 @@ class _InsightsDashboardPageState extends State<InsightsDashboardPage>
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      if (!isMobile)
-                        Padding(
-                          padding: const EdgeInsets.only(bottom: 24),
-                          child: Row(
-                            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                            children: [
-                              Row(
-                                children: [
-                                  IconButton(
-                                    icon: Icon(
-                                      _isRailExtended
-                                          ? Icons.menu_open
-                                          : Icons.menu,
-                                      color: metroBlue,
-                                    ),
-                                    onPressed: _toggleRail,
-                                  ),
-                                  const SizedBox(width: 12),
-                                  Text(
-                                    'Dashboard de Insights',
-                                    style: const TextStyle(
-                                      fontSize: 24,
-                                      fontWeight: FontWeight.bold,
-                                      color: metroBlue,
-                                    ),
-                                  ),
-                                ],
-                              ),
-                              Image.asset(
-                                'assets/LogoMetro.png',
-                                height: 40,
-                              ),
-                            ],
-                          ),
-                        ),
-                      const SizedBox(height: 6),
-                      const SizedBox(height: 6),
-                      const Text(
-                        'Análise detalhada de estoque e tendências de movimentação (Últimos 30 dias)',
-                        style: TextStyle(fontSize: 16, color: Colors.black54),
-                      ),
-                      const SizedBox(height: 24),
-                      if (_isLoading)
-                        const Center(child: CircularProgressIndicator())
-                      else if (_totalItensCadastrados == -1)
-                        Center(
-                          child: Column(
-                            children: [
-                              const Text(
-                                '❌ Falha ao carregar dados do servidor.',
-                              ),
-                              const SizedBox(height: 8),
-                              ElevatedButton(
-                                onPressed: _loadData,
-                                child: const Text('Tentar Novamente'),
-                              ),
-                            ],
-                          ),
-                        )
-                      else
-                        _buildInsightsGrid(),
-                      const SizedBox(height: 24),
+                      if (!isMobile) _buildDesktopHeader(isAuthorized: _isAuthorized),
+                      if (isMobile && !_isAuthorized) const SizedBox(height: 24), // Espaçamento para mobile
+                      
+                      // Conteúdo principal (Autorizado/Não Autorizado)
+                      centralContent,
                     ],
                   ),
                 ),
@@ -348,36 +348,40 @@ class _InsightsDashboardPageState extends State<InsightsDashboardPage>
 
   // --- Widgets de Estrutura ---
 
-  Widget _buildDesktopHeader() {
+  Widget _buildDesktopHeader({required bool isAuthorized}) {
     return Padding(
       padding: const EdgeInsets.only(bottom: 24.0),
       child: Row(
-        mainAxisAlignment: MainAxisAlignment.start,
+        mainAxisAlignment: MainAxisAlignment.spaceBetween,
         children: [
-          // Botão de toggle restaurado (menu)
-          IconButton(
-            icon: Icon(
-              _isRailExtended ? Icons.menu_open : Icons.menu,
-              color: metroBlue,
-            ),
-            onPressed: _toggleRail,
-            tooltip: _isRailExtended ? 'Recolher Menu' : 'Expandir Menu',
-          ),
-          const SizedBox(width: 12),
-          Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
+          Row(
             children: [
-              const Text(
-                'Dashboard de Insights',
-                style: TextStyle(
-                  fontSize: 28,
-                  fontWeight: FontWeight.bold,
+              IconButton(
+                icon: Icon(
+                  _isRailExtended ? Icons.menu_open : Icons.menu,
                   color: metroBlue,
                 ),
+                onPressed: _toggleRail,
+                tooltip: _isRailExtended ? 'Recolher Menu' : 'Expandir Menu',
               ),
-              Text(
-                'Análise detalhada de estoque e tendências de movimentação (Últimos 30 dias).',
-                style: TextStyle(fontSize: 16, color: Colors.grey.shade600),
+              const SizedBox(width: 12),
+              Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    'Dashboard',
+                    style: TextStyle(
+                      fontSize: 24,
+                      fontWeight: FontWeight.bold,
+                      color: metroBlue,
+                    ),
+                  ),
+                  if (!isAuthorized)
+                    Text(
+                      'Visão geral da gestão de estoque e movimentações.',
+                      style: TextStyle(fontSize: 16, color: Colors.grey.shade600),
+                    ),
+                ],
               ),
             ],
           ),
@@ -386,10 +390,95 @@ class _InsightsDashboardPageState extends State<InsightsDashboardPage>
     );
   }
 
+  // NOVO: Widget para tela de acesso restrito (Consistência de UI)
+  Widget _buildUnauthorizedContainer(BuildContext context) {
+    return Center(
+      child: Container(
+        padding: const EdgeInsets.all(32),
+        constraints: const BoxConstraints(maxWidth: 500),
+        decoration: BoxDecoration(
+          color: Colors.white,
+          borderRadius: BorderRadius.circular(12),
+          boxShadow: [
+            BoxShadow(
+              color: Colors.black.withOpacity(0.05),
+              blurRadius: 10,
+              offset: const Offset(0, 4),
+            ),
+          ],
+        ),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Icon(Icons.lock_outline, size: 64, color: alertRed),
+            const SizedBox(height: 16),
+            const Text(
+              'Acesso Restrito',
+              style: TextStyle(
+                fontSize: 24,
+                fontWeight: FontWeight.bold,
+                color: Colors.black87,
+              ),
+            ),
+            const SizedBox(height: 8),
+            Text(
+              'O Dashboard de Insights é exclusivo para administradores. Seu cargo atual é ${_currentRole == null ? 'Desconhecido' : _currentRole!.toUpperCase()}.',
+              textAlign: TextAlign.center,
+              style: TextStyle(fontSize: 16, color: Colors.grey.shade600),
+            ),
+            const SizedBox(height: 24),
+            ElevatedButton(
+              onPressed: () {
+                // Redireciona para a home (index 0)
+                Navigator.pushReplacementNamed(context, '/'); // Redireciona para a rota principal
+              },
+              style: ElevatedButton.styleFrom(
+                backgroundColor: metroBlue,
+                foregroundColor: Colors.white,
+                padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
+                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+              ),
+              child: const Text('Voltar para a Home'),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  // NOVO: Widget para conteúdo de Erro
+  Widget _buildErrorContent() {
+    return Center(
+      child: Column(
+        children: [
+          Icon(
+            Icons.error_outline,
+            size: 48,
+            color: alertRed,
+          ),
+          const SizedBox(height: 16),
+          const Text(
+            '❌ Falha ao carregar dados do servidor.',
+            style: TextStyle(fontSize: 16, color: Colors.black87),
+          ),
+          const SizedBox(height: 8),
+          ElevatedButton(
+            onPressed: _loadData,
+            style: ElevatedButton.styleFrom(
+              backgroundColor: metroBlue,
+              foregroundColor: Colors.white,
+            ),
+            child: const Text('Tentar Novamente'),
+          ),
+        ],
+      ),
+    );
+  }
+
   Widget _buildInsightsGrid() {
     final isMobile = MediaQuery.of(context).size.width < 600;
-    // Proporção um pouco menor para cards mais compactos
-    final chartAspectRatio = isMobile ? 0.95 : 1.25; 
+    // Proporção ajustada para cards mais compactos
+    final chartAspectRatio = isMobile ? 0.85 : 1.15;
 
     return Column(
       children: [
@@ -401,7 +490,6 @@ class _InsightsDashboardPageState extends State<InsightsDashboardPage>
         LayoutBuilder(
           builder: (context, constraints) {
             final crossAxisCount = constraints.maxWidth < 900 ? 1 : 2;
-            // CORREÇÃO: Removido flc.GridView
         return GridView.count(
           shrinkWrap: true,
           physics: const NeverScrollableScrollPhysics(),
@@ -432,14 +520,13 @@ class _InsightsDashboardPageState extends State<InsightsDashboardPage>
         LayoutBuilder(
           builder: (context, constraints) {
             final crossAxisCount = constraints.maxWidth < 900 ? 1 : 2;
-            // CORREÇÃO: Removido flc.GridView
             return GridView.count(
               shrinkWrap: true,
               physics: const NeverScrollableScrollPhysics(),
               crossAxisCount: crossAxisCount,
               crossAxisSpacing: 16.0,
               mainAxisSpacing: 16.0,
-              childAspectRatio: isMobile ? 0.9 : chartAspectRatio,
+              childAspectRatio: isMobile ? 0.85 : chartAspectRatio,
               children: [
                 // GRÁFICO 3: Tendência de Movimentação (Line Chart)
                 _buildChartCard(
@@ -463,14 +550,13 @@ class _InsightsDashboardPageState extends State<InsightsDashboardPage>
         LayoutBuilder(
           builder: (context, constraints) {
             final crossAxisCount = constraints.maxWidth < 900 ? 1 : 2;
-            // CORREÇÃO: Removido flc.GridView
             return GridView.count(
               shrinkWrap: true,
               physics: const NeverScrollableScrollPhysics(),
               crossAxisCount: crossAxisCount,
               crossAxisSpacing: 16.0,
               mainAxisSpacing: 16.0,
-              childAspectRatio: isMobile ? 0.9 : chartAspectRatio,
+              childAspectRatio: isMobile ? 0.85 : chartAspectRatio,
               children: [
                 // GRÁFICO 5: Top 5 Materiais Críticos (Vertical Bar Chart - Estilizado)
                 _buildChartCard(
@@ -500,31 +586,31 @@ class _InsightsDashboardPageState extends State<InsightsDashboardPage>
     double? height,
   }) {
     return Card(
-      elevation: 4,
+      elevation: 3, 
       color: Colors.white,
       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
       child: Container(
         height: height,
-        padding: const EdgeInsets.all(18.0),
+        padding: const EdgeInsets.all(16.0),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             Row(
               children: [
                 Container(
-                  padding: const EdgeInsets.all(6),
+                  padding: const EdgeInsets.all(4),
                   decoration: BoxDecoration(
                     color: metroBlue.withOpacity(0.08),
                     borderRadius: BorderRadius.circular(8),
                   ),
-                  child: Icon(icon, color: metroBlue, size: 18),
+                  child: Icon(icon, color: metroBlue, size: 16),
                 ),
-                const SizedBox(width: 10),
+                const SizedBox(width: 8),
                 Expanded(
                   child: Text(
                     title,
                     style: const TextStyle(
-                      fontSize: 16,
+                      fontSize: 15,
                       fontWeight: FontWeight.w600,
                       color: Colors.black87,
                     ),
@@ -533,9 +619,9 @@ class _InsightsDashboardPageState extends State<InsightsDashboardPage>
                 ),
               ],
             ),
-            const SizedBox(height: 12),
+            const SizedBox(height: 10),
             const Divider(height: 1),
-            const SizedBox(height: 12),
+            const SizedBox(height: 10),
             Expanded(
               child: Padding(
                 padding: const EdgeInsets.symmetric(horizontal: 4.0),
@@ -555,15 +641,18 @@ class _InsightsDashboardPageState extends State<InsightsDashboardPage>
       builder: (context, constraints) {
         final double width = constraints.maxWidth;
         final bool isMobile = width < 600;
-        final bool isCompact = width < 520;
-        final int count = isCompact
-            ? 1
-            : (width < 900 ? 2 : 4);
+        
+        // CORREÇÃO: Aumenta o limite para 450px para 1 coluna
+        final int count = width < 900 
+            ? (width < 450 ? 1 : 2)
+            : 4; 
+
+        // CORREÇÃO: Diminui o Aspect Ratio para dar mais ALTURA ao card.
         final double childRatio = count == 1
-            ? 1.4
+            ? 3.0 // Reduzido de 4.0 para 3.0 para dar mais altura ao card em 1 coluna (CRÍTICO)
             : count == 2
-                ? 1.15
-                : 2.2;
+                ? 2.5 // Reduzido de 3.0 para 2.5 para mais altura em 2 colunas
+                : 2.8; // Desktop (4 colunas)
 
         List<Widget> indicators = [
           _buildIndicator(
@@ -598,7 +687,6 @@ class _InsightsDashboardPageState extends State<InsightsDashboardPage>
           ),
         ];
 
-        // CORREÇÃO: Removido flc.GridView
         return GridView.count(
           shrinkWrap: true,
           physics: const NeverScrollableScrollPhysics(),
@@ -612,7 +700,7 @@ class _InsightsDashboardPageState extends State<InsightsDashboardPage>
     );
   }
 
-  // Widget de Indicador (com fonte menor para o valor, mitigando overflow)
+  // Widget de Indicador (compactado)
   Widget _buildIndicator(
     String title,
     String value,
@@ -622,48 +710,49 @@ class _InsightsDashboardPageState extends State<InsightsDashboardPage>
     String? subtitle,
   }) {
     return Card(
-      elevation: 3,
+      elevation: 2,
       color: Colors.white,
       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
       child: Padding(
-        padding: const EdgeInsets.all(12.0),
+        padding: const EdgeInsets.all(8.0), // Aumentado para 8.0 para margem de segurança
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
+          mainAxisAlignment: MainAxisAlignment.spaceBetween,
           children: [
             Row(
               children: [
                 Container(
-                  width: 36,
-                  height: 36,
+                  width: 28, 
+                  height: 28, 
                   decoration: BoxDecoration(
                     color: color.withOpacity(0.1),
-                    borderRadius: BorderRadius.circular(10),
+                    borderRadius: BorderRadius.circular(6), 
                   ),
-                  child: Icon(icon, color: color, size: 18),
+                  child: Icon(icon, color: color, size: 14), // Revertido para 14
                 ),
-                const SizedBox(width: 10),
+                const SizedBox(width: 8), // Revertido para 8
                 Expanded(
                   child: Text(
                     title,
                     style: TextStyle(
-                      fontSize: isMobile ? 12 : 13,
+                      fontSize: isMobile ? 10 : 11, // Fonte 10px em mobile
                       color: Colors.grey.shade700,
                       fontWeight: FontWeight.w600,
                     ),
-                    maxLines: 2,
-                    overflow: TextOverflow.ellipsis,
+                    maxLines: 1, // Essencial: Limita a 1 linha
+                    overflow: TextOverflow.ellipsis, // Essencial para evitar overflow
                   ),
                 ),
               ],
             ),
-            const SizedBox(height: 10),
+            const SizedBox(height: 4), 
             FittedBox(
               fit: BoxFit.scaleDown,
               alignment: Alignment.centerLeft,
               child: Text(
                 value,
                 style: TextStyle(
-                  fontSize: isMobile ? 24 : 32,
+                  fontSize: isMobile ? 20 : 24, 
                   fontWeight: FontWeight.bold,
                   color: Colors.black87,
                 ),
@@ -671,16 +760,17 @@ class _InsightsDashboardPageState extends State<InsightsDashboardPage>
                 overflow: TextOverflow.ellipsis,
               ),
             ),
-            if (subtitle != null) ...[
-              const SizedBox(height: 4),
+            // Subtítulo reintroduzido e garantido que caiba
+            if (subtitle != null) ...[ 
+              const SizedBox(height: 2), // Reduzido para 2
               Text(
                 subtitle,
                 style: TextStyle(
-                  fontSize: 11,
+                  fontSize: isMobile ? 10 : 11, // Fonte 10px em mobile (CRÍTICO)
                   color: Colors.grey.shade600,
                 ),
-                maxLines: 2,
-                overflow: TextOverflow.ellipsis,
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis, // CRÍTICO: Não vai estourar
               ),
             ],
           ],
@@ -700,19 +790,28 @@ class _InsightsDashboardPageState extends State<InsightsDashboardPage>
         child: Text("Sem dados de quantidade em estoque para exibição."),
       );
 
+    // CORREÇÃO: Substituir chartBlueAccent por blueChart na lista de cores
+    final List<StockTypeData> correctedDistribution = _stockDistribution.map((data) {
+      Color correctedColor = data.color;
+      if (data.color == chartBlueAccent) {
+        correctedColor = blueChart;
+      }
+      return StockTypeData(data.title, data.totalQuantity, correctedColor);
+    }).toList();
+
     return flc.PieChart(
       flc.PieChartData(
-        sectionsSpace: 4, 
-        centerSpaceRadius: 50, // Donut Chart
+        sectionsSpace: 4,
+        centerSpaceRadius: 50,
         startDegreeOffset: 270,
-        sections: _stockDistribution.map((data) {
+        sections: correctedDistribution.map((data) {
           final percentage = (data.totalQuantity / total) * 100;
 
           return flc.PieChartSectionData(
             color: data.color.withOpacity(0.9),
             value: data.totalQuantity.toDouble(),
-            title: percentage < 5 ? '' : '${percentage.toStringAsFixed(1)}%', 
-            radius: 70, 
+            title: percentage < 5 ? '' : '${percentage.toStringAsFixed(1)}%',
+            radius: 70,
             titleStyle: const TextStyle(
               fontSize: 13,
               fontWeight: FontWeight.bold,
@@ -742,12 +841,13 @@ class _InsightsDashboardPageState extends State<InsightsDashboardPage>
           barRods: [
             flc.BarChartRodData(
               toY: totalMov,
+              // CORREÇÃO: Trocar chartBlueAccent para blueChart
               color: type == 'giro'
-                  ? chartPrimary.withOpacity(0.8)
+                  ? blueChart.withOpacity(0.9)  // MUDADO
                   : type == 'consumo'
-                      ? alertRed.withOpacity(0.8)
-                      : successGreen.withOpacity(0.8),
-              width: 30, 
+                      ? alertRed.withOpacity(0.9)
+                      : successGreen.withOpacity(0.9),
+              width: 40,
               borderRadius: const BorderRadius.only(
                 topLeft: Radius.circular(8),
                 topRight: Radius.circular(8),
@@ -923,7 +1023,7 @@ class _InsightsDashboardPageState extends State<InsightsDashboardPage>
                 flc.LineChartBarData(
                   spots: spotsEntrada,
                   isCurved: true,
-                  color: successGreen, // Entradas
+                  color: successGreen, // Entradas (Verde)
                   barWidth: 3,
                   isStrokeCapRound: true,
                   dotData: const flc.FlDotData(show: true, getDotPainter: _getCustomDotPainter),
@@ -932,7 +1032,7 @@ class _InsightsDashboardPageState extends State<InsightsDashboardPage>
                 flc.LineChartBarData(
                   spots: spotsSaida,
                   isCurved: true,
-                  color: alertRed, // Saídas
+                  color: alertRed, // Saídas (Vermelho)
                   barWidth: 3,
                   isStrokeCapRound: true,
                   dotData: const flc.FlDotData(show: true, getDotPainter: _getCustomDotPainter),
@@ -989,11 +1089,11 @@ class _InsightsDashboardPageState extends State<InsightsDashboardPage>
                 if (value >= 0 && value < top5.length) {
                   return flc.SideTitleWidget(
                     axisSide: meta.axisSide,
-                    angle: -0.78, // 45 graus
+                    angle: -0.78,
                     child: Padding(
                       padding: const EdgeInsets.only(top: 8.0),
                       child: Text(
-                        top5[value.toInt()].key.split(' ').first, 
+                        top5[value.toInt()].key.split(' ').first,
                         style: const TextStyle(
                           color: Colors.black,
                           fontWeight: FontWeight.bold,
@@ -1042,8 +1142,8 @@ class _InsightsDashboardPageState extends State<InsightsDashboardPage>
             barRods: [
               flc.BarChartRodData(
                 toY: top5[index].value,
-                color: chartPrimary.withOpacity(0.8), // Nova cor
-                width: 30,
+                color: blueChart.withOpacity(0.9),  // MUDADO
+                width: 40,
                 borderRadius: const BorderRadius.only(
                   topLeft: Radius.circular(8),
                   topRight: Radius.circular(8),
@@ -1075,8 +1175,8 @@ class _InsightsDashboardPageState extends State<InsightsDashboardPage>
             flc.BarChartRodData(
               toY: (material.quantidade as int).toDouble(),
               // A barra mais escura para os itens mais críticos
-              color: alertRed, 
-              width: 30,
+              color: alertRed.withOpacity(0.9), // Cor consistente
+              width: 40, // Aumentado
               borderRadius: const BorderRadius.only(
                 topLeft: Radius.circular(8),
                 topRight: Radius.circular(8),

@@ -102,14 +102,16 @@ class _SidebarState extends State<Sidebar> {
             expanded,
             selectedIndex,
           ),
-          _sidebarItem(
-            context,
-            Icons.data_thresholding_outlined,
-            'Dashboard',
-            1,
-            expanded,
-            selectedIndex,
-          ),
+          // Item de Dashboard agora visível apenas para admin
+          if ((_role ?? '') == 'admin')
+            _sidebarItem(
+              context,
+              Icons.data_thresholding_outlined,
+              'Dashboard',
+              1,
+              expanded,
+              selectedIndex,
+            ),
           _sidebarItem(
             context,
             Icons.inventory_2,
@@ -204,6 +206,9 @@ class _SidebarState extends State<Sidebar> {
             );
             break;
           case 1: // Dashboard
+            // Se não for admin, esta rota não será alcançada pelo menu, mas mantemos o fallback:
+            if ((_role ?? '') != 'admin') return; 
+
             Navigator.pushReplacement(
               context,
               MaterialPageRoute(builder: (_) => const InsightsDashboardPage()),
@@ -329,4 +334,11 @@ class _SidebarState extends State<Sidebar> {
       ),
     );
   }
+}
+
+// Classe auxiliar para a legenda
+class LegendItem {
+  final Color color;
+  final String title;
+  LegendItem({required this.color, required this.title});
 }

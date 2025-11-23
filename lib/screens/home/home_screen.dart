@@ -526,9 +526,9 @@ class _HomeScreenState extends State<HomeScreen>
                 left: !isMobile ? (_isRailExtended ? 180 : 70) : 0,
               ),
               child: ScrollConfiguration(
-                behavior: ScrollConfiguration.of(context).copyWith(
-                  scrollbars: false,
-                ),
+                behavior: ScrollConfiguration.of(
+                  context,
+                ).copyWith(scrollbars: false),
                 child: SingleChildScrollView(
                   padding: contentPadding,
                   child: Column(
@@ -743,55 +743,67 @@ class _HomeScreenState extends State<HomeScreen>
     );
   }
 
-  // --- MUDANÇA: ÍCONES DE SETA VERDE/VERMELHA E ADICIONAR LOCAL/BASE (MANTIDA) ---
   Widget _buildMovimentacaoRow(Movimentacao mov) {
-    // Formata a hora, ex: "14:32"
+    final String dataFormatada = DateFormat('dd/MM').format(mov.timestamp);
     final String horaFormatada = DateFormat('HH:mm').format(mov.timestamp);
 
-    // Lógica de Ícone e Cor
     final bool isEntrada = mov.tipo == 'Entrada';
     final IconData iconData = isEntrada
         ? Icons.arrow_downward
         : Icons.arrow_upward;
     final Color iconColor = isEntrada ? Colors.green : Colors.red;
 
-    // Assumindo que a classe Movimentacao tem um campo 'local'
     final String local = mov.local;
 
     return Padding(
       padding: const EdgeInsets.symmetric(vertical: 6.0, horizontal: 4.0),
       child: Row(
         children: [
-          Icon(iconData, color: iconColor, size: 20), // Ícone ATUALIZADO
+          Icon(iconData, color: iconColor, size: 20),
           const SizedBox(width: 12),
           Expanded(
             child: Text(
               mov.descricao,
               style: const TextStyle(color: Colors.black87, fontSize: 14),
-              overflow: TextOverflow.ellipsis, // Evita quebra de linha
+              overflow: TextOverflow.ellipsis,
               maxLines: 1,
             ),
           ),
-          const SizedBox(width: 8),
-          // Adiciona a base/local antes da hora
+
           Text(
             local,
             style: TextStyle(
               color: Colors.grey.shade600,
               fontSize: 12,
-              fontWeight: FontWeight.w500, // Leve destaque
+              fontWeight: FontWeight.w600, 
             ),
           ),
-          const SizedBox(width: 8),
+
+          const SizedBox(width: 15),
+
+          Text(
+            dataFormatada,
+            style: TextStyle(
+              color: Colors.grey.shade500,
+              fontSize: 12,
+              fontWeight: FontWeight.bold, 
+            ),
+          ),
+
+          const SizedBox(width: 4),
+
           Text(
             horaFormatada,
-            style: TextStyle(color: Colors.grey.shade500, fontSize: 12),
+            style: TextStyle(
+              color: Colors.grey.shade500,
+              fontSize: 12,
+              fontWeight: FontWeight.normal, 
+            ),
           ),
         ],
       ),
     );
   }
-  // --- FIM DA MUDANÇA ---
 
   Widget _buildRecentMovimentacoesContent() {
     if (_isLoadingRecent) {
@@ -1340,7 +1352,9 @@ class _HomeScreenState extends State<HomeScreen>
     // 2. Obter os 3 mais críticos (ordenados por severidade decrescente)
     final sortedAlerts = List<AlertItem>.from(allAlerts);
     sortedAlerts.sort((a, b) => b.severity.compareTo(a.severity));
-    final top3Alerts = sortedAlerts.take(3).toList(); // Filtra para os 3 mais críticos
+    final top3Alerts = sortedAlerts
+        .take(3)
+        .toList(); // Filtra para os 3 mais críticos
 
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
@@ -1402,9 +1416,9 @@ class _HomeScreenState extends State<HomeScreen>
                   ),
                 )
               : ScrollConfiguration(
-                  behavior: ScrollConfiguration.of(context).copyWith(
-                    scrollbars: false,
-                  ),
+                  behavior: ScrollConfiguration.of(
+                    context,
+                  ).copyWith(scrollbars: false),
                   child: ListView.builder(
                     padding: EdgeInsets.zero,
                     primary: false,
@@ -1473,7 +1487,9 @@ class _HomeScreenState extends State<HomeScreen>
                 onPressed: () {
                   // Ação: Iniciar geração do PDF (mock)
                   ScaffoldMessenger.of(context).showSnackBar(
-                    SnackBar(content: Text('Iniciando geração PDF para $title')),
+                    SnackBar(
+                      content: Text('Iniciando geração PDF para $title'),
+                    ),
                   );
                 },
               ),
@@ -1487,7 +1503,9 @@ class _HomeScreenState extends State<HomeScreen>
                 onPressed: () {
                   // Ação: Iniciar geração do Excel (mock)
                   ScaffoldMessenger.of(context).showSnackBar(
-                    SnackBar(content: Text('Iniciando geração Excel para $title')),
+                    SnackBar(
+                      content: Text('Iniciando geração Excel para $title'),
+                    ),
                   );
                 },
               ),
@@ -1501,7 +1519,7 @@ class _HomeScreenState extends State<HomeScreen>
   // --- MUDANÇA: CONTEÚDO DO CARD DE RELATÓRIOS ATUALIZADO (USA NOVO HELPER E LÓGICA) ---
   Widget _buildReportsCardContent() {
     final Color reportColor = Colors.deepPurple;
-    
+
     // Lista de relatórios disponíveis (agora usada para contagem e exibição)
     final List<Map<String, dynamic>> availableReports = [
       {
@@ -1560,9 +1578,9 @@ class _HomeScreenState extends State<HomeScreen>
         // 2. Lista de prévia (Usa ListView para rolar se necessário)
         Expanded(
           child: ScrollConfiguration(
-            behavior: ScrollConfiguration.of(context).copyWith(
-              scrollbars: false,
-            ),
+            behavior: ScrollConfiguration.of(
+              context,
+            ).copyWith(scrollbars: false),
             child: ListView.builder(
               padding: EdgeInsets.zero,
               primary: false,
@@ -1584,6 +1602,7 @@ class _HomeScreenState extends State<HomeScreen>
       ],
     );
   }
+
   // --- FIM DA MUDANÇA ---
 }
 
