@@ -1152,7 +1152,7 @@ class _AlertsPageState extends State<AlertsPage>
                       children: [
                         if (!isMobile) const SizedBox(height: 8),
                         const Text(
-                          'Aqui você verifica os alertas.',
+                          'Verifique todos os alertas emitidos',
                           style: TextStyle(fontSize: 16, color: Colors.black54),
                         ),
                         const SizedBox(height: 24),

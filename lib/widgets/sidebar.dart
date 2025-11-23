@@ -25,6 +25,7 @@ class Sidebar extends StatefulWidget {
 }
 
 class _SidebarState extends State<Sidebar> {
+  // Armazena a permissão do usuário para controlar a visibilidade de itens (ex: 'admin')
   String? _role;
 
   @override
@@ -33,12 +34,13 @@ class _SidebarState extends State<Sidebar> {
     _loadRole();
   }
 
+  /// Carrega o nível de permissão (role) do usuário logado.
   Future<void> _loadRole() async {
     try {
       final r = await AuthService().role;
       if (mounted) setState(() => _role = r);
     } catch (_) {
-      // ignore
+      // Falha ao carregar a role é ignorada; a role permanece null
     }
   }
 
@@ -83,7 +85,6 @@ class _SidebarState extends State<Sidebar> {
           ),
           const SizedBox(height: 20),
 
-          // PERFIL - usando o mesmo helper que os outros itens
           _sidebarItem(
             context,
             Icons.person,
@@ -93,7 +94,6 @@ class _SidebarState extends State<Sidebar> {
             selectedIndex,
           ),
 
-          // Itens do menu
           _sidebarItem(
             context,
             Icons.grid_view_outlined,
@@ -142,6 +142,7 @@ class _SidebarState extends State<Sidebar> {
             expanded,
             selectedIndex,
           ),
+          // Item visível apenas para usuários 'admin'
           if ((_role ?? '') == 'admin')
             _sidebarItem(
               context,
@@ -167,6 +168,7 @@ class _SidebarState extends State<Sidebar> {
     );
   }
 
+  /// Constrói um item de menu lateral com lógica de navegação.
   Widget _sidebarItem(
     BuildContext context,
     IconData icon,
@@ -179,6 +181,7 @@ class _SidebarState extends State<Sidebar> {
 
     return InkWell(
       onTap: () async {
+        // Se o item já estiver selecionado, apenas retorna (ou fecha o drawer no mobile)
         if (isSelected) {
           if (MediaQuery.of(context).size.width < 600) {
             Navigator.pop(context);
@@ -186,56 +189,58 @@ class _SidebarState extends State<Sidebar> {
           return;
         }
 
+        // Lógica de navegação para cada índice
         switch (index) {
-          case -1:
+          case -1: // Perfil
             Navigator.pushReplacement(
               context,
               MaterialPageRoute(builder: (_) => const AdminPage()),
             );
             break;
-          case 0:
+          case 0: // Home
             Navigator.pushReplacement(
               context,
               MaterialPageRoute(builder: (_) => const HomeScreen()),
             );
             break;
-          case 1:
+          case 1: // Dashboard
             Navigator.pushReplacement(
               context,
               MaterialPageRoute(builder: (_) => const InsightsDashboardPage()),
             );
             break;
-          case 2:
+          case 2: // Estoque
             Navigator.pushReplacement(
               context,
               MaterialPageRoute(builder: (_) => const ToolPage()),
             );
             break;
-          case 3:
+          case 3: // Movimentações
             Navigator.pushReplacement(
               context,
               MaterialPageRoute(builder: (_) => const MovimentacoesPage()),
             );
             break;
-          case 4:
+          case 4: // Alertas
             Navigator.pushReplacement(
               context,
               MaterialPageRoute(builder: (_) => const AlertsPage()),
             );
             break;
-          case 5:
+          case 5: // Relatórios
             Navigator.pushReplacement(
               context,
               MaterialPageRoute(builder: (_) => const RelatoriosPage()),
             );
             break;
-          case 6:
+          case 6: // Gerenciar usuários (Admin)
             Navigator.pushReplacement(
               context,
               MaterialPageRoute(builder: (_) => const GerenciarUsuarios()),
             );
             break;
-          case 7:
+          case 7: // Sair (Logout)
+            // Mostra um diálogo de confirmação
             final shouldLogout = await showDialog<bool>(
               context: context,
               builder: (context) {
@@ -267,6 +272,7 @@ class _SidebarState extends State<Sidebar> {
               try {
                 await AuthService().logout();
               } catch (_) {}
+              // Redireciona para a tela de login, removendo todas as rotas anteriores
               if (!context.mounted) return;
               Navigator.pushAndRemoveUntil(
                 context,
@@ -284,9 +290,11 @@ class _SidebarState extends State<Sidebar> {
           horizontal: expanded ? 16 : 0,
         ),
         decoration: BoxDecoration(
+          // Aplica o destaque visual se o item for o selecionado
           color: isSelected
               ? Colors.white.withAlpha((0.2 * 255).round())
               : Colors.transparent,
+          // Adiciona a barra lateral branca de seleção
           border: isSelected
               ? const Border(left: BorderSide(color: Colors.white, width: 3))
               : null,
@@ -308,6 +316,7 @@ class _SidebarState extends State<Sidebar> {
                   ),
                 ],
               )
+            // Layout contraído (apenas ícone com Tooltip)
             : Column(
                 mainAxisSize: MainAxisSize.min,
                 children: [

@@ -1,19 +1,21 @@
 import 'dart:ui';
 import 'package:flutter/material.dart';
-import 'package:pi_metro_2025_2/services/auth_service.dart'; // Verifique se este caminho está correto
+import 'package:pi_metro_2025_2/services/auth_service.dart'; // Verifica se este caminho está correto para o serviço de autenticação
 
+/// Mostra o pop-up de recuperação de senha com efeito de fundo.
 Future<void> showEsqueciSenhaPopup(BuildContext context) {
   final metroBlue = const Color(0xFF001489);
-  final metroLightBlue = const Color(0xFF3B62FF);
 
   return showGeneralDialog(
     context: context,
     barrierDismissible: true,
     barrierLabel: 'Esqueci a Senha',
+    // Escurece o fundo
     barrierColor: Colors.black.withAlpha((0.36 * 255).round()),
     transitionDuration: const Duration(milliseconds: 260),
     pageBuilder: (ctx, anim1, anim2) {
       return BackdropFilter(
+        // Aplica o efeito blur no fundo
         filter: ImageFilter.blur(sigmaX: 6.0, sigmaY: 6.0),
         child: SafeArea(
           child: Center(
@@ -31,13 +33,13 @@ Future<void> showEsqueciSenhaPopup(BuildContext context) {
                       BoxShadow(
                         color: Colors.black.withAlpha((0.12 * 255).round()),
                         blurRadius: 20,
-                        offset: Offset(0, 10),
+                        offset: const Offset(0, 10),
                       ),
                     ],
                   ),
                   child: _EsqueciSenhaContent(
                     metroBlue: metroBlue,
-                    metroLightBlue: metroLightBlue,
+                    metroLightBlue: metroBlue,
                   ),
                 ),
               ),
@@ -46,6 +48,7 @@ Future<void> showEsqueciSenhaPopup(BuildContext context) {
         ),
       );
     },
+    // Transição com fade e leve scale
     transitionBuilder: (context, animation, secondaryAnimation, child) {
       final curved = Curves.easeOut.transform(animation.value);
       return Opacity(
@@ -72,14 +75,19 @@ class _EsqueciSenhaContent extends StatefulWidget {
 class _EsqueciSenhaContentState extends State<_EsqueciSenhaContent> {
   final _formKey = GlobalKey<FormState>();
   final TextEditingController _email = TextEditingController();
+  
+  // Flag para controlar o estado de envio e mostrar o loading
   bool _sending = false;
 
+  // Instância do serviço de autenticação
   final AuthService _authService = AuthService();
+  
+  // Regex para validar o domínio @metrosp.com.br
   static final RegExp _metroEmailRegex = RegExp(
     r'^[a-z0-9._%+-]+@metrosp\.com\.br$',
   );
 
-  bool _isHover = false;
+  // Estado para o efeito de hover do botão "Cancelar"
   bool _isHoverCancel = false;
 
   @override
@@ -88,6 +96,7 @@ class _EsqueciSenhaContentState extends State<_EsqueciSenhaContent> {
     super.dispose();
   }
 
+  /// Decoração padrão para os campos de texto.
   InputDecoration _fieldDecoration({required String label, Widget? prefix}) {
     return InputDecoration(
       labelText: label,
@@ -114,16 +123,22 @@ class _EsqueciSenhaContentState extends State<_EsqueciSenhaContent> {
     );
   }
 
+  /// Lógica de envio do email de recuperação.
   void _send() async {
+    // Valida o formulário antes de prosseguir
     if (!_formKey.currentState!.validate()) return;
+    
+    // Ativa o loading/desabilita o botão
     setState(() => _sending = true);
 
     final email = _email.text.trim().toLowerCase();
 
     try {
+      // Chama o serviço para enviar o email de reset
       await _authService.sendPasswordResetEmail(email: email);
 
       if (mounted) {
+        // Fecha o pop-up e mostra notificação de sucesso
         Navigator.of(context).pop();
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(
@@ -134,6 +149,7 @@ class _EsqueciSenhaContentState extends State<_EsqueciSenhaContent> {
       }
     } catch (e) {
       if (mounted) {
+        // Em caso de erro, mostra uma notificação vermelha
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
             content: Text(
@@ -145,96 +161,98 @@ class _EsqueciSenhaContentState extends State<_EsqueciSenhaContent> {
       }
     } finally {
       if (mounted) {
+        // Finaliza o loading
         setState(() => _sending = false);
       }
     }
   }
 
+  /// Constrói o botão "Enviar" (Metro Blue, sem hover, com loading)
   Widget _buildSendButton() {
-    final borderColor = const Color(0xFF3654FF);
+    final metroBlue = widget.metroBlue;
     final borderRadius = BorderRadius.circular(11);
     final duration = const Duration(milliseconds: 300);
 
     final bool isDisabled = _sending;
-    final Color currentBorderColor = isDisabled ? Colors.grey : borderColor;
-    final Color currentBackgroundColor = isDisabled
+    
+    // Define cores fixas para o botão (ou cinza se estiver desabilitado)
+    final Color currentBackgroundColor = isDisabled 
         ? Colors.grey.shade300
-        : (_isHover ? borderColor : Colors.transparent);
-    final Color currentTextColor = isDisabled
+        : metroBlue; 
+        
+    final Color currentBorderColor = isDisabled 
+        ? Colors.grey.shade400
+        : metroBlue; 
+        
+    // Define a cor do texto/ícone
+    final Color currentTextColor = isDisabled 
         ? Colors.grey.shade600
-        : (_isHover ? Colors.white : borderColor);
+        : Colors.white; 
 
-    return MouseRegion(
-      onEnter: (_) => setState(() => _isHover = true),
-      onExit: (_) => setState(() => _isHover = false),
-      child: GestureDetector(
-        // Não mantemos estado de pressed aqui para evitar campo não usado
-        onTap: isDisabled ? null : _send,
-        child: AnimatedContainer(
-          duration: duration,
-          curve: Curves.easeOut,
-          height: 46,
-          decoration: BoxDecoration(
-            color: currentBackgroundColor,
-            border: Border.all(color: currentBorderColor, width: 2),
-            borderRadius: borderRadius,
-          ),
-          child: Stack(
-            alignment: Alignment.center,
-            children: [
-              AnimatedOpacity(
-                duration: duration,
-                opacity: _sending ? 0.0 : 1.0,
-                child: Row(
-                  mainAxisAlignment: MainAxisAlignment.center,
-                  children: [
-                    AnimatedContainer(
-                      duration: duration,
-                      transform: Matrix4.translationValues(
-                        _isHover && !isDisabled ? 5.0 : 0.0,
-                        0.0,
-                        0.0,
-                      ),
-                      child: Icon(
-                        Icons.arrow_forward,
-                        size: 20,
-                        color: currentTextColor,
-                      ),
-                    ),
-                    const SizedBox(width: 10),
-                    Text(
-                      'Enviar',
-                      style: TextStyle(
-                        color: currentTextColor,
-                        fontWeight: FontWeight.bold,
-                      ),
-                    ),
-                  ],
-                ),
-              ),
-              if (_sending)
-                SizedBox(
-                  height: 18,
-                  width: 18,
-                  child: CircularProgressIndicator(
-                    strokeWidth: 2,
-                    valueColor: AlwaysStoppedAnimation<Color>(
-                      Colors.grey.shade600,
+    // Ação de clique: chama _send se não estiver enviando
+    return GestureDetector(
+      onTap: isDisabled ? null : _send,
+      child: AnimatedContainer(
+        duration: duration,
+        curve: Curves.easeOut,
+        height: 46,
+        decoration: BoxDecoration(
+          color: currentBackgroundColor,
+          border: Border.all(color: currentBorderColor, width: 2),
+          borderRadius: borderRadius,
+        ),
+        child: Stack(
+          alignment: Alignment.center,
+          children: [
+            // Conteúdo do botão (Texto e Ícone)
+            AnimatedOpacity(
+              duration: duration,
+              opacity: _sending ? 0.0 : 1.0,
+              child: Row(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  Icon(
+                    Icons.arrow_forward,
+                    size: 20,
+                    color: currentTextColor,
+                  ),
+                  const SizedBox(width: 10),
+                  Text(
+                    'Enviar',
+                    style: TextStyle(
+                      color: currentTextColor,
+                      fontWeight: FontWeight.bold,
                     ),
                   ),
+                ],
+              ),
+            ),
+            // Indicador de loading
+            if (_sending)
+              SizedBox(
+                height: 18,
+                width: 18,
+                child: CircularProgressIndicator(
+                  strokeWidth: 2,
+                  // Cor branca para contraste
+                  valueColor: AlwaysStoppedAnimation<Color>(
+                    Colors.white,
+                  ),
                 ),
-            ],
-          ),
+              ),
+          ],
         ),
       ),
     );
   }
 
+  /// Constrói o botão "Cancelar" (Mantém o efeito de hover sutil).
   Widget _buildCancelButton() {
     final borderColor = widget.metroBlue;
     final borderRadius = BorderRadius.circular(11);
     final duration = const Duration(milliseconds: 220);
 
+    // Calcula a cor de fundo com base no hover
     final backgroundColor = _isHoverCancel
         ? widget.metroBlue.withAlpha((0.08 * 255).round())
         : Colors.transparent;
@@ -243,6 +261,7 @@ class _EsqueciSenhaContentState extends State<_EsqueciSenhaContent> {
       onEnter: (_) => setState(() => _isHoverCancel = true),
       onExit: (_) => setState(() => _isHoverCancel = false),
       child: GestureDetector(
+        // Se não estiver enviando, fecha o pop-up
         onTap: _sending ? null : () => Navigator.of(context).pop(),
         child: AnimatedContainer(
           duration: duration,
@@ -274,6 +293,7 @@ class _EsqueciSenhaContentState extends State<_EsqueciSenhaContent> {
     return Column(
       mainAxisSize: MainAxisSize.min,
       children: [
+        // Título e mensagem de instrução
         Column(
           children: [
             Text(
@@ -294,6 +314,7 @@ class _EsqueciSenhaContentState extends State<_EsqueciSenhaContent> {
           ],
         ),
         const SizedBox(height: 18),
+        // Estrutura do formulário
         Form(
           key: _formKey,
           child: Column(
@@ -309,20 +330,24 @@ class _EsqueciSenhaContentState extends State<_EsqueciSenhaContent> {
                 validator: (v) {
                   if (v == null || v.trim().isEmpty) return 'Informe o email';
                   final email = v.trim().toLowerCase();
+                  // Validação 1: Checa formato básico de email
                   if (!RegExp(r'^[^@]+@[^@]+\.[^@]+').hasMatch(email)) {
                     return 'Email inválido';
                   }
+                  // Validação 2: Exige o domínio @metrosp.com.br
                   if (!_metroEmailRegex.hasMatch(email)) {
                     return 'Use um e-mail @metrosp.com.br';
                   }
                   return null;
                 },
+                // Permite o envio ao pressionar Enter
                 onFieldSubmitted: (_) => _send(),
               ),
             ],
           ),
         ),
         const SizedBox(height: 20),
+        // Linha com os botões de ação
         Row(
           children: [
             Expanded(child: _buildCancelButton()),

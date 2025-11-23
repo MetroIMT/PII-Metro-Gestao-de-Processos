@@ -1,17 +1,14 @@
-import 'package:flutter/material.dart';
+﻿import 'package:flutter/material.dart';
 import 'dart:math';
 import 'estoque_page.dart';
 import 'alerts_page.dart';
 import 'reports_page.dart';
-import 'estoque_categorias_page.dart';
-import 'movimentacoes_page.dart'; // Importar a nova página
+import 'movimentacoes_page.dart';
 import 'tool_page.dart';
-// Importa os *modelos* AlertItem e AlertType, mas não o repositório estático
 import '../../repositories/alert_repository.dart' show AlertItem, AlertType;
 import '../../repositories/movimentacao_repository.dart';
 import '../../models/movimentacao.dart';
 import 'package:intl/intl.dart';
-import 'gerenciar_usuarios.dart';
 import '../../widgets/sidebar.dart';
 import '../../services/material_service.dart';
 import '../../services/movimentacao_service.dart';

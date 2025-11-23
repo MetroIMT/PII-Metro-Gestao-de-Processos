@@ -24,6 +24,7 @@ class _GerenciarUsuariosState extends State<GerenciarUsuarios>
   // Dados
   final UserService _userService = UserService();
   List<User> _members = [];
+  List<User> _filteredMembers = [];
   bool _isLoading = false;
   String? _errorMessage;
   String? _currentUserId;
@@ -31,7 +32,12 @@ class _GerenciarUsuariosState extends State<GerenciarUsuarios>
   final Set<String> _processingIds = <String>{};
 
   final Color metroBlue = const Color(0xFF001489);
-  final Color backgroundColor = const Color.fromARGB(255, 255, 255, 255);
+
+  // NOVO: Estado para filtros
+  String _searchTerm = '';
+  final TextEditingController _searchController = TextEditingController();
+  final FocusNode _searchFocusNode = FocusNode();
+  String? _filterRole; // null = Todos
 
   @override
   void initState() {
@@ -42,6 +48,18 @@ class _GerenciarUsuariosState extends State<GerenciarUsuarios>
     );
     _loadCurrentUserId();
     _checkAdminAndLoad();
+
+    // NOVO: Listener para busca
+    _searchController.addListener(() {
+      setState(() {
+        _searchTerm = _searchController.text;
+        _filterMembers();
+      });
+    });
+
+    _searchFocusNode.addListener(() {
+      setState(() {});
+    });
   }
 
   Future<void> _checkAdminAndLoad() async {
@@ -85,6 +103,8 @@ class _GerenciarUsuariosState extends State<GerenciarUsuarios>
   @override
   void dispose() {
     _animationController.dispose();
+    _searchController.dispose();
+    _searchFocusNode.dispose();
     super.dispose();
   }
 
@@ -115,6 +135,7 @@ class _GerenciarUsuariosState extends State<GerenciarUsuarios>
 
       setState(() {
         _members = members;
+        _filterMembers(); // NOVO: Filtra a lista inicial
         _isLoading = false;
       });
     } catch (e) {
@@ -130,6 +151,26 @@ class _GerenciarUsuariosState extends State<GerenciarUsuarios>
         );
       }
     }
+  }
+
+  // NOVO: Lógica de filtragem
+  void _filterMembers() {
+    final term = _searchTerm.toLowerCase();
+
+    _filteredMembers = _members.where((user) {
+      // 1. Filtro por termo de busca (Nome, Email, CPF, Telefone, Cargo)
+      final matchesSearch = term.isEmpty ||
+          user.nome.toLowerCase().contains(term) ||
+          user.email.toLowerCase().contains(term) ||
+          (user.cpf ?? '').toLowerCase().contains(term) ||
+          (user.telefone ?? '').toLowerCase().contains(term) ||
+          user.role.toLowerCase().contains(term);
+
+      // 2. Filtro por Cargo
+      final matchesRole = _filterRole == null || user.role == _filterRole;
+
+      return matchesSearch && matchesRole;
+    }).toList();
   }
 
   Future<bool> _addMember({
@@ -255,7 +296,7 @@ class _GerenciarUsuariosState extends State<GerenciarUsuarios>
     );
   }
 
-  // --- FUNÇÃO DE ADICIONAR MODIFICADA ---
+  // --- FUNÇÃO DE ADICIONAR (mantida) ---
   Future<void> _showAddDialog() async {
     final formKey = GlobalKey<FormState>();
     final nameCtrl = TextEditingController();
@@ -303,10 +344,8 @@ class _GerenciarUsuariosState extends State<GerenciarUsuarios>
               ],
             ),
 
-            // --- MUDANÇA: Aumento do padding do conteúdo ---
             contentPadding: const EdgeInsets.fromLTRB(24, 24, 24, 24),
 
-            // --- FIM MUDANÇA ---
             content: SizedBox(
               width: dialogWidth,
               child: Form(
@@ -391,9 +430,7 @@ class _GerenciarUsuariosState extends State<GerenciarUsuarios>
                       const SizedBox(height: 12),
                       DropdownButtonFormField<String>(
                         initialValue: selectedRole,
-                        // --- MUDANÇA: Fundo branco para o dropdown ---
                         dropdownColor: Colors.white,
-                        // --- FIM MUDANÇA ---
                         items: const [
                           DropdownMenuItem(
                             value: 'admin',
@@ -474,7 +511,7 @@ class _GerenciarUsuariosState extends State<GerenciarUsuarios>
     });
   }
 
-  // --- FUNÇÃO DE EDITAR MODIFICADA ---
+  // --- FUNÇÃO DE EDITAR (mantida) ---
   Future<void> _showEditDialog(User user) async {
     final formKey = GlobalKey<FormState>();
     final nameCtrl = TextEditingController(text: user.nome);
@@ -517,10 +554,8 @@ class _GerenciarUsuariosState extends State<GerenciarUsuarios>
               ],
             ),
 
-            // --- MUDANÇA: Aumento do padding do conteúdo ---
             contentPadding: const EdgeInsets.fromLTRB(24, 24, 24, 24),
 
-            // --- FIM MUDANÇA ---
             content: SizedBox(
               width: dialogWidth,
               child: Form(
@@ -597,9 +632,7 @@ class _GerenciarUsuariosState extends State<GerenciarUsuarios>
                       const SizedBox(height: 12),
                       DropdownButtonFormField<String>(
                         initialValue: selectedRole,
-                        // --- MUDANÇA: Fundo branco para o dropdown ---
                         dropdownColor: Colors.white,
-                        // --- FIM MUDANÇA ---
                         items: const [
                           DropdownMenuItem(
                             value: 'admin',
@@ -692,17 +725,455 @@ class _GerenciarUsuariosState extends State<GerenciarUsuarios>
     }
   }
 
+  // NOVO: Widget para construir o card principal (Controles + Tabela)
+  Widget _buildMembersCard() {
+    final isMobile = MediaQuery.of(context).size.width < 600;
+
+    Widget content;
+    if (_isLoading) {
+      content = Center(
+        child: CircularProgressIndicator(color: metroBlue),
+      );
+    } else if (_errorMessage != null) {
+      content = _buildErrorWidget();
+    } else if (_members.isEmpty) {
+      content = const Center(
+        child: Text(
+          'Nenhum usuário cadastrado',
+          style: TextStyle(color: Colors.black54),
+        ),
+      );
+    } else if (_filteredMembers.isEmpty) {
+      content = const Center(
+        child: Text(
+          'Nenhum usuário encontrado para o termo ou filtros aplicados.',
+          textAlign: TextAlign.center,
+          style: TextStyle(fontSize: 16, color: Colors.grey),
+        ),
+      );
+    } else {
+      content = Expanded(child: _buildMembersTable());
+    }
+
+    return Card(
+      elevation: 2,
+      shape: RoundedRectangleBorder(
+        borderRadius: BorderRadius.circular(12),
+      ),
+      color: Colors.white,
+      clipBehavior: Clip.antiAlias,
+      child: Padding(
+        padding: const EdgeInsets.all(16.0),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: [
+            Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              children: [
+                Text(
+                  'Membros da equipe',
+                  style: TextStyle(
+                    fontSize: 18,
+                    fontWeight: FontWeight.bold,
+                    color: Colors.grey.shade800,
+                  ),
+                ),
+                if (_currentRole == 'admin')
+                  ElevatedButton.icon(
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: metroBlue,
+                      foregroundColor: Colors.white,
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(8),
+                      ),
+                    ),
+                    onPressed: _showAddDialog,
+                    icon: const Icon(Icons.person_add, size: 18),
+                    label: const Text('Adicionar'),
+                  ),
+              ],
+            ),
+            const SizedBox(height: 16),
+
+            // Busca e Filtro de Cargo (Layout Corrigido para Desktop)
+            Row(
+              children: [
+                Expanded(
+                  child: TextField(
+                    controller: _searchController,
+                    focusNode: _searchFocusNode,
+                    decoration: InputDecoration(
+                      hintText: _searchFocusNode.hasFocus
+                          ? 'Buscar por nome, email, CPF ou telefone'
+                          : 'Buscar usuário...',
+                      prefixIcon: const Icon(Icons.search),
+                      border: OutlineInputBorder(
+                        borderRadius: BorderRadius.circular(12),
+                        borderSide: BorderSide.none,
+                      ),
+                      filled: true,
+                      fillColor: Colors.grey.shade100,
+                    ),
+                  ),
+                ),
+                if (!isMobile) ...[
+                  const SizedBox(width: 8),
+                  SizedBox( // CORREÇÃO: Usando SizedBox para dar um tamanho fixo e razoável
+                    width: 200, 
+                    child: DropdownButtonFormField<String>(
+                      value: _filterRole,
+                      dropdownColor: Colors.white,
+                      decoration: InputDecoration(
+                        hintText: 'Cargo',
+                        prefixIcon: const Icon(Icons.shield_outlined),
+                        border: OutlineInputBorder(
+                          borderRadius: BorderRadius.circular(12),
+                          borderSide: BorderSide.none,
+                        ),
+                        filled: true,
+                        fillColor: Colors.grey.shade100,
+                      ),
+                      items: [
+                        const DropdownMenuItem(
+                          value: null,
+                          child: Text('Todos Cargos'),
+                        ),
+                        const DropdownMenuItem(
+                          value: 'admin',
+                          child: Text('Admin'),
+                        ),
+                        const DropdownMenuItem(
+                          value: 'gestor',
+                          child: Text('Gestor'),
+                        ),
+                        const DropdownMenuItem(
+                          value: 'tecnico',
+                          child: Text('Técnico'),
+                        ),
+                      ],
+                      onChanged: (v) {
+                        setState(() {
+                          _filterRole = v;
+                          _filterMembers();
+                        });
+                      },
+                    ),
+                  ),
+                ],
+              ],
+            ),
+
+            if (isMobile)
+              // Mobile role filter (below search)
+              Padding(
+                padding: const EdgeInsets.only(top: 8.0),
+                child: DropdownButtonFormField<String>(
+                  value: _filterRole,
+                  dropdownColor: Colors.white,
+                  decoration: InputDecoration(
+                    hintText: 'Cargo',
+                    prefixIcon: const Icon(Icons.shield_outlined),
+                    border: OutlineInputBorder(
+                      borderRadius: BorderRadius.circular(12),
+                      borderSide: BorderSide.none,
+                    ),
+                    filled: true,
+                    fillColor: Colors.grey.shade100,
+                  ),
+                  items: [
+                    const DropdownMenuItem(
+                      value: null,
+                      child: Text('Todos Cargos'),
+                    ),
+                    const DropdownMenuItem(
+                      value: 'admin',
+                      child: Text('Admin'),
+                    ),
+                    const DropdownMenuItem(
+                      value: 'gestor',
+                      child: Text('Gestor'),
+                    ),
+                    const DropdownMenuItem(
+                      value: 'tecnico',
+                      child: Text('Técnico'),
+                    ),
+                  ],
+                  onChanged: (v) {
+                    setState(() {
+                      _filterRole = v;
+                      _filterMembers();
+                    });
+                  },
+                ),
+              ),
+
+            const SizedBox(height: 16),
+
+            // Conteúdo principal (tabela, loading, erro, vazio)
+            Expanded(
+              child: content,
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  // NOVO: Widget para exibir erro
+  Widget _buildErrorWidget() {
+    return Center(
+      child: Column(
+        mainAxisAlignment: MainAxisAlignment.center,
+        children: [
+          const Icon(
+            Icons.error_outline,
+            size: 48,
+            color: Colors.red,
+          ),
+          const SizedBox(height: 16),
+          Text(
+            _errorMessage!,
+            textAlign: TextAlign.center,
+            style: const TextStyle(color: Colors.black87),
+          ),
+          const SizedBox(height: 16),
+          ElevatedButton(
+            onPressed: _loadMembers,
+            style: ElevatedButton.styleFrom(
+              backgroundColor: metroBlue,
+              foregroundColor: Colors.white,
+            ),
+            child: const Text('Tentar novamente'),
+          ),
+        ],
+      ),
+    );
+  }
+
+  // NOVO: Widget para construir a Tabela (usando _filteredMembers)
+  Widget _buildMembersTable() {
+    return LayoutBuilder(
+      builder: (context, constraints) {
+        return SingleChildScrollView(
+          scrollDirection: Axis.vertical,
+          child: SingleChildScrollView(
+            scrollDirection: Axis.horizontal,
+            child: ConstrainedBox(
+              constraints: BoxConstraints(
+                minWidth: constraints.maxWidth,
+              ),
+              child: DataTable(
+                headingRowColor: WidgetStateProperty.all(
+                  Colors.grey.shade100,
+                ),
+                dividerThickness: 1,
+                columns: [
+                  DataColumn(
+                    label: Text(
+                      'Nome',
+                      style: TextStyle(
+                        fontWeight: FontWeight.bold,
+                        color: metroBlue,
+                      ),
+                    ),
+                  ),
+                  DataColumn(
+                    label: Text(
+                      'Email',
+                      style: TextStyle(
+                        fontWeight: FontWeight.bold,
+                        color: metroBlue,
+                      ),
+                    ),
+                  ),
+                  DataColumn(
+                    label: Text(
+                      'CPF',
+                      style: TextStyle(
+                        fontWeight: FontWeight.bold,
+                        color: metroBlue,
+                      ),
+                    ),
+                  ),
+                  DataColumn(
+                    label: Text(
+                      'Telefone',
+                      style: TextStyle(
+                        fontWeight: FontWeight.bold,
+                        color: metroBlue,
+                      ),
+                    ),
+                  ),
+                  DataColumn(
+                    label: Text(
+                      'Cargo',
+                      style: TextStyle(
+                        fontWeight: FontWeight.bold,
+                        color: metroBlue,
+                      ),
+                    ),
+                  ),
+                  DataColumn(
+                    label: Text(
+                      'Ações',
+                      style: TextStyle(
+                        fontWeight: FontWeight.bold,
+                        color: metroBlue,
+                      ),
+                    ),
+                  ),
+                ],
+                rows: _filteredMembers.map((user) {
+                  return DataRow(
+                    color: WidgetStateProperty.all(
+                      Colors.white,
+                    ),
+                    cells: [
+                      DataCell(
+                        Text(
+                          user.nome,
+                          style: const TextStyle(
+                            color: Colors.black87,
+                          ),
+                        ),
+                      ),
+                      DataCell(
+                        Text(
+                          user.email,
+                          style: const TextStyle(
+                            color: Colors.black87,
+                          ),
+                        ),
+                      ),
+                      DataCell(
+                        Text(
+                          user.cpf ?? '-',
+                          style: const TextStyle(
+                            color: Colors.black87,
+                          ),
+                        ),
+                      ),
+                      DataCell(
+                        Text(
+                          user.telefone ?? '-',
+                          style: const TextStyle(
+                            color: Colors.black87,
+                          ),
+                        ),
+                      ),
+                      DataCell(
+                        Text(
+                          _getRoleDisplay(user.role),
+                          style: const TextStyle(
+                            color: Colors.black87,
+                          ),
+                        ),
+                      ),
+                      DataCell(
+                        Row(
+                          children: [
+                            IconButton(
+                              icon: Icon(
+                                Icons.edit,
+                                color: metroBlue,
+                              ),
+                              onPressed: () => _showEditDialog(user),
+                            ),
+                            if (user.id != null &&
+                                _processingIds.contains(
+                                  user.id,
+                                ))
+                              SizedBox(
+                                width: 40,
+                                height: 40,
+                                child: Center(
+                                  child: SizedBox(
+                                    width: 20,
+                                    height: 20,
+                                    child: CircularProgressIndicator(
+                                      strokeWidth: 2,
+                                      color: metroBlue,
+                                    ),
+                                  ),
+                                ),
+                              )
+                            else
+                              IconButton(
+                                icon: const Icon(
+                                  Icons.delete,
+                                  color: Colors.red,
+                                ),
+                                onPressed: (user.id != null &&
+                                        user.id != _currentUserId)
+                                    ? () async {
+                                        final confirm =
+                                            await showDialog<bool>(
+                                          context: context,
+                                          builder: (_) => AlertDialog(
+                                            title: const Text(
+                                              'Remover membro',
+                                            ),
+                                            content: Text(
+                                              'Confirma remoção de ${user.nome}?',
+                                            ),
+                                            actions: [
+                                              TextButton(
+                                                onPressed: () =>
+                                                    Navigator.of(context).pop(
+                                                  false,
+                                                ),
+                                                child: const Text('Não'),
+                                              ),
+                                              TextButton(
+                                                onPressed: () =>
+                                                    Navigator.of(context).pop(
+                                                  true,
+                                                ),
+                                                child: const Text('Sim'),
+                                              ),
+                                            ],
+                                          ),
+                                        );
+                                        if (confirm == true &&
+                                            user.id != null) {
+                                          _removeMember(
+                                            user.id!,
+                                          );
+                                        }
+                                      }
+                                    : null,
+                                tooltip: (user.id != null &&
+                                        user.id == _currentUserId)
+                                    ? 'Não é possível remover o usuário atual'
+                                    : 'Remover',
+                              ),
+                          ],
+                        ),
+                      ),
+                    ],
+                  );
+                }).toList(),
+              ),
+            ),
+          ),
+        );
+      },
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     final isMobile = MediaQuery.of(context).size.width < 600;
 
     return Scaffold(
       key: _scaffoldKey,
-      backgroundColor: backgroundColor,
+      backgroundColor: Colors.grey.shade100, // Fundo cinza consistente
       appBar: isMobile
           ? AppBar(
               elevation: 0,
               backgroundColor: Colors.white,
+              surfaceTintColor: Colors.white,
+              scrolledUnderElevation: 0,
               leading: IconButton(
                 icon: AnimatedIcon(
                   icon: AnimatedIcons.menu_close,
@@ -713,13 +1184,14 @@ class _GerenciarUsuariosState extends State<GerenciarUsuarios>
                   _scaffoldKey.currentState?.openDrawer();
                 },
               ),
-              title: const Text(
+              title: Text(
                 'Gerenciar Usuários',
                 style: TextStyle(
-                  color: Color(0xFF001489),
+                  color: metroBlue,
                   fontWeight: FontWeight.bold,
                 ),
               ),
+              centerTitle: true,
               actions: [
                 Padding(
                   padding: const EdgeInsets.only(right: 16.0),
@@ -749,11 +1221,10 @@ class _GerenciarUsuariosState extends State<GerenciarUsuarios>
               left: !isMobile ? (_isRailExtended ? 180 : 70) : 0,
             ),
             child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 if (!isMobile)
                   Padding(
-                    padding: const EdgeInsets.all(16.0),
+                    padding: const EdgeInsets.fromLTRB(24, 24, 24, 0), // Header padding consistente
                     child: Row(
                       mainAxisAlignment: MainAxisAlignment.spaceBetween,
                       children: [
@@ -767,12 +1238,12 @@ class _GerenciarUsuariosState extends State<GerenciarUsuarios>
                               onPressed: _toggleRail,
                             ),
                             const SizedBox(width: 12),
-                            const Text(
+                            Text(
                               'Gerenciar Usuários',
                               style: TextStyle(
                                 fontSize: 24,
                                 fontWeight: FontWeight.bold,
-                                color: Color(0xFF001489),
+                                color: metroBlue,
                               ),
                             ),
                           ],
@@ -780,328 +1251,23 @@ class _GerenciarUsuariosState extends State<GerenciarUsuarios>
                       ],
                     ),
                   ),
-                Padding(
-                  padding: EdgeInsets.fromLTRB(16, isMobile ? 16 : 0, 16, 16),
-                  child: Card(
-                    elevation: 2,
-                    shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(12),
-                    ),
-                    color: Colors.white,
-                    child: Padding(
-                      padding: const EdgeInsets.all(16.0),
-                      child: Row(
-                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                        children: [
-                          Text(
-                            'Membros da equipe',
-                            style: TextStyle(
-                              fontSize: 18,
-                              fontWeight: FontWeight.bold,
-                              color: Colors.grey.shade800,
-                            ),
-                          ),
-                          if (_currentRole == 'admin')
-                            ElevatedButton.icon(
-                              style: ElevatedButton.styleFrom(
-                                backgroundColor: metroBlue,
-                                foregroundColor: Colors.white,
-                                shape: RoundedRectangleBorder(
-                                  borderRadius: BorderRadius.circular(8),
-                                ),
-                              ),
-                              onPressed: _showAddDialog,
-                              icon: const Icon(Icons.person_add, size: 18),
-                              label: const Text('Adicionar'),
-                            ),
-                        ],
-                      ),
+                Expanded(
+                  child: Padding(
+                    padding: const EdgeInsets.all(24.0), // Conteúdo principal padding consistente
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        if (!isMobile) const SizedBox(height: 8),
+                        const Text(
+                          'Gerencie todos os usuários do sistema, suas informações e permissões.',
+                          style: TextStyle(fontSize: 16, color: Colors.black54),
+                        ),
+                        const SizedBox(height: 24),
+                        Expanded(child: _buildMembersCard()),
+                      ],
                     ),
                   ),
                 ),
-                if (_isLoading)
-                  Expanded(
-                    child: Center(
-                      child: CircularProgressIndicator(color: metroBlue),
-                    ),
-                  )
-                else if (_errorMessage != null)
-                  Expanded(
-                    child: Center(
-                      child: Column(
-                        mainAxisAlignment: MainAxisAlignment.center,
-                        children: [
-                          const Icon(
-                            Icons.error_outline,
-                            size: 48,
-                            color: Colors.red,
-                          ),
-                          const SizedBox(height: 16),
-                          Text(
-                            _errorMessage!,
-                            textAlign: TextAlign.center,
-                            style: const TextStyle(color: Colors.black87),
-                          ),
-                          const SizedBox(height: 16),
-                          ElevatedButton(
-                            onPressed: _loadMembers,
-                            style: ElevatedButton.styleFrom(
-                              backgroundColor: metroBlue,
-                              foregroundColor: Colors.white,
-                            ),
-                            child: const Text('Tentar novamente'),
-                          ),
-                        ],
-                      ),
-                    ),
-                  )
-                else if (_members.isEmpty)
-                  const Expanded(
-                    child: Center(
-                      child: Text(
-                        'Nenhum usuário cadastrado',
-                        style: TextStyle(color: Colors.black54),
-                      ),
-                    ),
-                  )
-                else
-                  Expanded(
-                    child: Padding(
-                      padding: const EdgeInsets.symmetric(horizontal: 16.0),
-                      child: LayoutBuilder(
-                        builder: (context, constraints) {
-                          return SingleChildScrollView(
-                            scrollDirection: Axis.vertical,
-                            child: SingleChildScrollView(
-                              scrollDirection: Axis.horizontal,
-                              child: ConstrainedBox(
-                                constraints: BoxConstraints(
-                                  minWidth: constraints.maxWidth,
-                                ),
-                                child: Card(
-                                  elevation: 2,
-                                  shape: RoundedRectangleBorder(
-                                    borderRadius: BorderRadius.circular(12),
-                                  ),
-                                  clipBehavior: Clip.antiAlias,
-                                  child: DataTable(
-                                    headingRowColor: WidgetStateProperty.all(
-                                      Colors.grey.shade100,
-                                    ),
-                                    dividerThickness: 1,
-                                    columns: [
-                                      DataColumn(
-                                        label: Text(
-                                          'Nome',
-                                          style: TextStyle(
-                                            fontWeight: FontWeight.bold,
-                                            color: metroBlue,
-                                          ),
-                                        ),
-                                      ),
-                                      DataColumn(
-                                        label: Text(
-                                          'Email',
-                                          style: TextStyle(
-                                            fontWeight: FontWeight.bold,
-                                            color: metroBlue,
-                                          ),
-                                        ),
-                                      ),
-                                      DataColumn(
-                                        label: Text(
-                                          'CPF',
-                                          style: TextStyle(
-                                            fontWeight: FontWeight.bold,
-                                            color: metroBlue,
-                                          ),
-                                        ),
-                                      ),
-                                      DataColumn(
-                                        label: Text(
-                                          'Telefone',
-                                          style: TextStyle(
-                                            fontWeight: FontWeight.bold,
-                                            color: metroBlue,
-                                          ),
-                                        ),
-                                      ),
-                                      DataColumn(
-                                        label: Text(
-                                          'Cargo',
-                                          style: TextStyle(
-                                            fontWeight: FontWeight.bold,
-                                            color: metroBlue,
-                                          ),
-                                        ),
-                                      ),
-                                      DataColumn(
-                                        label: Text(
-                                          'Ações',
-                                          style: TextStyle(
-                                            fontWeight: FontWeight.bold,
-                                            color: metroBlue,
-                                          ),
-                                        ),
-                                      ),
-                                    ],
-                                    rows: _members.map((user) {
-                                      return DataRow(
-                                        color: WidgetStateProperty.all(
-                                          Colors.white,
-                                        ),
-                                        cells: [
-                                          DataCell(
-                                            Text(
-                                              user.nome,
-                                              style: const TextStyle(
-                                                color: Colors.black87,
-                                              ),
-                                            ),
-                                          ),
-                                          DataCell(
-                                            Text(
-                                              user.email,
-                                              style: const TextStyle(
-                                                color: Colors.black87,
-                                              ),
-                                            ),
-                                          ),
-                                          DataCell(
-                                            Text(
-                                              user.cpf ?? '-',
-                                              style: const TextStyle(
-                                                color: Colors.black87,
-                                              ),
-                                            ),
-                                          ),
-                                          DataCell(
-                                            Text(
-                                              user.telefone ?? '-',
-                                              style: const TextStyle(
-                                                color: Colors.black87,
-                                              ),
-                                            ),
-                                          ),
-                                          DataCell(
-                                            Text(
-                                              _getRoleDisplay(user.role),
-                                              style: const TextStyle(
-                                                color: Colors.black87,
-                                              ),
-                                            ),
-                                          ),
-                                          DataCell(
-                                            Row(
-                                              children: [
-                                                IconButton(
-                                                  icon: Icon(
-                                                    Icons.edit,
-                                                    color: metroBlue,
-                                                  ),
-                                                  onPressed: () =>
-                                                      _showEditDialog(user),
-                                                ),
-                                                if (user.id != null &&
-                                                    _processingIds.contains(
-                                                      user.id,
-                                                    ))
-                                                  SizedBox(
-                                                    width: 40,
-                                                    height: 40,
-                                                    child: Center(
-                                                      child: SizedBox(
-                                                        width: 20,
-                                                        height: 20,
-                                                        child:
-                                                            CircularProgressIndicator(
-                                                              strokeWidth: 2,
-                                                              color: metroBlue,
-                                                            ),
-                                                      ),
-                                                    ),
-                                                  )
-                                                else
-                                                  IconButton(
-                                                    icon: const Icon(
-                                                      Icons.delete,
-                                                      color: Colors.red,
-                                                    ),
-                                                    onPressed:
-                                                        (user.id != null &&
-                                                            user.id !=
-                                                                _currentUserId)
-                                                        ? () async {
-                                                            final confirm = await showDialog<bool>(
-                                                              context: context,
-                                                              builder: (_) => AlertDialog(
-                                                                title: const Text(
-                                                                  'Remover membro',
-                                                                ),
-                                                                content: Text(
-                                                                  'Confirma remoção de ${user.nome}?',
-                                                                ),
-                                                                actions: [
-                                                                  TextButton(
-                                                                    onPressed: () =>
-                                                                        Navigator.of(
-                                                                          context,
-                                                                        ).pop(
-                                                                          false,
-                                                                        ),
-                                                                    child:
-                                                                        const Text(
-                                                                          'Não',
-                                                                        ),
-                                                                  ),
-                                                                  TextButton(
-                                                                    onPressed: () =>
-                                                                        Navigator.of(
-                                                                          context,
-                                                                        ).pop(
-                                                                          true,
-                                                                        ),
-                                                                    child:
-                                                                        const Text(
-                                                                          'Sim',
-                                                                        ),
-                                                                  ),
-                                                                ],
-                                                              ),
-                                                            );
-                                                            if (confirm ==
-                                                                    true &&
-                                                                user.id !=
-                                                                    null) {
-                                                              _removeMember(
-                                                                user.id!,
-                                                              );
-                                                            }
-                                                          }
-                                                        : null,
-                                                    tooltip:
-                                                        (user.id != null &&
-                                                            user.id ==
-                                                                _currentUserId)
-                                                        ? 'Não é possível remover o usuário atual'
-                                                        : 'Remover',
-                                                  ),
-                                              ],
-                                            ),
-                                          ),
-                                        ],
-                                      );
-                                    }).toList(),
-                                  ),
-                                ),
-                              ),
-                            ),
-                          );
-                        },
-                      ),
-                    ),
-                  ),
-                const SizedBox(height: 16),
               ],
             ),
           ),

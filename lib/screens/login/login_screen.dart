@@ -34,23 +34,27 @@ class LoginPage extends StatefulWidget {
 }
 
 class _LoginPageState extends State<LoginPage> {
+  // Inicializa o controller de login (para injeção de dependência e lógica de negócio)
   late final LoginController _loginController =
       widget.controller ?? LoginController();
 
   final emailController = TextEditingController();
   final passwordController = TextEditingController();
 
+  // Variáveis de estado da tela
   bool rememberMe = false;
   bool _obscurePassword = true;
   bool _isLoading = false;
 
   @override
   void dispose() {
+    // Libera os recursos dos controllers de texto
     emailController.dispose();
     passwordController.dispose();
     super.dispose();
   }
 
+  /// Exibe uma notificação rápida (SnackBar).
   void _showSnack(String message, {required bool isError}) {
     ScaffoldMessenger.of(context)
       ..hideCurrentSnackBar()
@@ -63,22 +67,27 @@ class _LoginPageState extends State<LoginPage> {
       );
   }
 
+  /// Executa a autenticação do usuário.
   Future<void> _login() async {
     FocusScope.of(context).unfocus();
 
     final email = emailController.text.trim();
     final senha = passwordController.text;
 
+    // Validação básica
     if (email.isEmpty || senha.isEmpty) {
       _showSnack('Preencha email e senha.', isError: true);
       return;
     }
 
+    // Ativa o estado de carregamento do botão
     setState(() => _isLoading = true);
 
     try {
       final ok = await _loginController.login(email: email, password: senha);
+      
       if (ok) {
+        // Login bem-sucedido: navega para a tela principal (substituindo a de login)
         _showSnack('Login realizado com sucesso!', isError: false);
         if (!mounted) return;
         Navigator.pushReplacement(
@@ -86,13 +95,17 @@ class _LoginPageState extends State<LoginPage> {
           MaterialPageRoute(builder: (_) => const HomeScreen()),
         );
       } else {
+        // Falha de autenticação
         _showSnack('Credenciais inválidas.', isError: true);
       }
     } on FormatException catch (err) {
+      // Trata erros de formato/validação específicos
       _showSnack(err.message, isError: true);
     } catch (_) {
+      // Trata erros inesperados (ex: rede)
       _showSnack('Erro ao tentar logar. Tente novamente.', isError: true);
     } finally {
+      // Desativa o loading
       if (mounted) setState(() => _isLoading = false);
     }
   }
@@ -100,6 +113,7 @@ class _LoginPageState extends State<LoginPage> {
   @override
   Widget build(BuildContext context) {
     final size = MediaQuery.of(context).size;
+    // Ponto de corte para a mudança de layout (Desktop vs Mobile)
     final isDesktop = size.width > 900;
 
     final metroBlue = const Color(0xFF001489);
@@ -108,11 +122,12 @@ class _LoginPageState extends State<LoginPage> {
       backgroundColor: isDesktop ? Colors.white : Colors.white,
       resizeToAvoidBottomInset: true,
       body: isDesktop
-          ? _buildDesktopLayout(metroBlue, size)
-          : _buildMobileLayout(metroBlue),
+          ? _buildDesktopLayout(metroBlue, size) // Layout dividido em dois
+          : _buildMobileLayout(metroBlue), // Layout em coluna com scroll
     );
   }
 
+  /// Layout para Desktop (Tela Larga)
   Widget _buildDesktopLayout(Color metroBlue, Size size) {
     return Container(
       width: double.infinity,
@@ -120,6 +135,7 @@ class _LoginPageState extends State<LoginPage> {
       color: Colors.white,
       child: Row(
         children: [
+          // Painel esquerdo: Banner
           Expanded(
             flex: 5,
             child: Container(
@@ -127,6 +143,7 @@ class _LoginPageState extends State<LoginPage> {
               padding: const EdgeInsets.all(40),
               child: Stack(
                 children: [
+                  // Logo
                   Positioned(
                     top: 8,
                     left: 8,
@@ -137,6 +154,7 @@ class _LoginPageState extends State<LoginPage> {
                       fit: BoxFit.contain,
                     ),
                   ),
+                  // Textos informativos
                   Center(
                     child: Column(
                       mainAxisSize: MainAxisSize.min,
@@ -181,6 +199,7 @@ class _LoginPageState extends State<LoginPage> {
               ),
             ),
           ),
+          // Painel direito: Formulário
           Expanded(
             flex: 4,
             child: Container(
@@ -204,12 +223,14 @@ class _LoginPageState extends State<LoginPage> {
                     style: TextStyle(fontSize: 14, color: Colors.grey[600]),
                   ),
                   const SizedBox(height: 40),
+                  // Campo Email
                   _buildAnimatedTextField(
                     controller: emailController,
                     label: 'Email',
                     prefixIcon: Icons.email_outlined,
                   ),
                   const SizedBox(height: 24),
+                  // Campo Senha
                   _buildAnimatedTextField(
                     controller: passwordController,
                     label: 'Senha',
@@ -223,6 +244,7 @@ class _LoginPageState extends State<LoginPage> {
                         color: Colors.grey,
                       ),
                       onPressed: () {
+                        // Altera a visibilidade da senha
                         setState(() {
                           _obscurePassword = !_obscurePassword;
                         });
@@ -233,6 +255,7 @@ class _LoginPageState extends State<LoginPage> {
                   Row(
                     mainAxisAlignment: MainAxisAlignment.spaceBetween,
                     children: [
+                      // Checkbox "Lembrar"
                       Flexible(
                         child: Row(
                           children: [
@@ -267,6 +290,7 @@ class _LoginPageState extends State<LoginPage> {
                         ),
                       ),
                       const SizedBox(width: 8),
+                      // Link "Esqueceu a senha?"
                       Flexible(
                         child: TextButton(
                           onPressed: () {
@@ -290,6 +314,7 @@ class _LoginPageState extends State<LoginPage> {
                     ],
                   ),
                   const SizedBox(height: 32),
+                  // Botão de Login
                   SizedBox(
                     width: double.infinity,
                     height: 52,
@@ -303,6 +328,7 @@ class _LoginPageState extends State<LoginPage> {
                         ),
                       ),
                       child: _isLoading
+                          // Exibe o loading
                           ? const SizedBox(
                               width: 20,
                               height: 20,
@@ -324,6 +350,7 @@ class _LoginPageState extends State<LoginPage> {
                     ),
                   ),
                   const SizedBox(height: 40),
+                  // Suporte
                   Center(
                     child: Column(
                       children: [
@@ -357,8 +384,10 @@ class _LoginPageState extends State<LoginPage> {
     );
   }
 
+  /// Layout para Mobile/Tablet (Tela Estreita)
   Widget _buildMobileLayout(Color metroBlue) {
     return ListView(
+      // Habilita o scroll para telas menores
       shrinkWrap: true,
       physics: const ClampingScrollPhysics(),
       padding: EdgeInsets.zero,
@@ -376,14 +405,14 @@ class _LoginPageState extends State<LoginPage> {
             ),
           ),
         ),
-        // Conteúdo principal
+        // Conteúdo do formulário
         Container(
           color: Colors.white,
           padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 32),
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              // Textos de boas-vindas
+              // Títulos
               Text(
                 'Bem-vindo',
                 style: TextStyle(
@@ -401,6 +430,7 @@ class _LoginPageState extends State<LoginPage> {
                 ),
               ),
               const SizedBox(height: 8),
+              // Separador decorativo
               Container(
                 width: 50,
                 height: 3,
@@ -434,7 +464,7 @@ class _LoginPageState extends State<LoginPage> {
                 keyboardType: TextInputType.emailAddress,
                 textInputAction: TextInputAction.next,
                 decoration: InputDecoration(
-                  hintText: 'seu@email.com',
+                  hintText: 'Email',
                   prefixIcon: Icon(
                     Icons.email_outlined,
                     color: Colors.grey[600],
@@ -477,7 +507,7 @@ class _LoginPageState extends State<LoginPage> {
                 textInputAction: TextInputAction.done,
                 onSubmitted: (_) => _isLoading ? null : _login(),
                 decoration: InputDecoration(
-                  hintText: 'Digite sua senha',
+                  hintText: 'Senha',
                   prefixIcon: Icon(Icons.lock_outline, color: Colors.grey[600]),
                   suffixIcon: IconButton(
                     icon: Icon(
@@ -487,6 +517,7 @@ class _LoginPageState extends State<LoginPage> {
                       color: Colors.grey[600],
                     ),
                     onPressed: () {
+                      // Alterna o estado de visibilidade da senha
                       setState(() {
                         _obscurePassword = !_obscurePassword;
                       });
@@ -514,7 +545,7 @@ class _LoginPageState extends State<LoginPage> {
                 style: const TextStyle(fontSize: 16),
               ),
               const SizedBox(height: 16),
-              // Checkbox e Esqueceu a senha
+              // Opções (Lembrar/Esqueceu a senha)
               Row(
                 mainAxisAlignment: MainAxisAlignment.spaceBetween,
                 children: [
@@ -579,6 +610,7 @@ class _LoginPageState extends State<LoginPage> {
                     disabledBackgroundColor: Colors.grey[400],
                   ),
                   child: _isLoading
+                      // Exibe o loading
                       ? const SizedBox(
                           width: 20,
                           height: 20,
@@ -600,7 +632,7 @@ class _LoginPageState extends State<LoginPage> {
                 ),
               ),
               const SizedBox(height: 24),
-              // Texto de suporte
+              // Link de Suporte
               Center(
                 child: Column(
                   children: [
@@ -629,6 +661,7 @@ class _LoginPageState extends State<LoginPage> {
                 ),
               ),
               const SizedBox(height: 16),
+              // Copyright
               Center(
                 child: Text(
                   '© 2025 Metrô | Todos os direitos reservados',
@@ -644,6 +677,7 @@ class _LoginPageState extends State<LoginPage> {
     );
   }
 
+  /// Constrói um campo de texto padronizado (usado apenas no layout Desktop).
   Widget _buildAnimatedTextField({
     required TextEditingController controller,
     required String label,
@@ -677,6 +711,7 @@ class _LoginPageState extends State<LoginPage> {
             borderRadius: BorderRadius.circular(12),
             borderSide: BorderSide(color: Colors.grey[300]!),
           ),
+          // Borda de foco em azul metro
           focusedBorder: OutlineInputBorder(
             borderRadius: BorderRadius.circular(12),
             borderSide: const BorderSide(color: Color(0xFF001489), width: 2),

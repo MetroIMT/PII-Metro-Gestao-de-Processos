@@ -411,7 +411,7 @@ class _RelatoriosPageState extends State<RelatoriosPage>
             )
           : null,
       drawer: isMobile
-          ? Drawer(child: Sidebar(expanded: true, selectedIndex: 4))
+          ? Drawer(child: Sidebar(expanded: true, selectedIndex: 5))
           : null,
       body: Stack(
         children: [
@@ -423,7 +423,7 @@ class _RelatoriosPageState extends State<RelatoriosPage>
               top: 0,
               bottom: 0,
               width: _isRailExtended ? 180 : 70,
-              child: Sidebar(expanded: _isRailExtended, selectedIndex: 4),
+              child: Sidebar(expanded: _isRailExtended, selectedIndex: 5),
             ),
           AnimatedPadding(
             duration: const Duration(milliseconds: 300),
