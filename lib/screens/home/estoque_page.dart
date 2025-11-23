@@ -1,44 +1,21 @@
-// lib/pages/estoque/estoque_page.dart (ou onde o seu estiver)
+// lib/screens/home/estoque_page.dart
 
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart'; // Import para formatadores
-// NOVO: Importar o repositório que acabamos de criar
-// import '../../repositories/movimentacao_repository.dart';
+import '../../models/material.dart'; // MUDANÇA: Importa a classe EstoqueMaterial centralizada
 import '../../services/material_service.dart';
 import '../../services/auth_service.dart';
 import '../../widgets/sidebar.dart';
 import 'package:intl/intl.dart'; // Import para formatar data
 
-class EstoqueMaterial {
-  final String codigo;
-  // ... (resto da sua classe EstoqueMaterial sem alterações)
-  final String nome;
-  final int quantidade;
-  final String local;
-  final DateTime? vencimento;
-
-  EstoqueMaterial({
-    required this.codigo,
-    required this.nome,
-    required this.quantidade,
-    required this.local,
-    this.vencimento,
-  });
-
-  String get status => quantidade > 0 ? 'Disponível' : 'Em Falta';
-}
+// A CLASSE EstoqueMaterial LOCAL FOI REMOVIDA DESTE ARQUIVO
 
 class EstoquePage extends StatefulWidget {
-  // ... (resto do seu EstoquePage e _EstoquePageState sem alterações)
   final String title;
   final List<EstoqueMaterial> materiais;
-  // opcional: tipo que será usado ao criar um material (ex: 'giro','consumo','patrimoniado')
-  final String? tipo;
-  // Se true, a página renderiza a Sidebar (desktop rail + drawer on mobile)
+  final String? tipo; 
   final bool withSidebar;
-  // índice selecionado no sidebar (por padrão 1 = Estoque)
   final int sidebarSelectedIndex;
-  // Se true, mostra o botão de voltar ao lado do menu
   final bool showBackButton;
 
   const EstoquePage({
@@ -57,7 +34,7 @@ class EstoquePage extends StatefulWidget {
 
 class _EstoquePageState extends State<EstoquePage>
     with SingleTickerProviderStateMixin {
-  // --- Sidebar / layout state (used only when widget.withSidebar == true)
+  // --- Sidebar / layout state ---
   bool _isRailExtended = false;
   late AnimationController _animationController;
   final GlobalKey<ScaffoldState> _scaffoldKey = GlobalKey<ScaffoldState>();
@@ -68,11 +45,9 @@ class _EstoquePageState extends State<EstoquePage>
   final MaterialService _materialService = MaterialService();
   final AuthService _authService = AuthService();
 
-  // --- NOVAS VARIÁVEIS DE ESTADO E HELPERS ---
   final Color metroBlue = const Color(0xFF001489);
   final Set<String> _processingIds = <String>{};
 
-  // --- MUDANÇA: LISTA DE BASES COMPARTILHADA ---
   final List<Map<String, String>> _listaDeBases = [
     {'value': 'WJA', 'label': 'WJA - Jabaquara'},
     {'value': 'PSO', 'label': 'PSO - Paraiso'},
@@ -91,25 +66,23 @@ class _EstoquePageState extends State<EstoquePage>
     {'value': 'PAT', 'label': 'PAT - Pátio Jabaquara'},
   ];
 
-  // Helper para o Input Style (copiado de gerenciar_usuarios)
   InputDecoration _buildDialogInputDecoration(String label) {
     return InputDecoration(
       labelText: label,
-      labelStyle: const TextStyle(color: Colors.black54), // Texto "preto"
+      labelStyle: const TextStyle(color: Colors.black54),
       filled: true,
-      fillColor: Colors.grey.shade100, // Fundo "cinza"
+      fillColor: Colors.grey.shade100,
       border: OutlineInputBorder(
         borderRadius: BorderRadius.circular(8),
         borderSide: BorderSide.none,
       ),
       focusedBorder: OutlineInputBorder(
         borderRadius: BorderRadius.circular(8),
-        borderSide: BorderSide(color: metroBlue, width: 2), // Borda "metroBlue"
+        borderSide: BorderSide(color: metroBlue, width: 2),
       ),
     );
   }
 
-  // --- MUDANÇA: HELPER PARA CAMPO NÃO-EDITÁVEL ---
   Widget _buildReadOnlyField(String label, String value, IconData icon) {
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 12),
@@ -146,7 +119,6 @@ class _EstoquePageState extends State<EstoquePage>
       ),
     );
   }
-  // --- FIM DOS NOVOS HELPERS ---
 
   @override
   void initState() {
@@ -159,7 +131,6 @@ class _EstoquePageState extends State<EstoquePage>
   }
 
   List<EstoqueMaterial> get _filteredMateriais {
-    // ... (sem alterações)
     if (_searchQuery.isEmpty) {
       return _materiais;
     }
@@ -192,7 +163,6 @@ class _EstoquePageState extends State<EstoquePage>
   }
 
   Widget _buildInfoRow(String label, String value) {
-    // ... (sem alterações)
     return Row(
       children: [
         Text(
@@ -210,28 +180,33 @@ class _EstoquePageState extends State<EstoquePage>
 
   String _formatDate(DateTime? d) {
     if (d == null) return '-';
-    // Usando DateFormat para garantir o formato
     return DateFormat('dd/MM/yyyy').format(d);
   }
 
-  // --- DIÁLOGO DE ADICIONAR (COM DROPDOWN DE LOCAL) ---
+  // --- DIÁLOGO DE ADICIONAR (ATUALIZADO) ---
   void _showAddMaterialDialog(BuildContext context) {
     final formKey = GlobalKey<FormState>();
     final codigoController = TextEditingController();
     final nomeController = TextEditingController();
     final quantidadeController = TextEditingController();
-    // final localController = TextEditingController(); // REMOVIDO
-    String? selectedLocal; // NOVO
+    String? selectedLocal;
     DateTime? selectedVencimento;
     final vencimentoController = TextEditingController();
+    final estoqueMinimoController = TextEditingController(); 
+    final patrimonioController = TextEditingController(); 
+    DateTime? selectedCalibracao;
+    final calibracaoController = TextEditingController(); 
+    String? selectedStatus = 'disponível'; 
+
+    final isInstrumento = widget.tipo == 'instrumento';
 
     showDialog(
       context: context,
       builder: (dialogContext) {
         bool isSubmitting = false;
         final double dialogWidth = MediaQuery.of(dialogContext).size.width > 550
-            ? 500.0 // Largura fixa
-            : MediaQuery.of(dialogContext).size.width * 0.95; // 95% para mobile
+            ? 500.0
+            : MediaQuery.of(dialogContext).size.width * 0.95;
 
         return StatefulBuilder(
           builder: (context, setDialogState) => AlertDialog(
@@ -246,7 +221,7 @@ class _EstoquePageState extends State<EstoquePage>
                 Icon(Icons.add_box_rounded, color: metroBlue, size: 28),
                 const SizedBox(width: 12),
                 Text(
-                  'Adicionar Material',
+                  'Adicionar ${isInstrumento ? 'Instrumento' : 'Material'}',
                   style: TextStyle(
                     color: metroBlue,
                     fontWeight: FontWeight.bold,
@@ -271,14 +246,29 @@ class _EstoquePageState extends State<EstoquePage>
                             ? 'Informe o código'
                             : null,
                       ),
-                      const SizedBox(height: 16), // AUMENTADO
+                      const SizedBox(height: 16),
+                      // Campo Patrimônio para Instrumentos
+                      if (isInstrumento)
+                        Column(
+                          children: [
+                            TextFormField(
+                              controller: patrimonioController,
+                              decoration:
+                                  _buildDialogInputDecoration('Patrimônio *'),
+                              validator: (v) => (v == null || v.isEmpty)
+                                  ? 'Informe o patrimônio'
+                                  : null,
+                            ),
+                            const SizedBox(height: 16),
+                          ],
+                        ),
                       TextFormField(
                         controller: nomeController,
                         decoration: _buildDialogInputDecoration('Nome *'),
                         validator: (v) =>
                             (v == null || v.isEmpty) ? 'Informe o nome' : null,
                       ),
-                      const SizedBox(height: 16), // AUMENTADO
+                      const SizedBox(height: 16),
                       TextFormField(
                         controller: quantidadeController,
                         decoration: _buildDialogInputDecoration(
@@ -292,8 +282,7 @@ class _EstoquePageState extends State<EstoquePage>
                             ? 'Informe a quantidade'
                             : null,
                       ),
-                      const SizedBox(height: 16), // AUMENTADO
-                      // --- MUDANÇA: CAMPO DE LOCAL (DROPDOWN) ---
+                      const SizedBox(height: 16),
                       DropdownButtonFormField<String>(
                         value: selectedLocal,
                         items: _listaDeBases.map((base) {
@@ -313,31 +302,104 @@ class _EstoquePageState extends State<EstoquePage>
                             : null,
                         dropdownColor: Colors.white,
                       ),
+                      const SizedBox(height: 16),
 
-                      // --- FIM DA MUDANÇA ---
-                      const SizedBox(height: 16), // AUMENTADO
-                      TextFormField(
-                        controller: vencimentoController,
-                        readOnly: true,
-                        decoration: _buildDialogInputDecoration(
-                          'Vencimento (opcional)',
+                      // Campos específicos de Consumo/Giro
+                      if (!isInstrumento)
+                        Padding(
+                          padding: const EdgeInsets.only(bottom: 16.0),
+                          child: TextFormField(
+                            controller: vencimentoController,
+                            readOnly: true,
+                            decoration: _buildDialogInputDecoration(
+                              'Vencimento (opcional)',
+                            ),
+                            onTap: () async {
+                              final now = DateTime.now();
+                              final picked = await showDatePicker(
+                                context: context,
+                                initialDate: selectedVencimento ?? now,
+                                firstDate: DateTime(now.year - 5),
+                                lastDate: DateTime(now.year + 10),
+                              );
+                              if (picked != null) {
+                                setDialogState(() {
+                                  selectedVencimento = picked;
+                                  vencimentoController.text = _formatDate(picked);
+                                });
+                              }
+                            },
+                          ),
                         ),
-                        onTap: () async {
-                          final now = DateTime.now();
-                          final picked = await showDatePicker(
-                            context: context,
-                            initialDate: selectedVencimento ?? now,
-                            firstDate: DateTime(now.year - 5),
-                            lastDate: DateTime(now.year + 10),
-                          );
-                          if (picked != null) {
-                            setDialogState(() {
-                              selectedVencimento = picked;
-                              vencimentoController.text = _formatDate(picked);
-                            });
-                          }
-                        },
-                      ),
+                      if (!isInstrumento)
+                        Padding(
+                          padding: const EdgeInsets.only(bottom: 16.0),
+                          child: TextFormField(
+                            controller: estoqueMinimoController,
+                            decoration: _buildDialogInputDecoration(
+                              'Estoque Mínimo (opcional)',
+                            ),
+                            keyboardType: TextInputType.number,
+                            inputFormatters: [
+                              FilteringTextInputFormatter.digitsOnly,
+                            ],
+                          ),
+                        ),
+
+                      // Campos específicos de Instrumento
+                      if (isInstrumento)
+                        Column(
+                          children: [
+                            TextFormField(
+                              controller: calibracaoController,
+                              readOnly: true,
+                              decoration: _buildDialogInputDecoration(
+                                'Vencimento Calibração *',
+                              ),
+                              validator: (v) => (v == null || v.isEmpty)
+                                  ? 'Informe a data de calibração'
+                                  : null,
+                              onTap: () async {
+                                final now = DateTime.now();
+                                final picked = await showDatePicker(
+                                  context: context,
+                                  initialDate: selectedCalibracao ?? now,
+                                  firstDate: DateTime(now.year - 5),
+                                  lastDate: DateTime(now.year + 10),
+                                );
+                                if (picked != null) {
+                                  setDialogState(() {
+                                    selectedCalibracao = picked;
+                                    calibracaoController.text =
+                                        _formatDate(picked);
+                                  });
+                                }
+                              },
+                            ),
+                            const SizedBox(height: 16),
+                            DropdownButtonFormField<String>(
+                              value: selectedStatus,
+                              items: ['disponível', 'em uso', 'em campo', 'manutenção']
+                                  .map((s) => DropdownMenuItem(
+                                        value: s,
+                                        child: Text(s.toUpperCase()),
+                                      ))
+                                  .toList(),
+                              onChanged: (value) {
+                                setDialogState(() {
+                                  selectedStatus = value;
+                                });
+                              },
+                              decoration:
+                                  _buildDialogInputDecoration('Status *'),
+                              validator: (value) =>
+                                  (value == null || value.isEmpty)
+                                      ? 'Selecione o status'
+                                      : null,
+                              dropdownColor: Colors.white,
+                            ),
+                          ],
+                        ),
                     ],
                   ),
                 ),
@@ -362,13 +424,17 @@ class _EstoquePageState extends State<EstoquePage>
                         setDialogState(() => isSubmitting = true);
 
                         int quantidade;
+                        int? estoqueMinimo;
                         try {
                           quantidade = int.parse(quantidadeController.text);
+                          if (!isInstrumento && estoqueMinimoController.text.isNotEmpty) {
+                            estoqueMinimo = int.parse(estoqueMinimoController.text);
+                          }
                         } catch (e) {
                           setDialogState(() => isSubmitting = false);
                           ScaffoldMessenger.of(context).showSnackBar(
                             const SnackBar(
-                              content: Text('Quantidade deve ser um número'),
+                              content: Text('Quantidade/Estoque Mínimo deve ser um número'),
                               backgroundColor: Colors.red,
                             ),
                           );
@@ -380,9 +446,15 @@ class _EstoquePageState extends State<EstoquePage>
                             codigo: codigoController.text,
                             nome: nomeController.text,
                             quantidade: quantidade,
-                            local: selectedLocal!, // MUDANÇA
+                            local: selectedLocal!,
                             vencimento: selectedVencimento,
                             tipo: widget.tipo,
+                            // Campos de Instrumento (ENVIADOS PARA O SERVIÇO)
+                            patrimonio: isInstrumento ? patrimonioController.text : null,
+                            dataCalibracao: selectedCalibracao,
+                            status: isInstrumento ? selectedStatus : null,
+                            // Campos de Estoque
+                            estoqueMinimo: estoqueMinimo,
                           );
 
                           setState(() {
@@ -390,7 +462,7 @@ class _EstoquePageState extends State<EstoquePage>
                           });
 
                           if (!mounted) return;
-                          Navigator.of(dialogContext).pop(); // fecha o diálogo
+                          Navigator.of(dialogContext).pop(); 
                           ScaffoldMessenger.of(context).showSnackBar(
                             SnackBar(
                               content: Text(
@@ -429,18 +501,22 @@ class _EstoquePageState extends State<EstoquePage>
     );
   }
 
-  // --- MUDANÇA: DIÁLOGO DE EDITAR (COM CAMPOS BONITOS E DROPDOWN) ---
+  // --- DIÁLOGO DE EDITAR (ATUALIZADO) ---
   void _showEditMaterialDialog(EstoqueMaterial material) {
     final formKey = GlobalKey<FormState>();
     final nomeController = TextEditingController(text: material.nome);
-    // final localController = TextEditingController(text: material.local); // REMOVIDO
-    String? selectedLocal = material.local; // NOVO
+    String? selectedLocal = material.local;
     DateTime? selectedVencimento = material.vencimento;
     final vencimentoController = TextEditingController(
       text: _formatDate(material.vencimento),
     );
+    final estoqueMinimoController = TextEditingController(
+      text: material.estoqueMinimo?.toString() ?? '',
+    );
+    
+    final isInstrumento = material.tipo == 'instrumento';
+    final dataCalibracao = material.dataCalibracao;
 
-    // Valida se o local atual existe na lista, se não, reseta
     if (selectedLocal != null &&
         !_listaDeBases.any((base) => base['value'] == selectedLocal)) {
       selectedLocal = null;
@@ -451,8 +527,8 @@ class _EstoquePageState extends State<EstoquePage>
       builder: (dialogContext) {
         bool isSubmitting = false;
         final double dialogWidth = MediaQuery.of(dialogContext).size.width > 550
-            ? 500.0 // Largura fixa
-            : MediaQuery.of(dialogContext).size.width * 0.95; // 95% para mobile
+            ? 500.0
+            : MediaQuery.of(dialogContext).size.width * 0.95;
 
         return StatefulBuilder(
           builder: (context, setDialogState) => AlertDialog(
@@ -467,7 +543,7 @@ class _EstoquePageState extends State<EstoquePage>
                 Icon(Icons.edit_note_rounded, color: metroBlue, size: 28),
                 const SizedBox(width: 12),
                 Text(
-                  'Editar Material',
+                  'Editar ${isInstrumento ? 'Instrumento' : 'Material'}',
                   style: TextStyle(
                     color: metroBlue,
                     fontWeight: FontWeight.bold,
@@ -485,28 +561,36 @@ class _EstoquePageState extends State<EstoquePage>
                   child: Column(
                     mainAxisSize: MainAxisSize.min,
                     children: [
-                      // --- MUDANÇA: CAMPO NÃO-EDITÁVEL BONITO ---
                       _buildReadOnlyField(
                         'Código',
                         material.codigo,
                         Icons.qr_code_2_rounded,
                       ),
-                      const SizedBox(height: 16), // AUMENTADO
+                      const SizedBox(height: 16),
+                      if (material.patrimonio != null && material.patrimonio!.isNotEmpty)
+                        Column(
+                          children: [
+                            _buildReadOnlyField(
+                              'Patrimônio (Instrumento)',
+                              material.patrimonio!,
+                              Icons.apartment_rounded,
+                            ),
+                            const SizedBox(height: 16),
+                          ],
+                        ),
                       TextFormField(
                         controller: nomeController,
                         decoration: _buildDialogInputDecoration('Nome *'),
                         validator: (v) =>
                             (v == null || v.isEmpty) ? 'Informe o nome' : null,
                       ),
-                      const SizedBox(height: 16), // AUMENTADO
-                      // --- MUDANÇA: CAMPO NÃO-EDITÁVEL BONITO ---
+                      const SizedBox(height: 16),
                       _buildReadOnlyField(
                         'Quantidade Atual',
                         "${material.quantidade} (use 'Movimentar' para alterar)",
                         Icons.info_outline_rounded,
                       ),
-                      const SizedBox(height: 16), // AUMENTADO
-                      // --- MUDANÇA: CAMPO DE LOCAL (DROPDOWN) ---
+                      const SizedBox(height: 16),
                       DropdownButtonFormField<String>(
                         value: selectedLocal,
                         items: _listaDeBases.map((base) {
@@ -526,31 +610,58 @@ class _EstoquePageState extends State<EstoquePage>
                             : null,
                         dropdownColor: Colors.white,
                       ),
-
-                      // --- FIM DA MUDANÇA ---
-                      const SizedBox(height: 16), // AUMENTADO
-                      TextFormField(
-                        controller: vencimentoController,
-                        readOnly: true,
-                        decoration: _buildDialogInputDecoration(
-                          'Vencimento (opcional)',
+                      const SizedBox(height: 16),
+                      
+                      // Vencimento (Consumo/Giro)
+                      if (!isInstrumento)
+                        Padding(
+                          padding: const EdgeInsets.only(bottom: 16.0),
+                          child: TextFormField(
+                            controller: vencimentoController,
+                            readOnly: true,
+                            decoration: _buildDialogInputDecoration(
+                              'Vencimento (opcional)',
+                            ),
+                            onTap: () async {
+                              final now = DateTime.now();
+                              final picked = await showDatePicker(
+                                context: context,
+                                initialDate: selectedVencimento ?? now,
+                                firstDate: DateTime(now.year - 5),
+                                lastDate: DateTime(now.year + 10),
+                              );
+                              if (picked != null) {
+                                setDialogState(() {
+                                  selectedVencimento = picked;
+                                  vencimentoController.text = _formatDate(picked);
+                                });
+                              }
+                            },
+                          ),
                         ),
-                        onTap: () async {
-                          final now = DateTime.now();
-                          final picked = await showDatePicker(
-                            context: context,
-                            initialDate: selectedVencimento ?? now,
-                            firstDate: DateTime(now.year - 5),
-                            lastDate: DateTime(now.year + 10),
-                          );
-                          if (picked != null) {
-                            setDialogState(() {
-                              selectedVencimento = picked;
-                              vencimentoController.text = _formatDate(picked);
-                            });
-                          }
-                        },
-                      ),
+                      // Calibração (Instrumento) - Apenas leitura, pois é atualizada na Movimentação/Criação
+                      if (isInstrumento)
+                        Padding(
+                          padding: const EdgeInsets.only(bottom: 16.0),
+                          child: _buildReadOnlyField(
+                            'Vencimento Calibração',
+                            _formatDate(dataCalibracao),
+                            Icons.calendar_today,
+                          ),
+                        ),
+                      
+                      // Estoque Mínimo (Consumo/Giro)
+                      if (!isInstrumento)
+                        TextFormField(
+                          controller: estoqueMinimoController,
+                          decoration: _buildDialogInputDecoration(
+                            'Estoque Mínimo (opcional)',
+                          ),
+                          keyboardType: TextInputType.number,
+                          inputFormatters: [
+                            FilteringTextInputFormatter.digitsOnly,
+                          ],
+                        ),
                     ],
                   ),
                 ),
@@ -574,29 +685,59 @@ class _EstoquePageState extends State<EstoquePage>
 
                         setDialogState(() => isSubmitting = true);
                         setState(() => _processingIds.add(material.codigo));
+                        
+                        int? estoqueMinimo;
+                        try {
+                          if (!isInstrumento && estoqueMinimoController.text.isNotEmpty) {
+                            estoqueMinimo = int.parse(estoqueMinimoController.text);
+                          }
+                        } catch (e) {
+                          setDialogState(() => isSubmitting = false);
+                          setState(() => _processingIds.remove(material.codigo));
+                          ScaffoldMessenger.of(context).showSnackBar(
+                            const SnackBar(
+                              content: Text('Estoque Mínimo deve ser um número'),
+                              backgroundColor: Colors.red,
+                            ),
+                          );
+                          return;
+                        }
 
                         try {
-                          // --- MUDANÇA: Chamada de update corrigida ---
                           final updatedMaterial = await _materialService.update(
                             material.codigo,
-                            // tipo não é mais necessário
                             nome: nomeController.text,
                             local: selectedLocal!,
                             vencimento: selectedVencimento,
+                            estoqueMinimo: estoqueMinimo,
                           );
 
-                          // Atualiza a lista local
-                          setState(() {
-                            final index = _materiais.indexWhere(
-                              (m) => m.codigo == material.codigo,
-                            );
-                            if (index != -1) {
-                              _materiais[index] = updatedMaterial;
-                            }
-                          });
+                          final index = _materiais.indexWhere(
+                            (m) => m.codigo == material.codigo,
+                          );
+                          if (index != -1) {
+                            // MUDANÇA: Recria o objeto manualmente para simular o copyWith,
+                            // usando os dados atualizados (nome, local, vencimento, estoqueMinimo)
+                            // e preservando os dados originais do Instrumento (patrimonio, dataCalibracao, status).
+                            _materiais[index] = EstoqueMaterial(
+                              codigo: updatedMaterial.codigo,
+                              nome: updatedMaterial.nome, // Atualizado
+                              quantidade: updatedMaterial.quantidade, // Atualizado (deveria ser o mesmo)
+                              local: updatedMaterial.local, // Atualizado
+                              vencimento: updatedMaterial.vencimento, // Atualizado
+                              estoqueMinimo: updatedMaterial.estoqueMinimo, // Atualizado
+                              tipo: updatedMaterial.tipo,
+                              
+                              // Preserve os campos originais do instrumento:
+                              patrimonio: material.patrimonio,
+                              dataCalibracao: material.dataCalibracao,
+                              status: material.status,
+                            ); 
+                          }
+                          setState(() {});
 
                           if (!mounted) return;
-                          Navigator.of(dialogContext).pop(); // fecha o diálogo
+                          Navigator.of(dialogContext).pop();
                           ScaffoldMessenger.of(context).showSnackBar(
                             SnackBar(
                               content: Text(
@@ -638,12 +779,10 @@ class _EstoquePageState extends State<EstoquePage>
     );
   }
 
-  // --- NOVOS: MÉTODOS DE EXCLUIR ---
   Future<void> _deleteMaterial(String codigo) async {
     setState(() => _processingIds.add(codigo));
     try {
-      // --- MUDANÇA: Chamada de delete corrigida ---
-      await _materialService.delete(codigo); // tipo não é mais necessário
+      await _materialService.delete(codigo); 
 
       setState(() {
         _materiais.removeWhere((m) => m.codigo == codigo);
@@ -697,12 +836,30 @@ class _EstoquePageState extends State<EstoquePage>
       await _deleteMaterial(material.codigo);
     }
   }
-  // --- FIM DOS MÉTODOS DE EXCLUIR ---
 
-  // Método para mostrar o diálogo de movimentação de material
+  // --- MÉTODO DE MOVIMENTAÇÃO (ATUALIZADO) ---
   void _showMovimentarDialog(BuildContext context, EstoqueMaterial material) {
-    final quantidadeController = TextEditingController();
-    String tipoMovimento = 'saida'; // 'saida' ou 'entrada'
+    final quantidadeController = TextEditingController(); 
+    String tipoMovimento = 'saida'; 
+
+    if (material.isVencidoOuCalibracaoExpirada) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(
+            material.tipo == 'instrumento' 
+              ? 'ATENÇÃO: Este instrumento está com a calibração vencida. Movimentação não permitida.'
+              : 'ATENÇÃO: Este material está vencido. Movimentação não permitida.',
+          ),
+          backgroundColor: Colors.red,
+        ),
+      );
+      return;
+    }
+
+    final isInstrumento = material.tipo == 'instrumento';
+    if (isInstrumento) {
+      quantidadeController.text = '1';
+    }
 
     showDialog(
       context: context,
@@ -716,40 +873,69 @@ class _EstoquePageState extends State<EstoquePage>
                 children: [
                   Text('Estoque atual: ${material.quantidade}'),
                   const SizedBox(height: 16),
-                  Row(
-                    mainAxisAlignment: MainAxisAlignment.center,
-                    children: [
-                      ChoiceChip(
-                        label: const Text('Saída'),
-                        selected: tipoMovimento == 'saida',
-                        onSelected: (selected) {
-                          if (selected) {
-                            setDialogState(() => tipoMovimento = 'saida');
-                          }
-                        },
-                        selectedColor: Colors.red.shade100,
-                      ),
-                      const SizedBox(width: 8),
-                      ChoiceChip(
-                        label: const Text('Entrada'),
-                        selected: tipoMovimento == 'entrada',
-                        onSelected: (selected) {
-                          if (selected) {
-                            setDialogState(() => tipoMovimento = 'entrada');
-                          }
-                        },
-                        selectedColor: Colors.green.shade100,
-                      ),
-                    ],
-                  ),
+                  if (!isInstrumento) 
+                    Row(
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      children: [
+                        ChoiceChip(
+                          label: const Text('Saída'),
+                          selected: tipoMovimento == 'saida',
+                          onSelected: (selected) {
+                            if (selected) {
+                              setDialogState(() => tipoMovimento = 'saida');
+                            }
+                          },
+                          selectedColor: Colors.red.shade100,
+                        ),
+                        const SizedBox(width: 8),
+                        ChoiceChip(
+                          label: const Text('Entrada'),
+                          selected: tipoMovimento == 'entrada',
+                          onSelected: (selected) {
+                            if (selected) {
+                              setDialogState(() => tipoMovimento = 'entrada');
+                            }
+                          },
+                          selectedColor: Colors.green.shade100,
+                        ),
+                      ],
+                    )
+                  else 
+                    Row(
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      children: [
+                        ChoiceChip(
+                          label: const Text('Retirada'),
+                          selected: tipoMovimento == 'saida',
+                          onSelected: (selected) {
+                            if (selected) {
+                              setDialogState(() => tipoMovimento = 'saida');
+                            }
+                          },
+                          selectedColor: Colors.red.shade100,
+                        ),
+                        const SizedBox(width: 8),
+                        ChoiceChip(
+                          label: const Text('Devolução'),
+                          selected: tipoMovimento == 'entrada',
+                          onSelected: (selected) {
+                            if (selected) {
+                              setDialogState(() => tipoMovimento = 'entrada');
+                            }
+                          },
+                          selectedColor: Colors.green.shade100,
+                        ),
+                      ],
+                    ),
                   const SizedBox(height: 16),
                   TextField(
                     controller: quantidadeController,
+                    readOnly: isInstrumento, 
                     keyboardType: TextInputType.number,
                     inputFormatters: [FilteringTextInputFormatter.digitsOnly],
-                    decoration: const InputDecoration(
-                      labelText: 'Quantidade',
-                      border: OutlineInputBorder(),
+                    decoration: InputDecoration(
+                      labelText: isInstrumento ? 'Quantidade (Deve ser 1)' : 'Quantidade',
+                      border: const OutlineInputBorder(),
                     ),
                   ),
                 ],
@@ -761,20 +947,17 @@ class _EstoquePageState extends State<EstoquePage>
                 ),
                 ElevatedButton(
                   onPressed: () async {
-                    final quantidade = int.tryParse(quantidadeController.text);
+                    final quantidade = isInstrumento ? 1 : int.tryParse(quantidadeController.text);
                     if (quantidade == null || quantidade <= 0) {
                       ScaffoldMessenger.of(context).showSnackBar(
                         const SnackBar(
-                          content: Text(
-                            'Por favor, insira uma quantidade válida.',
-                          ),
+                          content: Text('Por favor, insira uma quantidade válida.'),
                           backgroundColor: Colors.orange,
                         ),
                       );
                       return;
                     }
 
-                    // Mostrar indicador de progresso
                     showDialog(
                       context: context,
                       barrierDismissible: false,
@@ -783,18 +966,27 @@ class _EstoquePageState extends State<EstoquePage>
                     );
 
                     try {
-                      // Buscar o nome do usuário logado
                       final nomeUsuario = await _authService.nome ?? 'Sistema';
 
-                      await _materialService.movimentar(
-                        codigo: material.codigo,
-                        tipo: tipoMovimento,
-                        quantidade: quantidade,
-                        usuario: nomeUsuario,
-                        local: material.local,
-                      );
+                      if (isInstrumento) {
+                        final tipoInst = tipoMovimento == 'saida' ? 'retirada' : 'devolucao';
+                        await _materialService.movimentarInstrumento(
+                          codigo: material.codigo,
+                          tipoMovimento: tipoInst,
+                          usuario: nomeUsuario,
+                          local: material.local,
+                        );
+                      } else {
+                        await _materialService.movimentar(
+                          codigo: material.codigo,
+                          tipo: tipoMovimento,
+                          quantidade: quantidade,
+                          usuario: nomeUsuario,
+                          local: material.local,
+                        );
+                      }
 
-                      // Atualizar o estado local
+                      // Atualizar o estado local (Mantendo todos os campos do modelo)
                       setState(() {
                         final index = _materiais.indexWhere(
                           (m) => m.codigo == material.codigo,
@@ -811,12 +1003,17 @@ class _EstoquePageState extends State<EstoquePage>
                             quantidade: novaQuantidade,
                             local: oldMaterial.local,
                             vencimento: oldMaterial.vencimento,
+                            tipo: oldMaterial.tipo,
+                            patrimonio: oldMaterial.patrimonio,
+                            estoqueMinimo: oldMaterial.estoqueMinimo,
+                            dataCalibracao: oldMaterial.dataCalibracao,
+                            status: oldMaterial.status,
                           );
                         }
                       });
 
-                      Navigator.of(context).pop(); // Fecha o progresso
-                      Navigator.of(context).pop(); // Fecha o diálogo
+                      Navigator.of(context).pop(); 
+                      Navigator.of(context).pop(); 
 
                       ScaffoldMessenger.of(context).showSnackBar(
                         SnackBar(
@@ -827,7 +1024,7 @@ class _EstoquePageState extends State<EstoquePage>
                         ),
                       );
                     } catch (e) {
-                      Navigator.of(context).pop(); // Fecha o progresso
+                      Navigator.of(context).pop(); 
                       ScaffoldMessenger.of(context).showSnackBar(
                         SnackBar(
                           content: Text('Erro: $e'),
@@ -851,7 +1048,10 @@ class _EstoquePageState extends State<EstoquePage>
     final metroBlue = const Color(0xFF001489);
     final bool isMobileScreen = MediaQuery.of(context).size.width < 600;
 
-    // Original body (extracted so we can reuse it with or without sidebar)
+    // MUDANÇA: Lógica corrigida. Se o tipo da página for 'instrumento', mostra a coluna.
+    final bool showPatrimonioColumn = widget.tipo == 'instrumento' || 
+      _materiais.any((m) => m.tipo == 'instrumento');
+
     Widget bodyContent = Padding(
       padding: const EdgeInsets.all(16.0),
       child: Column(
@@ -931,7 +1131,7 @@ class _EstoquePageState extends State<EstoquePage>
                     ),
                   );
                 }
-
+                
                 final availableChip = availabilityChip(
                   baseColor: Colors.green,
                   icon: Icons.check_circle,
@@ -944,6 +1144,13 @@ class _EstoquePageState extends State<EstoquePage>
                   label:
                       'Em falta: ${_materiais.where((m) => m.quantidade <= 0).length}',
                 );
+                final expiredChip = availabilityChip(
+                  baseColor: Colors.orange,
+                  icon: Icons.calendar_today,
+                  label:
+                      'Vencidos/Expirados: ${_materiais.where((m) => m.isVencidoOuCalibracaoExpirada).length}',
+                );
+
 
                 if (isCompact) {
                   return Column(
@@ -964,6 +1171,7 @@ class _EstoquePageState extends State<EstoquePage>
                         children: [
                           availableChip,
                           missingChip,
+                          expiredChip,
                         ],
                       ),
                     ],
@@ -989,6 +1197,8 @@ class _EstoquePageState extends State<EstoquePage>
                         availableChip,
                         const SizedBox(width: 12),
                         missingChip,
+                        const SizedBox(width: 12),
+                        expiredChip,
                       ],
                     ),
                   ],
@@ -1001,7 +1211,6 @@ class _EstoquePageState extends State<EstoquePage>
           Expanded(
             child: LayoutBuilder(
               builder: (context, constraints) {
-                // Decidir qual layout usar baseado no tamanho da tela
                 final isMobile = constraints.maxWidth < 600;
 
                 if (isMobile) {
@@ -1011,11 +1220,21 @@ class _EstoquePageState extends State<EstoquePage>
                     itemCount: _filteredMateriais.length,
                     itemBuilder: (context, index) {
                       final material = _filteredMateriais[index];
-                      // Encontra o label da base para exibição
                       final localLabel = _listaDeBases.firstWhere(
                         (base) => base['value'] == material.local,
                         orElse: () => {'label': material.local},
                       )['label']!;
+
+                      final statusColor = material.isVencidoOuCalibracaoExpirada
+                          ? Colors.orange
+                          : material.quantidade > 0
+                              ? Colors.green
+                              : Colors.red;
+
+                      final statusText = material.isVencidoOuCalibracaoExpirada
+                          ? (material.tipo == 'instrumento' ? 'Calibração Vencida' : 'Vencido')
+                          : material.status ?? (material.quantidade > 0 ? 'Disponível' : 'Em Falta');
+
 
                       return Padding(
                         padding: const EdgeInsets.only(bottom: 12),
@@ -1044,26 +1263,20 @@ class _EstoquePageState extends State<EstoquePage>
                             ),
                             title: Row(
                               children: [
-                                // Ícone baseado na quantidade
+                                // Ícone baseado na quantidade/status
                                 Container(
                                   padding: const EdgeInsets.all(8),
                                   decoration: BoxDecoration(
-                                    color: material.quantidade > 0
-                                        ? Colors.green.withAlpha(
-                                            (0.1 * 255).round(),
-                                          )
-                                        : Colors.red.withAlpha(
-                                            (0.1 * 255).round(),
-                                          ),
+                                    color: statusColor.withAlpha((0.1 * 255).round()),
                                     borderRadius: BorderRadius.circular(8),
                                   ),
                                   child: Icon(
-                                    material.quantidade > 0
-                                        ? Icons.inventory_2
-                                        : Icons.warning_amber,
-                                    color: material.quantidade > 0
-                                        ? Colors.green
-                                        : Colors.red,
+                                    material.isVencidoOuCalibracaoExpirada
+                                        ? Icons.calendar_month_outlined
+                                        : material.quantidade > 0
+                                            ? Icons.inventory_2
+                                            : Icons.warning_amber,
+                                    color: statusColor,
                                     size: 24,
                                   ),
                                 ),
@@ -1099,13 +1312,11 @@ class _EstoquePageState extends State<EstoquePage>
                                     vertical: 4,
                                   ),
                                   decoration: BoxDecoration(
-                                    color: material.quantidade > 0
-                                        ? Colors.green
-                                        : Colors.red,
+                                    color: statusColor,
                                     borderRadius: BorderRadius.circular(12),
                                   ),
                                   child: Text(
-                                    material.status,
+                                    statusText, 
                                     style: const TextStyle(
                                       color: Colors.white,
                                       fontSize: 12,
@@ -1132,14 +1343,25 @@ class _EstoquePageState extends State<EstoquePage>
                                       material.quantidade.toString(),
                                     ),
                                     const SizedBox(height: 8),
+                                    if (material.tipo == 'instrumento' && material.patrimonio != null)
+                                      _buildInfoRow(
+                                        'Patrimônio:',
+                                        material.patrimonio!,
+                                      ),
+                                    if (material.tipo != 'instrumento' && material.estoqueMinimo != null)
+                                      _buildInfoRow(
+                                        'Estoque Mínimo:',
+                                        material.estoqueMinimo.toString(),
+                                      ),
+                                    const SizedBox(height: 8),
                                     _buildInfoRow(
                                       'Local:',
                                       localLabel,
                                     ),
                                     const SizedBox(height: 8),
                                     _buildInfoRow(
-                                      'Vencimento:',
-                                      _formatDate(material.vencimento),
+                                      material.tipo == 'instrumento' ? 'Calibração:' : 'Vencimento:',
+                                      _formatDate(material.tipo == 'instrumento' ? material.dataCalibracao : material.vencimento),
                                     ),
                                     const SizedBox(height: 12),
                                     Row(
@@ -1217,7 +1439,6 @@ class _EstoquePageState extends State<EstoquePage>
                       data: Theme.of(
                         context,
                       ).copyWith(dividerColor: Colors.grey.shade200),
-                      // Horizontal scroll externo (mantido) + scroll vertical interno (adicionado)
                       child: SingleChildScrollView(
                         scrollDirection: Axis.horizontal,
                         child: ConstrainedBox(
@@ -1225,27 +1446,26 @@ class _EstoquePageState extends State<EstoquePage>
                             minWidth: constraints.maxWidth,
                           ),
                           child: SingleChildScrollView(
-                            // Adiciona rolagem vertical para permitir "rodar para baixo"
                             scrollDirection: Axis.vertical,
                             child: DataTable(
                               headingRowColor:
                                   MaterialStateProperty.resolveWith<Color?>(
-                                    (Set<MaterialState> states) =>
-                                        const Color(0xFFF5F7FA),
-                                  ),
+                                      (Set<MaterialState> states) =>
+                                          const Color(0xFFF5F7FA),
+                                      ),
                               dataRowColor:
                                   MaterialStateProperty.resolveWith<Color?>((
-                                    Set<MaterialState> states,
-                                  ) {
-                                    if (states.contains(
-                                      MaterialState.selected,
-                                    )) {
-                                      return Colors.blue.withAlpha(
-                                        (0.1 * 255).round(),
-                                      );
-                                    }
-                                    return Colors.white;
-                                  }),
+                                      Set<MaterialState> states,
+                                    ) {
+                                      if (states.contains(
+                                          MaterialState.selected,
+                                        )) {
+                                          return Colors.blue.withAlpha(
+                                            (0.1 * 255).round(),
+                                          );
+                                        }
+                                        return Colors.white;
+                                      }),
                               columnSpacing: 24,
                               horizontalMargin: 24,
                               dataRowMinHeight: 64,
@@ -1264,7 +1484,7 @@ class _EstoquePageState extends State<EstoquePage>
                                     ),
                                   ),
                                 ),
-                                DataColumn(
+                                const DataColumn(
                                   label: Expanded(
                                     flex: 3,
                                     child: Text(
@@ -1275,7 +1495,16 @@ class _EstoquePageState extends State<EstoquePage>
                                     ),
                                   ),
                                 ),
-                                // Cabeçalho centralizado para a coluna Quantidade
+                                // MUDANÇA: Adiciona coluna de Patrimônio, CONDICIONAL
+                                if (showPatrimonioColumn)
+                                  const DataColumn(
+                                    label: Expanded(
+                                      child: Text(
+                                        'Patrimônio',
+                                        style: TextStyle(fontWeight: FontWeight.bold),
+                                      ),
+                                    ),
+                                  ),
                                 DataColumn(
                                   label: SizedBox(
                                     width: 120,
@@ -1300,13 +1529,15 @@ class _EstoquePageState extends State<EstoquePage>
                                     ),
                                   ),
                                 ),
-                                // Nova coluna de Vencimento (opcional)
                                 DataColumn(
                                   label: SizedBox(
                                     width: 120,
                                     child: Center(
                                       child: Text(
-                                        'Vencimento',
+                                        // MUDANÇA: Cabeçalho condicional
+                                        showPatrimonioColumn 
+                                            ? 'Venc. Calib.' 
+                                            : 'Vencimento',
                                         style: TextStyle(
                                           fontWeight: FontWeight.bold,
                                         ),
@@ -1336,11 +1567,22 @@ class _EstoquePageState extends State<EstoquePage>
                                 ),
                               ],
                               rows: _filteredMateriais.map((material) {
-                                // Encontra o label da base para exibição
                                 final localLabel = _listaDeBases.firstWhere(
                                   (base) => base['value'] == material.local,
                                   orElse: () => {'label': material.local},
                                 )['label']!;
+                                
+                                final statusColor = material.isVencidoOuCalibracaoExpirada
+                                    ? Colors.orange
+                                    : material.quantidade > 0
+                                        ? Colors.green
+                                        : Colors.red;
+
+                                final statusText = material.isVencidoOuCalibracaoExpirada
+                                    ? (material.tipo == 'instrumento' ? 'Calibração Vencida' : 'Vencido')
+                                    : material.status ?? (material.quantidade > 0 ? 'Disponível' : 'Em Falta');
+                                    
+                                final isInstrumento = material.tipo == 'instrumento';
 
                                 return DataRow(
                                   cells: [
@@ -1360,7 +1602,11 @@ class _EstoquePageState extends State<EstoquePage>
                                         ),
                                       ),
                                     ),
-                                    // Célula centralizada para a quantidade
+                                    // MUDANÇA: Célula de Patrimônio, CONDICIONAL
+                                    if (showPatrimonioColumn)
+                                      DataCell(
+                                        Text(isInstrumento ? (material.patrimonio ?? '-') : '-'),
+                                      ),
                                     DataCell(
                                       SizedBox(
                                         width: 120,
@@ -1378,19 +1624,17 @@ class _EstoquePageState extends State<EstoquePage>
                                         ),
                                       ),
                                     ),
-                                    DataCell(Text(localLabel)), // MUDANÇA
-                                    // Célula de vencimento (formatação ou '-')
+                                    DataCell(Text(localLabel)), 
                                     DataCell(
                                       SizedBox(
                                         width: 120,
                                         child: Center(
                                           child: Text(
-                                            _formatDate(material.vencimento),
+                                            // MUDANÇA: Usa dataCalibracao se for instrumento, senão usa vencimento
+                                            _formatDate(isInstrumento ? material.dataCalibracao : material.vencimento),
                                             textAlign: TextAlign.center,
                                             style: TextStyle(
-                                              color: material.vencimento == null
-                                                  ? Colors.grey
-                                                  : Colors.black87,
+                                              color: statusColor,
                                             ),
                                           ),
                                         ),
@@ -1403,15 +1647,13 @@ class _EstoquePageState extends State<EstoquePage>
                                           vertical: 4,
                                         ),
                                         decoration: BoxDecoration(
-                                          color: material.quantidade > 0
-                                              ? Colors.green
-                                              : Colors.red,
+                                          color: statusColor,
                                           borderRadius: BorderRadius.circular(
                                             12,
                                           ),
                                         ),
                                         child: Text(
-                                          material.status,
+                                          statusText,
                                           style: const TextStyle(
                                             color: Colors.white,
                                             fontSize: 12,
@@ -1420,7 +1662,6 @@ class _EstoquePageState extends State<EstoquePage>
                                         ),
                                       ),
                                     ),
-                                    // --- MUDANÇA: ADICIONADO BOTÃO DE EXCLUIR, EDITAR E LOADING (DESKTOP) ---
                                     DataCell(
                                       _processingIds.contains(material.codigo)
                                           ? const Center(
@@ -1479,7 +1720,6 @@ class _EstoquePageState extends State<EstoquePage>
                                               ],
                                             ),
                                     ),
-                                    // --- FIM DA MUDANÇA ---
                                   ],
                                   onSelectChanged: (selected) {
                                     if (selected == true) {
@@ -1528,7 +1768,6 @@ class _EstoquePageState extends State<EstoquePage>
       ),
     );
 
-    // If the caller doesn't want the sidebar, return the original scaffold
     if (!widget.withSidebar) {
       return Scaffold(
         appBar: AppBar(
@@ -1549,7 +1788,6 @@ class _EstoquePageState extends State<EstoquePage>
       );
     }
 
-    // Otherwise, build a layout that includes the Sidebar (responsive)
     final isMobile = isMobileScreen;
 
     return Scaffold(

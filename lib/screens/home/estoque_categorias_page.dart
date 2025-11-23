@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
-import 'home_screen.dart'; // Para PieChartPainter e CardActionButton
-import 'estoque_page.dart'; // Para EstoqueMaterial e EstoquePage
+import 'home_screen.dart'; // Para PieChartPainter e CardActionButton (Assumindo que estão aqui)
+// MUDANÇA: Substitui o import local
+import '../../models/material.dart'; // Importa EstoqueMaterial do modelo centralizado
+import 'estoque_page.dart'; // Para EstoquePage
 import 'material_giro_page.dart'; // Página a ser criada
 import 'material_consumo_page.dart';
 import 'material_patrimoniado_page.dart';
@@ -46,7 +48,7 @@ class _EstoqueCategoriasPageState extends State<EstoqueCategoriasPage>
         'pagina': () => const MaterialConsumoPage(),
       },
       {
-        'titulo': 'Material Patrimoniado',
+        'titulo': 'Instrumentos Técnicos', // MUDANÇA DE NOME
         'icone': Icons.devices,
         'cor': Colors.purple.shade700,
         'materiais': materiaisPatrimoniado,
@@ -73,25 +75,28 @@ class _EstoqueCategoriasPageState extends State<EstoqueCategoriasPage>
   }
   // --- Fim da Lógica de Layout ---
 
-  // Dados de exemplo (do seu código)
+  // Dados de exemplo (ATUALIZADOS com os novos campos do modelo)
   final List<EstoqueMaterial> materiaisGiro = [
     EstoqueMaterial(
       codigo: 'G001',
       nome: 'Rolamento 6203',
       quantidade: 50,
       local: 'Almox. A',
+      tipo: 'giro', // ADICIONADO
     ),
     EstoqueMaterial(
       codigo: 'G002',
       nome: 'Correia V',
       quantidade: 20,
       local: 'Almox. B',
+      tipo: 'giro', // ADICIONADO
     ),
     EstoqueMaterial(
       codigo: 'G003',
       nome: 'Filtro de Ar',
       quantidade: 0,
       local: 'Almox. A',
+      tipo: 'giro', // ADICIONADO
     ),
   ];
   final List<EstoqueMaterial> materiaisConsumo = [
@@ -100,32 +105,46 @@ class _EstoqueCategoriasPageState extends State<EstoqueCategoriasPage>
       nome: 'Óleo Lubrificante',
       quantidade: 15,
       local: 'Oficina 1',
+      tipo: 'consumo', // ADICIONADO
+      vencimento: DateTime.now().add(const Duration(days: 30)), // ADICIONADO
     ),
     EstoqueMaterial(
       codigo: 'C002',
       nome: 'Graxa',
       quantidade: 5,
       local: 'Oficina 2',
+      tipo: 'consumo', // ADICIONADO
+      vencimento: DateTime.now().subtract(const Duration(days: 5)), // Vencido
     ),
     EstoqueMaterial(
       codigo: 'C003',
       nome: 'Estopa',
       quantidade: 100,
       local: 'Oficina 1',
+      tipo: 'consumo', // ADICIONADO
     ),
   ];
+  // Material Patrimoniado agora são Instrumentos Técnicos
   final List<EstoqueMaterial> materiaisPatrimoniado = [
     EstoqueMaterial(
       codigo: 'P001',
       nome: 'Furadeira de Impacto',
       quantidade: 1,
       local: 'Ferramentaria',
+      tipo: 'instrumento', // MUDANÇA DE TIPO
+      patrimonio: 'PAT-1234', // ADICIONADO
+      dataCalibracao: DateTime.now().add(const Duration(days: 90)), // ADICIONADO
+      status: 'disponível', // ADICIONADO
     ),
     EstoqueMaterial(
       codigo: 'P002',
       nome: 'Multímetro Digital',
       quantidade: 1,
       local: 'Eletrônica',
+      tipo: 'instrumento', // MUDANÇA DE TIPO
+      patrimonio: 'PAT-5678', // ADICIONADO
+      dataCalibracao: DateTime.now().subtract(const Duration(days: 10)), // Calibração Vencida
+      status: 'em uso', // ADICIONADO
     ),
   ];
   late final List<Map<String, dynamic>> categorias;
@@ -144,6 +163,8 @@ class _EstoqueCategoriasPageState extends State<EstoqueCategoriasPage>
           ? AppBar(
               elevation: 0,
               backgroundColor: Colors.white,
+              surfaceTintColor: Colors.white,
+              scrolledUnderElevation: 0,
               leading: IconButton(
                 icon: AnimatedIcon(
                   icon: AnimatedIcons.menu_close,
@@ -342,7 +363,8 @@ class _EstoqueCategoriaCard extends StatelessWidget {
   final String title;
   final IconData icon;
   final Color color;
-  final List<EstoqueMaterial> materiais;
+  // MUDANÇA: O tipo na lista é List<dynamic> no StatefulWidget, mas passamos List<EstoqueMaterial> aqui
+  final List<EstoqueMaterial> materiais; 
   final VoidCallback onTap;
 
   const _EstoqueCategoriaCard({
@@ -510,7 +532,9 @@ class _EstoqueCategoriaCard extends StatelessWidget {
                             Expanded(
                               flex: 2,
                               child: CustomPaint(
-                                painter: PieChartPainter(
+                                // PieChartPainter e CardActionButton devem ser definidos em home_screen.dart
+                                // ou em outro lugar para funcionar corretamente.
+                                painter: PieChartPainter( 
                                   disponivel: totalMateriais > 0
                                       ? materiaisDisponiveis / totalMateriais
                                       : 0,
