@@ -92,6 +92,7 @@ class _SidebarState extends State<Sidebar> {
             -1,
             expanded,
             selectedIndex,
+            metroBlue,
           ),
 
           _sidebarItem(
@@ -101,6 +102,7 @@ class _SidebarState extends State<Sidebar> {
             0,
             expanded,
             selectedIndex,
+            metroBlue,
           ),
           // Item de Dashboard agora visível apenas para admin
           if ((_role ?? '') == 'admin')
@@ -111,6 +113,7 @@ class _SidebarState extends State<Sidebar> {
               1,
               expanded,
               selectedIndex,
+              metroBlue,
             ),
           _sidebarItem(
             context,
@@ -119,6 +122,7 @@ class _SidebarState extends State<Sidebar> {
             2,
             expanded,
             selectedIndex,
+            metroBlue,
           ),
           _sidebarItem(
             context,
@@ -127,6 +131,7 @@ class _SidebarState extends State<Sidebar> {
             3,
             expanded,
             selectedIndex,
+            metroBlue,
           ),
           _sidebarItem(
             context,
@@ -135,6 +140,7 @@ class _SidebarState extends State<Sidebar> {
             4,
             expanded,
             selectedIndex,
+            metroBlue,
           ),
           _sidebarItem(
             context,
@@ -143,6 +149,7 @@ class _SidebarState extends State<Sidebar> {
             5,
             expanded,
             selectedIndex,
+            metroBlue,
           ),
           // Item visível apenas para usuários 'admin'
           if ((_role ?? '') == 'admin')
@@ -153,6 +160,7 @@ class _SidebarState extends State<Sidebar> {
               6,
               expanded,
               selectedIndex,
+              metroBlue,
             ),
 
           const Spacer(),
@@ -163,6 +171,7 @@ class _SidebarState extends State<Sidebar> {
             7,
             expanded,
             selectedIndex,
+            metroBlue,
           ),
           const SizedBox(height: 16),
         ],
@@ -178,6 +187,7 @@ class _SidebarState extends State<Sidebar> {
     int index,
     bool expanded,
     int selectedIndex,
+    Color brandColor, // Cor da marca (metroBlue)
   ) {
     final isSelected = selectedIndex == index;
 
@@ -207,7 +217,7 @@ class _SidebarState extends State<Sidebar> {
             break;
           case 1: // Dashboard
             // Se não for admin, esta rota não será alcançada pelo menu, mas mantemos o fallback:
-            if ((_role ?? '') != 'admin') return; 
+            if ((_role ?? '') != 'admin') return;
 
             Navigator.pushReplacement(
               context,
@@ -245,33 +255,76 @@ class _SidebarState extends State<Sidebar> {
             );
             break;
           case 7: // Sair (Logout)
-            // Mostra um diálogo de confirmação
+            // Estilo FINAL: Diálogo Clean com TextButtons e correções de fundo/alinhamento
+
             final shouldLogout = await showDialog<bool>(
               context: context,
               builder: (context) {
                 return AlertDialog(
+                  // CORREÇÃO 1: Fundo BRANCO completamente opaco
+                  backgroundColor: Colors.white, 
+                  
+                  // Estilo do Diálogo
                   shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(12),
+                    borderRadius: BorderRadius.circular(16), // Raio de borda consistente
                   ),
-                  title: const Text('Confirmar saída'),
-                  content: const Text('Você realmente deseja sair da conta?'),
-                  actions: [
-                    TextButton(
-                      onPressed: () => Navigator.pop(context, false),
-                      child: const Text('Cancelar'),
+                  
+                  // Padding
+                  titlePadding: const EdgeInsets.only(top: 24, left: 24, right: 24, bottom: 0),
+                  contentPadding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
+                  actionsPadding: const EdgeInsets.only(bottom: 16, top: 8), // Padding dos actions (para o Row)
+                  
+                  // Conteúdo do Diálogo
+                  title: Text(
+                    'Confirmar saída',
+                    textAlign: TextAlign.center,
+                    style: TextStyle(
+                      color: brandColor, // Título Azul (Metro Blue)
+                      fontSize: 20,
+                      fontWeight: FontWeight.bold,
                     ),
-                    ElevatedButton(
-                      style: ElevatedButton.styleFrom(
-                        backgroundColor: Colors.redAccent,
-                        foregroundColor: Colors.white,
-                      ),
-                      onPressed: () => Navigator.pop(context, true),
-                      child: const Text('Sair'),
+                  ),
+                  content: Text(
+                    'Você realmente deseja sair da conta?',
+                    textAlign: TextAlign.center,
+                    style: TextStyle(fontSize: 14, color: Colors.grey[700]),
+                  ),
+                  
+                  actions: [
+                    // CORREÇÃO 2: Usa Row com MainAxisAlignment.center para CENTRALIZAR os botões
+                    Row(
+                      mainAxisAlignment: MainAxisAlignment.center, // <-- CENTRALIZAÇÃO DOS BOTÕES
+                      children: [
+                        // AÇÃO SECUNDÁRIA (Cancelar)
+                        TextButton(
+                          style: TextButton.styleFrom(
+                            foregroundColor: brandColor,
+                            textStyle: const TextStyle(fontWeight: FontWeight.bold),
+                          ),
+                          onPressed: () => Navigator.pop(context, false),
+                          child: const Text('CANCELAR'),
+                        ),
+                        
+                        const SizedBox(width: 8),
+
+                        // AÇÃO DESTRUTIVA (Sair)
+                        TextButton(
+                          style: TextButton.styleFrom(
+                            foregroundColor: Colors.red.shade700, // Vermelho sutil (cor de perigo)
+                            textStyle: const TextStyle(fontWeight: FontWeight.bold),
+                          ),
+                          onPressed: () => Navigator.pop(context, true),
+                          child: const Text('SAIR'),
+                        ),
+                      ],
                     ),
                   ],
                 );
               },
             );
+
+            // Verificação de montagem do contexto
+            if (!context.mounted) return;
 
             if (shouldLogout == true) {
               try {
