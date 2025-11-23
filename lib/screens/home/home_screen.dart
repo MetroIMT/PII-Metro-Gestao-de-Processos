@@ -533,7 +533,7 @@ class _HomeScreenState extends State<HomeScreen>
   Widget build(BuildContext context) {
     final isMobile = MediaQuery.of(context).size.width < 600;
 
-    final EdgeInsets contentPadding = EdgeInsets.all(isMobile ? 16 : 24);
+    final EdgeInsets contentPadding = EdgeInsets.all(isMobile ? 16 : 20);
 
     return Scaffold(
       key: _scaffoldKey,
@@ -691,10 +691,10 @@ class _HomeScreenState extends State<HomeScreen>
         final double maxWidth = constraints.maxWidth;
 
         // 🔹 1 coluna em celular, 2 colunas no resto (tablet/desktop)
-        final int crossAxisCount = maxWidth < 650 ? 1 : 2;
+        final int crossAxisCount = maxWidth < 750 ? 1 : 2;
 
-        // mesmos paddings/spacings que você já usa
-        const double gridHorizontalPadding = 24.0;
+        // mesmos paddings/spacings que você já usa (desktop levemente mais próximo do rail)
+        final double gridHorizontalPadding = maxWidth < 750 ? 0.0 : 16.0;
         const double crossAxisSpacing = 16.0;
 
         // calcula largura aproximada de cada card
@@ -706,7 +706,7 @@ class _HomeScreenState extends State<HomeScreen>
         double desiredHeight;
         if (crossAxisCount == 1) {
           // celular: cards mais altinhos
-          desiredHeight = 430;
+          desiredHeight = 420;
         } else {
           // tablet / desktop: ajusta pra não ficar gigante
           desiredHeight = maxWidth > 1000 ? 320 : 360;
@@ -717,7 +717,11 @@ class _HomeScreenState extends State<HomeScreen>
         return GridView(
           shrinkWrap: true,
           physics: const NeverScrollableScrollPhysics(),
-          padding: const EdgeInsets.only(right: 24.0, bottom: 8.0),
+          padding: EdgeInsets.only(
+            right: gridHorizontalPadding,
+            left: gridHorizontalPadding,
+            bottom: 8.0,
+          ),
           gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
             crossAxisCount: crossAxisCount,
             crossAxisSpacing: crossAxisSpacing,

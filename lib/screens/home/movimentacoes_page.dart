@@ -467,64 +467,87 @@ class _MovimentacoesPageState extends State<MovimentacoesPage>
 
   // Novo método para construir os botões de filtro por Tipo (mais bonito)
   Widget _buildTypeFilterRow() {
-    final ButtonStyle baseStyle = OutlinedButton.styleFrom(
-      foregroundColor: Colors.black,
-      backgroundColor: Colors.white,
-      side: const BorderSide(color: Colors.grey, width: 1),
-      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
-      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-      elevation: 0,
-    );
-
-    final ButtonStyle selectedStyle = ElevatedButton.styleFrom(
-      foregroundColor: Colors.white,
-      elevation: 0,
-      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
-      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-    );
-
-    Widget buildButton(String label, String? filterValue, Color primaryColor) {
-      final isSelected = _filterTipo == filterValue;
-      final color = isSelected ? Colors.white : primaryColor;
-      final iconData = label == 'Entradas'
-          ? Icons.add_circle_outline
-          : (label == 'Saídas' ? Icons.remove_circle_outline : Icons.view_list);
-
-      return SizedBox(
-        height: 40, // Uniform height
-        child: isSelected
-            ? ElevatedButton.icon(
-                onPressed: () {
-                  setState(() {
-                    _filterTipo = filterValue;
-                    _filterMovimentacoes();
-                  });
-                },
-                icon: Icon(iconData, size: 18),
-                label: Text(label),
-                style: selectedStyle.copyWith(
-                  backgroundColor: MaterialStateProperty.all(primaryColor),
-                  foregroundColor: MaterialStateProperty.all(Colors.white),
-                ),
-              )
-            : OutlinedButton.icon(
-                onPressed: () {
-                  setState(() {
-                    _filterTipo = filterValue;
-                    _filterMovimentacoes();
-                  });
-                },
-                icon: Icon(iconData, size: 18, color: color),
-                label: Text(label, style: TextStyle(color: Colors.black87)),
-                style: baseStyle,
-              ),
-      );
-    }
-
     return LayoutBuilder(
       builder: (context, constraints) {
+        final bool isCompact = constraints.maxWidth < 600;
+        final double textSize = isCompact ? 12.0 : 14.0;
+        final double horizontalPadding = isCompact ? 12.0 : 16.0;
+
+        final ButtonStyle baseStyle = OutlinedButton.styleFrom(
+          foregroundColor: Colors.black,
+          backgroundColor: Colors.white,
+          side: const BorderSide(color: Colors.grey, width: 1),
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+          padding: EdgeInsets.symmetric(horizontal: horizontalPadding, vertical: 8),
+          elevation: 0,
+          minimumSize: const Size(0, 40),
+          tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+        );
+
+        final ButtonStyle selectedStyle = ElevatedButton.styleFrom(
+          foregroundColor: Colors.white,
+          elevation: 0,
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+          padding: EdgeInsets.symmetric(horizontal: horizontalPadding, vertical: 8),
+          minimumSize: const Size(0, 40),
+          tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+        );
+
+        Widget buildButton(String label, String? filterValue, Color primaryColor) {
+          final isSelected = _filterTipo == filterValue;
+          final color = isSelected ? Colors.white : primaryColor;
+          final iconData = label == 'Entradas'
+              ? Icons.add_circle_outline
+              : (label == 'Saídas' ? Icons.remove_circle_outline : Icons.view_list);
+
+          final TextStyle labelStyle = TextStyle(
+            color: isSelected ? Colors.white : Colors.black87,
+            fontSize: textSize,
+          );
+
+          return SizedBox(
+            height: 40, // Uniform height
+            child: isSelected
+                ? ElevatedButton.icon(
+                    onPressed: () {
+                      setState(() {
+                        _filterTipo = filterValue;
+                        _filterMovimentacoes();
+                      });
+                    },
+                    icon: Icon(iconData, size: 18, color: Colors.white),
+                    label: Text(
+                      label,
+                      style: labelStyle,
+                      overflow: TextOverflow.fade,
+                      softWrap: false,
+                    ),
+                    style: selectedStyle.copyWith(
+                      backgroundColor: MaterialStateProperty.all(primaryColor),
+                      foregroundColor: MaterialStateProperty.all(Colors.white),
+                    ),
+                  )
+                : OutlinedButton.icon(
+                    onPressed: () {
+                      setState(() {
+                        _filterTipo = filterValue;
+                        _filterMovimentacoes();
+                      });
+                    },
+                    icon: Icon(iconData, size: 18, color: color),
+                    label: Text(
+                      label,
+                      style: labelStyle,
+                      overflow: TextOverflow.fade,
+                      softWrap: false,
+                    ),
+                    style: baseStyle,
+                  ),
+          );
+        }
+
         // Em telas menores (mobile), expande os botões para preencher a largura
-        if (constraints.maxWidth < 600) {
+        if (isCompact) {
           return Row(
             children: [
               Expanded(child: buildButton('Todos', null, metroBlue)),
@@ -982,6 +1005,8 @@ class _MovimentacoesPageState extends State<MovimentacoesPage>
                 shape: RoundedRectangleBorder(
                   borderRadius: BorderRadius.circular(12),
                 ),
+                color: Colors.white,
+                surfaceTintColor: Colors.white,
                 child: Padding(
                   padding: const EdgeInsets.all(16.0),
                   child: Column(
