@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 // Importe o serviço e os modelos necessários
 import '../../services/material_service.dart';
+import '../../services/auth_service.dart';
 import '../home/estoque_page.dart'; // Assumindo que EstoqueMaterial está aqui, como em MaterialService
 import '../../repositories/alert_repository.dart'; // Usaremos para os modelos AlertItem e AlertType
 import '../../widgets/sidebar.dart';
@@ -31,6 +32,12 @@ class _AlertsPageState extends State<AlertsPage>
   String? _errorMessage; // Armazena mensagens de erro
   bool _isSeverityMenuOpen = false;
 
+  // VARIAVEIS DE ESTADO PARA ADMIN
+  late final AuthService _authService;
+  String? _userRole;
+
+  bool get _isAdmin => _userRole == 'admin'; // NOVO GETTER
+
   @override
   void initState() {
     super.initState();
@@ -40,10 +47,22 @@ class _AlertsPageState extends State<AlertsPage>
     );
     // Instancia o serviço e carrega os dados
     _materialService = MaterialService();
+    _authService = AuthService();
+    _loadUserRole(); // CARREGA ROLE
     _loadAlerts();
   }
 
-  // --- ATUALIZADO: Método para carregar e processar alertas ---
+  // NOVO MÉTODO: Carrega a role do usuário logado
+  Future<void> _loadUserRole() async {
+    final role = await _authService.role;
+    if (mounted) {
+      setState(() {
+        _userRole = role;
+      });
+    }
+  }
+
+  // --- ATUALIZADO: Método para carregar e processar alertas (com Vencido) ---
   Future<void> _loadAlerts() async {
     setState(() {
       _isLoading = true;
@@ -64,6 +83,8 @@ class _AlertsPageState extends State<AlertsPage>
       // 3. Processa os materiais para gerar alertas
       final generatedAlerts = <AlertItem>[];
       final now = DateTime.now();
+      
+      // Limites para 'Vencimento Próximo'
       final expiryLimit = now.add(const Duration(days: 30));
       final criticalExpiryLimit = now.add(const Duration(days: 15));
 
@@ -73,17 +94,35 @@ class _AlertsPageState extends State<AlertsPage>
         // 1. Calcular condições e severidades
         bool isLowStock = m.quantidade < 10;
         int lowStockSeverity = isLowStock ? (m.quantidade == 0 ? 3 : 2) : 0;
+        
+        // NOVO: Verifica se está VENCIDO (data é antes de agora)
+        bool isExpired = m.vencimento != null && m.vencimento!.isBefore(now);
+        int expiredSeverity = isExpired ? 3 : 0; // Severity 3 para vencido
 
-        bool isNearExpiry =
-            m.vencimento != null && m.vencimento!.isBefore(expiryLimit);
+        // ATUALIZADO: Verifica se está PRÓXIMO DO VENCIMENTO (e não vencido)
+        bool isNearExpiry = m.vencimento != null && 
+                            !isExpired && 
+                            m.vencimento!.isBefore(expiryLimit);
+                            
         int nearExpirySeverity = isNearExpiry
             ? (m.vencimento!.isBefore(criticalExpiryLimit) ? 3 : 2)
             : 0;
 
         // 2. Determinar qual alerta criar (APENAS UM por item)
-        if (isLowStock && isNearExpiry) {
-          // Caso 1: Item tem AMBOS os problemas.
-          // Criamos UM alerta para o problema mais grave.
+
+        if (isExpired) {
+          // Caso 1: Item Vencido (Prioridade máxima, ignora estoque)
+          generatedAlerts.add(AlertItem(
+            codigo: m.codigo,
+            nome: m.nome,
+            quantidade: m.quantidade,
+            local: m.local,
+            vencimento: m.vencimento,
+            type: AlertType.expired, // NOVO TIPO
+            severity: expiredSeverity,
+          ));
+        } else if (isLowStock && isNearExpiry) {
+          // Caso 2: AMBOS problemas (Não está vencido). Prioriza o mais grave.
           if (lowStockSeverity >= nearExpirySeverity) {
             // Prioriza estoque baixo (ou se a gravidade for igual)
             generatedAlerts.add(AlertItem(
@@ -108,7 +147,7 @@ class _AlertsPageState extends State<AlertsPage>
             ));
           }
         } else if (isLowStock) {
-          // Caso 2: Apenas estoque baixo
+          // Caso 3: Apenas estoque baixo
           generatedAlerts.add(AlertItem(
             codigo: m.codigo,
             nome: m.nome,
@@ -119,7 +158,7 @@ class _AlertsPageState extends State<AlertsPage>
             severity: lowStockSeverity,
           ));
         } else if (isNearExpiry) {
-          // Caso 3: Apenas vencimento próximo
+          // Caso 4: Apenas vencimento próximo (e não vencido)
           generatedAlerts.add(AlertItem(
             codigo: m.codigo,
             nome: m.nome,
@@ -233,8 +272,12 @@ class _AlertsPageState extends State<AlertsPage>
                                     final a = _visibleAlerts[i];
                                     return Dismissible(
                                       key: ValueKey(a.codigo + a.nome),
-                                      direction: DismissDirection.endToStart,
+                                      // ATUALIZADO: Restringe Dismissible ao Admin
+                                      direction: _isAdmin
+                                          ? DismissDirection.endToStart
+                                          : DismissDirection.none,
                                       confirmDismiss: (direction) async {
+                                        if (!_isAdmin) return false; // GARANTE que só Admin pode confirmar
                                         return await showDialog<bool>(
                                               context: context,
                                               builder: (context) =>
@@ -368,14 +411,16 @@ class _AlertsPageState extends State<AlertsPage>
                                                       onPressed: () =>
                                                           _showDetail(a),
                                                     ),
-                                                    IconButton(
-                                                      icon: const Icon(
-                                                          Icons.check),
-                                                      tooltip:
-                                                          'Marcar resolvido',
-                                                      onPressed: () =>
-                                                          _confirmAndMark(a),
-                                                    ),
+                                                    // ATUALIZADO: Restringe o botão 'Marcar resolvido' ao Admin
+                                                    if (_isAdmin)
+                                                      IconButton(
+                                                        icon: const Icon(
+                                                            Icons.check),
+                                                        tooltip:
+                                                            'Marcar resolvido',
+                                                        onPressed: () =>
+                                                            _confirmAndMark(a),
+                                                      ),
                                                   ],
                                                 ),
                                               ),
@@ -427,12 +472,15 @@ class _AlertsPageState extends State<AlertsPage>
     }
   }
 
+  // ATUALIZADO: Inclui 'Vencido'
   String _typeLabel(AlertType t) {
     switch (t) {
       case AlertType.lowStock:
         return 'Estoque baixo';
       case AlertType.nearExpiry:
         return 'Vencimento próximo';
+      case AlertType.expired:
+        return 'Vencido';
       case AlertType.calibration:
         return 'Calibração';
     }
@@ -537,6 +585,7 @@ class _AlertsPageState extends State<AlertsPage>
 
   // Remove o alerta pela posição na lista visível (usado pelo Dismissible)
   void _resolveAlertAt(int index) {
+    if (!_isAdmin) return; // NOVO: Impede ação se não for Admin
     final visible = _visibleAlerts;
     if (index < 0 || index >= visible.length) return;
     final removed = visible[index];
@@ -551,6 +600,17 @@ class _AlertsPageState extends State<AlertsPage>
 
   // Nova função: mostra diálogo de confirmação e, se confirmado, remove o alerta
   Future<void> _confirmAndMark(AlertItem a) async {
+    // NOVO: Adiciona a restrição de Admin
+    if (!_isAdmin) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Apenas administradores podem marcar alertas como resolvidos.'),
+          backgroundColor: Colors.red,
+        ),
+      );
+      return;
+    }
+
     final confirmed = await showDialog<bool>(
       context: context,
       barrierDismissible: false,
@@ -671,7 +731,9 @@ class _AlertsPageState extends State<AlertsPage>
                       child: Icon(
                         a.type == AlertType.lowStock
                             ? Icons.inventory_2
-                            : Icons.event,
+                            : a.type == AlertType.expired
+                                ? Icons.warning_amber_rounded
+                                : Icons.event,
                         color: severityColor,
                         size: 28,
                       ),
@@ -731,8 +793,12 @@ class _AlertsPageState extends State<AlertsPage>
                 Text(
                   a.type == AlertType.lowStock
                       ? 'Estoque baixo — considere reposição ou realocação para este item.'
-                      : 'Vencimento próximo — priorize o uso ou inspeção do material.',
-                  style: const TextStyle(color: Colors.black54, fontSize: 15),
+                      : a.type == AlertType.expired
+                          ? 'ALERTA: Material VENCIDO — descarte ou reavalie imediatamente.'
+                          : 'Vencimento próximo — priorize o uso ou inspeção do material.',
+                  style: a.type == AlertType.expired
+                      ? TextStyle(color: Colors.red.shade900, fontSize: 15, fontWeight: FontWeight.bold)
+                      : const TextStyle(color: Colors.black54, fontSize: 15),
                 ),
                 const SizedBox(height: 24),
                 Row(
@@ -746,25 +812,27 @@ class _AlertsPageState extends State<AlertsPage>
                       ),
                     ),
                     const SizedBox(width: 12),
-                    ElevatedButton.icon(
-                      icon: const Icon(Icons.check),
-                      label: const Text('Marcar resolvido'),
-                      style: ElevatedButton.styleFrom(
-                        backgroundColor: Colors.green,
-                        foregroundColor: Colors.white,
-                        shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(10),
+                    // ATUALIZADO: Restringe o botão 'Marcar resolvido' ao Admin
+                    if (_isAdmin)
+                      ElevatedButton.icon(
+                        icon: const Icon(Icons.check),
+                        label: const Text('Marcar resolvido'),
+                        style: ElevatedButton.styleFrom(
+                          backgroundColor: Colors.green,
+                          foregroundColor: Colors.white,
+                          shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(10),
+                          ),
+                          padding: const EdgeInsets.symmetric(
+                            horizontal: 20,
+                            vertical: 12,
+                          ),
                         ),
-                        padding: const EdgeInsets.symmetric(
-                          horizontal: 20,
-                          vertical: 12,
-                        ),
+                        onPressed: () async {
+                          Navigator.pop(context);
+                          await _confirmAndMark(a);
+                        },
                       ),
-                      onPressed: () async {
-                        Navigator.pop(context);
-                        await _confirmAndMark(a);
-                      },
-                    ),
                   ],
                 ),
               ],
@@ -826,20 +894,85 @@ class _AlertsPageState extends State<AlertsPage>
     );
   }
 
-  // --- ATUALIZADO: Método _buildTopBar com novos estilos de Chip ---
+  // NOVO MÉTODO: Constrói a linha de botões de filtro no estilo MovimentacoesPage
+  Widget _buildAlertFilterRow() {
+    final ButtonStyle baseStyle = OutlinedButton.styleFrom(
+      foregroundColor: Colors.black,
+      backgroundColor: Colors.white,
+      side: const BorderSide(color: Colors.grey, width: 1),
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+      elevation: 0,
+    );
+
+    final ButtonStyle selectedStyle = ElevatedButton.styleFrom(
+      foregroundColor: Colors.white,
+      elevation: 0,
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+    );
+
+    Widget buildButton(String label, AlertType? filterValue, Color primaryColor, IconData icon) {
+      final isSelected = _filterType == filterValue;
+
+      return SizedBox(
+        height: 40, // Altura uniforme
+        child: isSelected
+            ? ElevatedButton.icon(
+                onPressed: () {
+                  setState(() => _filterType = filterValue);
+                },
+                icon: Icon(icon, size: 18),
+                label: Text(label),
+                style: selectedStyle.copyWith(
+                  backgroundColor: MaterialStateProperty.all(primaryColor),
+                  foregroundColor: MaterialStateProperty.all(Colors.white),
+                ),
+              )
+            : OutlinedButton.icon(
+                onPressed: () {
+                  setState(() => _filterType = filterValue);
+                },
+                icon: Icon(icon, size: 18, color: primaryColor),
+                label: Text(label, style: const TextStyle(color: Colors.black87)),
+                style: baseStyle,
+              ),
+      );
+    }
+
+    return Wrap(
+      spacing: 8,
+      runSpacing: 8,
+      children: [
+        buildButton('Todos', null, metroBlue, Icons.view_list),
+        buildButton(
+            'Estoque baixo', AlertType.lowStock, Colors.red.shade700, Icons.inventory_2),
+        buildButton(
+            'Vencimento próximo', AlertType.nearExpiry, Colors.orange.shade700, Icons.event_available),
+        buildButton(
+            'Vencido', AlertType.expired, Colors.red.shade900, Icons.warning_amber_rounded), // NOVO BOTÃO
+        buildButton(
+            'Calibração', AlertType.calibration, Colors.blueAccent.shade700, Icons.build),
+      ],
+    );
+  }
+
+  // --- ATUALIZADO: Método _buildTopBar com nova ordem de elementos ---
   Widget _buildTopBar(BuildContext context, {bool showTitle = true}) {
     // --- Alteração: calcula totais com base em _allAlerts ---
     final total = _allAlerts.length;
     final lowStock =
         _allAlerts.where((a) => a.type == AlertType.lowStock).length;
+    // Soma NearExpiry e Expired para o estatística
     final nearExpiry =
-        _allAlerts.where((a) => a.type == AlertType.nearExpiry).length;
+        _allAlerts.where((a) => a.type == AlertType.nearExpiry || a.type == AlertType.expired).length; 
 
     final size = MediaQuery.of(context).size;
     final bool isMobileView = size.width < 600;
 
+    // ATUALIZADO: Removido padding superior
     final Widget searchField = Padding(
-      padding: const EdgeInsets.only(top: 24),
+      padding: const EdgeInsets.only(top: 0), 
       child: TextField(
         style: const TextStyle(fontWeight: FontWeight.w500),
         decoration: InputDecoration(
@@ -963,91 +1096,12 @@ class _AlertsPageState extends State<AlertsPage>
             ],
           ),
         if (showTitle) const SizedBox(height: 12),
-        filterControls,
+        // MODIFICADO: Search field and Severity selector (filterControls) agora estão no topo
+        filterControls, 
         const SizedBox(height: 12),
-        // --- ATUALIZAÇÃO DOS CHIPS ---
-        Wrap(
-          spacing: 8,
-          runSpacing: 8,
-          children: [
-            ChoiceChip(
-              label: const Text('Todos'),
-              selected: _filterType == null,
-              // Fundo 'tintado' quando selecionado
-              selectedColor: metroBlue.withOpacity(0.1),
-              // Fundo neutro quando não selecionado
-              backgroundColor: Colors.grey.shade100,
-              side: BorderSide(
-                color: _filterType == null
-                    ? metroBlue.withOpacity(0.5)
-                    : Colors.grey.shade300,
-              ),
-              labelStyle: TextStyle(
-                // Cor do texto muda
-                color: _filterType == null ? metroBlue : Colors.black87,
-                fontWeight: FontWeight.w500,
-              ),
-              onSelected: (_) => setState(() => _filterType = null),
-            ),
-            ChoiceChip(
-              label: const Text('Estoque baixo'),
-              selected: _filterType == AlertType.lowStock,
-              selectedColor: Colors.red.withOpacity(0.1),
-              backgroundColor: Colors.grey.shade100,
-              side: BorderSide(
-                color: _filterType == AlertType.lowStock
-                    ? Colors.red.withOpacity(0.5)
-                    : Colors.grey.shade300,
-              ),
-              labelStyle: TextStyle(
-                color: _filterType == AlertType.lowStock
-                    ? Colors.red
-                    : Colors.black87,
-                fontWeight: FontWeight.w500,
-              ),
-              onSelected: (_) =>
-                  setState(() => _filterType = AlertType.lowStock),
-            ),
-            ChoiceChip(
-              label: const Text('Vencimento próximo'),
-              selected: _filterType == AlertType.nearExpiry,
-              selectedColor: Colors.orange.withOpacity(0.1),
-              backgroundColor: Colors.grey.shade100,
-              side: BorderSide(
-                color: _filterType == AlertType.nearExpiry
-                    ? Colors.orange.withOpacity(0.5)
-                    : Colors.grey.shade300,
-              ),
-              labelStyle: TextStyle(
-                color: _filterType == AlertType.nearExpiry
-                    ? Colors.orange
-                    : Colors.black87,
-                fontWeight: FontWeight.w500,
-              ),
-              onSelected: (_) =>
-                  setState(() => _filterType = AlertType.nearExpiry),
-            ),
-            ChoiceChip(
-              label: const Text('Calibração'),
-              selected: _filterType == AlertType.calibration,
-              selectedColor: Colors.blueAccent.withOpacity(0.12),
-              backgroundColor: Colors.grey.shade100,
-              side: BorderSide(
-                color: _filterType == AlertType.calibration
-                    ? Colors.blueAccent.withOpacity(0.6)
-                    : Colors.grey.shade300,
-              ),
-              labelStyle: TextStyle(
-                color: _filterType == AlertType.calibration
-                    ? Colors.blueAccent
-                    : Colors.black87,
-                fontWeight: FontWeight.w500,
-              ),
-              onSelected: (_) =>
-                  setState(() => _filterType = AlertType.calibration),
-            ),
-          ],
-        ),
+        // MODIFICADO: Filter buttons no novo estilo (_buildAlertFilterRow)
+        _buildAlertFilterRow(),
+        const SizedBox(height: 12),
       ],
     );
   }
@@ -1236,13 +1290,15 @@ class _AlertsPageState extends State<AlertsPage>
                         ),
                         onPressed: () => _showDetail(a),
                       ),
-                      IconButton(
-                        icon: const Icon(
-                          Icons.check_circle_outline,
-                          color: Colors.green,
+                      // ATUALIZADO: Restringe o botão 'Marcar resolvido' ao Admin
+                      if (_isAdmin)
+                        IconButton(
+                          icon: const Icon(
+                            Icons.check_circle_outline,
+                            color: Colors.green,
+                          ),
+                          onPressed: () => _confirmAndMark(a),
                         ),
-                        onPressed: () => _confirmAndMark(a),
-                      ),
                     ],
                   ),
                 ],
@@ -1257,7 +1313,9 @@ class _AlertsPageState extends State<AlertsPage>
                     avatar: Icon(
                       a.type == AlertType.lowStock
                           ? Icons.inventory_2
-                          : Icons.event,
+                          : a.type == AlertType.expired
+                              ? Icons.warning_amber_rounded
+                              : Icons.event,
                       size: 16,
                       color: _severityColor(a.severity),
                     ),
@@ -1304,6 +1362,12 @@ class _AlertsPageState extends State<AlertsPage>
                 Text(
                   'Estoque baixo — considere reposição ou realocação.',
                   style: TextStyle(color: Colors.grey.shade700),
+                  softWrap: true,
+                )
+              else if (a.type == AlertType.expired)
+                Text(
+                  'ALERTA: Material VENCIDO — descarte ou reavalie imediatamente.',
+                  style: TextStyle(color: Colors.red.shade900, fontWeight: FontWeight.bold),
                   softWrap: true,
                 )
               else
