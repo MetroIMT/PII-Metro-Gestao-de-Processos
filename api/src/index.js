@@ -38,7 +38,7 @@ async function bootstrap() {
   app.use("/movimentos", movimentosRoutes);
   app.use("/usuarios", usuariosRoutes);
 
-  app.listen(config.port, () => {
+  app.listen(config.port, '0.0.0.0', () => {
     console.log(`API rodando em http://localhost:${config.port}`);
   });
 }
