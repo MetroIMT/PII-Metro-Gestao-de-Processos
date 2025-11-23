@@ -1142,8 +1142,10 @@ class _EstoquePageState extends State<EstoquePage>
                                       _formatDate(material.vencimento),
                                     ),
                                     const SizedBox(height: 12),
-                                    Row(
-                                      mainAxisAlignment: MainAxisAlignment.end,
+                                    Wrap(
+                                      alignment: WrapAlignment.end,
+                                      spacing: 8,
+                                      runSpacing: 8,
                                       children: [
                                         TextButton.icon(
                                           icon: const Icon(
@@ -1159,7 +1161,6 @@ class _EstoquePageState extends State<EstoquePage>
                                                 material,
                                               ),
                                         ),
-                                        const SizedBox(width: 8),
                                         TextButton.icon(
                                           icon: const Icon(
                                             Icons.edit,
@@ -1169,7 +1170,6 @@ class _EstoquePageState extends State<EstoquePage>
                                           onPressed: () =>
                                               _showEditMaterialDialog(material),
                                         ),
-                                        const SizedBox(width: 8),
                                         ElevatedButton.icon(
                                           icon: const Icon(
                                             Icons.swap_vert,

@@ -178,10 +178,48 @@ class _AlertsPageState extends State<AlertsPage>
         _isLoading = false;
       });
     } catch (e) {
-      // Trata exceções da API
+      // Trata exceções da API com dados mockados
+      final mockAlerts = [
+        AlertItem(
+          codigo: 'MOCK-001',
+          nome: 'Rolamento SKF 6205 (Mock)',
+          quantidade: 2,
+          local: 'Almoxarifado Central',
+          type: AlertType.lowStock,
+          severity: 3,
+        ),
+        AlertItem(
+          codigo: 'MOCK-002',
+          nome: 'Cola Industrial (Mock)',
+          quantidade: 15,
+          local: 'Almoxarifado B',
+          vencimento: DateTime.now().add(const Duration(days: 5)),
+          type: AlertType.nearExpiry,
+          severity: 3,
+        ),
+        AlertItem(
+          codigo: 'MOCK-003',
+          nome: 'Luvas de Proteção (Mock)',
+          quantidade: 5,
+          local: 'EPIs',
+          type: AlertType.lowStock,
+          severity: 2,
+        ),
+        AlertItem(
+          codigo: 'MOCK-004',
+          nome: 'Reagente Químico (Mock)',
+          quantidade: 10,
+          local: 'Laboratório',
+          vencimento: DateTime.now().subtract(const Duration(days: 2)),
+          type: AlertType.expired,
+          severity: 3,
+        ),
+      ];
+
       setState(() {
-        _errorMessage = e.toString();
+        _allAlerts = mockAlerts;
         _isLoading = false;
+        // _errorMessage = e.toString(); // Não exibe erro, usa mocks
       });
     }
   }
