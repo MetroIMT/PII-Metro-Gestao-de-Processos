@@ -1,5 +1,6 @@
 ﻿import 'package:flutter/material.dart';
 import 'dart:math';
+import '../../models/material.dart'; // MUDANÇA: Importa o modelo centralizado
 import 'estoque_page.dart';
 import 'alerts_page.dart';
 import 'reports_page.dart';
@@ -96,41 +97,33 @@ class _HomeScreenState extends State<HomeScreen>
     with SingleTickerProviderStateMixin {
   static const Color metroBlue = Color(0xFF001489);
 
-  // --- Lógica da Sidebar ---
   bool _isRailExtended = false;
   late AnimationController _animationController;
   final GlobalKey<ScaffoldState> _scaffoldKey = GlobalKey<ScaffoldState>();
 
-  // --- Serviços ---
   final MaterialService _materialService = MaterialService();
   final MovimentacaoService _movimentacaoService = MovimentacaoService();
   final AuthService _authService = AuthService();
   final UserService _userService = UserService();
 
-  // --- Estado: Nome do Usuário ---
   String _nomeUsuario = 'Usuário';
   bool _isLoadingNome = true;
 
-  // --- Estado: Usuários Ativos ---
   int _usuariosAtivos = 0;
   bool _isLoadingUsuarios = true;
 
-  // --- Estado: Movimentações ---
   List<Movimentacao> _recentMovimentacoes = [];
   bool _isLoadingRecent = true;
   String? _recentError;
 
-  // --- Estado: Estoque (para o gráfico) ---
   List<EstoqueMaterial>? _materiaisGiro;
   List<EstoqueMaterial>? _materiaisConsumo;
-  List<EstoqueMaterial>? _materiaisPatrimoniado;
+  List<EstoqueMaterial>? _materiaisInstrumento;
   String? _materiaisError;
 
-  // --- NOVO ESTADO: Alertas (para o card de Alertas) ---
   List<AlertItem> _dashboardAlerts = [];
   bool _isLoadingAlerts = true;
   String? _alertsError;
-  // --- FIM DA MUDANÇA ---
 
   @override
   void initState() {
@@ -140,25 +133,15 @@ class _HomeScreenState extends State<HomeScreen>
       duration: const Duration(milliseconds: 300),
     );
 
-    // --- MUDANÇA: Listener do AlertRepository REMOVIDO ---
-    // AlertRepository.instance.countNotifier.addListener(_onAlertsCountChanged);
-
-    // Adicionar listener para o novo repositório
     MovimentacaoRepository.instance.movimentacoesNotifier.addListener(
       _onAlertsCountChanged,
     );
-    // Carregar nome do usuário
     _loadNomeUsuario();
-    // carregar materiais do backend para atualizar o card de estoque
     _loadMateriais();
-    // carregar últimas movimentações do backend para o card do dashboard
     _loadRecentMovimentacoes();
-    // carregar usuários ativos
     _loadUsuariosAtivos();
 
-    // --- MUDANÇA: Carregar os alertas REAIS ---
     _loadDashboardAlerts();
-    // --- FIM DA MUDANÇA ---
   }
 
   Future<void> _loadUsuariosAtivos() async {
@@ -206,14 +189,14 @@ class _HomeScreenState extends State<HomeScreen>
       final results = await Future.wait([
         _materialService.getByTipo('giro'),
         _materialService.getByTipo('consumo'),
-        _materialService.getByTipo('patrimoniado'),
+        _materialService.getByTipo('instrumento'),
       ]);
 
       if (mounted) {
         setState(() {
           _materiaisGiro = results[0];
           _materiaisConsumo = results[1];
-          _materiaisPatrimoniado = results[2];
+          _materiaisInstrumento = results[2];
           _materiaisError = null;
         });
       }
@@ -285,7 +268,6 @@ class _HomeScreenState extends State<HomeScreen>
     }
   }
 
-  // --- NOVO MÉTODO: Lógica de Alertas (copiado da AlertsPage) ---
   Future<void> _loadDashboardAlerts() async {
     setState(() {
       _isLoadingAlerts = true;
@@ -295,53 +277,57 @@ class _HomeScreenState extends State<HomeScreen>
     try {
       final results = await Future.wait([
         _materialService.getByTipo('giro'),
-        _materialService.getByTipo('patrimoniado'),
+        _materialService.getByTipo('instrumento'),
         _materialService.getByTipo('consumo'),
       ]);
 
       final allMaterials = results.expand((list) => list).toList();
       final generatedAlerts = <AlertItem>[];
       final now = DateTime.now();
-      final expiryLimit = now.add(const Duration(days: 30));
-      final criticalExpiryLimit = now.add(const Duration(days: 15));
+      final expiryLimit = now.add(const Duration(days: 90));
+      final criticalExpiryLimit = now.add(const Duration(days: 30));
 
       for (final m in allMaterials) {
-        bool isLowStock = m.quantidade < 10;
-        int lowStockSeverity = isLowStock ? (m.quantidade == 0 ? 3 : 2) : 0;
+        bool isLowStock = false;
+        int lowStockSeverity = 0;
+        bool isNearExpiry = false;
+        int nearExpirySeverity = 0;
 
-        bool isNearExpiry =
-            m.vencimento != null && m.vencimento!.isBefore(expiryLimit);
-        int nearExpirySeverity = isNearExpiry
-            ? (m.vencimento!.isBefore(criticalExpiryLimit) ? 3 : 2)
-            : 0;
+        final minStock = m.estoqueMinimo ?? 10;
+        if (m.tipo != 'instrumento' && m.quantidade < minStock) {
+          isLowStock = true;
+          lowStockSeverity = m.quantidade == 0 ? 3 : 2;
+        }
 
-        if (isLowStock && isNearExpiry) {
-          if (lowStockSeverity >= nearExpirySeverity) {
-            generatedAlerts.add(
-              AlertItem(
-                codigo: m.codigo,
-                nome: m.nome,
-                quantidade: m.quantidade,
-                local: m.local,
-                vencimento: m.vencimento,
-                type: AlertType.lowStock,
-                severity: lowStockSeverity,
-              ),
-            );
-          } else {
-            generatedAlerts.add(
-              AlertItem(
-                codigo: m.codigo,
-                nome: m.nome,
-                quantidade: m.quantidade,
-                local: m.local,
-                vencimento: m.vencimento,
-                type: AlertType.nearExpiry,
-                severity: nearExpirySeverity,
-              ),
-            );
+        DateTime? expirationDate;
+        if (m.tipo == 'instrumento') {
+          expirationDate = m.dataCalibracao;
+        } else {
+          expirationDate = m.vencimento;
+        }
+
+        if (expirationDate != null) {
+          if (expirationDate.isBefore(now)) {
+            isNearExpiry = true;
+            nearExpirySeverity = 3;
+          } else if (expirationDate.isBefore(expiryLimit)) {
+            isNearExpiry = true;
+            nearExpirySeverity = expirationDate.isBefore(criticalExpiryLimit)
+                ? 3
+                : 2;
           }
-        } else if (isLowStock) {
+        }
+
+        if (isLowStock || isNearExpiry) {
+          final maxSeverity = max(lowStockSeverity, nearExpirySeverity);
+          AlertType type;
+
+          if (maxSeverity == lowStockSeverity && isLowStock) {
+            type = AlertType.lowStock;
+          } else {
+            type = AlertType.nearExpiry;
+          }
+
           generatedAlerts.add(
             AlertItem(
               codigo: m.codigo,
@@ -349,20 +335,9 @@ class _HomeScreenState extends State<HomeScreen>
               quantidade: m.quantidade,
               local: m.local,
               vencimento: m.vencimento,
-              type: AlertType.lowStock,
-              severity: lowStockSeverity,
-            ),
-          );
-        } else if (isNearExpiry) {
-          generatedAlerts.add(
-            AlertItem(
-              codigo: m.codigo,
-              nome: m.nome,
-              quantidade: m.quantidade,
-              local: m.local,
-              vencimento: m.vencimento,
-              type: AlertType.nearExpiry,
-              severity: nearExpirySeverity,
+              dataCalibracao: m.dataCalibracao,
+              type: type,
+              severity: maxSeverity,
             ),
           );
         }
@@ -413,22 +388,15 @@ class _HomeScreenState extends State<HomeScreen>
       }
     }
   }
-  // --- FIM DA MUDANÇA ---
 
   @override
   void dispose() {
-    // --- MUDANÇA: Listener do AlertRepository REMOVIDO ---
-    // AlertRepository.instance.countNotifier.removeListener(
-    //   _onAlertsCountChanged,
-    // );
-    // --- FIM DA MUDANÇA ---
-
     MovimentacaoRepository.instance.movimentacoesNotifier.removeListener(
       _onAlertsCountChanged,
     );
     _animationController.dispose();
     _movimentacaoService.dispose();
-    _materialService.dispose(); // Adicionado para fechar o cliente de materiais
+    _materialService.dispose();
     super.dispose();
   }
 
@@ -442,15 +410,16 @@ class _HomeScreenState extends State<HomeScreen>
       }
     });
   }
-  // --- Fim da Lógica da Sidebar ---
 
-  // Dados de exemplo (Sem alterações)
+  // Dados de exemplo (MANTIDOS e corrigidos para o novo modelo)
   final List<EstoqueMaterial> materiaisGiro = [
     EstoqueMaterial(
       codigo: 'G001',
       nome: 'Rolamento 6203',
       quantidade: 50,
       local: 'Almoxarifado A',
+      tipo: 'giro',
+      estoqueMinimo: 10,
       vencimento: DateTime(2025, 12, 31),
     ),
     EstoqueMaterial(
@@ -458,27 +427,33 @@ class _HomeScreenState extends State<HomeScreen>
       nome: 'Correia em V AX-45',
       quantidade: 20,
       local: 'Almoxarifado B',
+      tipo: 'giro',
+      estoqueMinimo: 5,
     ),
     EstoqueMaterial(
       codigo: 'G003',
       nome: 'Filtro de Ar Motor X',
       quantidade: 0,
       local: 'Almoxarifado A',
+      tipo: 'giro',
+      estoqueMinimo: 1,
     ),
     EstoqueMaterial(
       codigo: 'G004',
       nome: 'Selo Mecânico 1.5"',
       quantidade: 5,
       local: 'Oficina Mecânica',
+      tipo: 'giro',
+      estoqueMinimo: 10,
     ),
     EstoqueMaterial(
       codigo: 'G005',
       nome: 'Óleo Hidráulico',
       quantidade: 10,
       local: 'Oficina Mecânica',
-      vencimento: DateTime.now().add(
-        const Duration(days: 15),
-      ), // Vence em 15 dias
+      tipo: 'giro',
+      estoqueMinimo: 5,
+      vencimento: DateTime.now().add(const Duration(days: 15)),
     ),
   ];
   final List<EstoqueMaterial> materiaisConsumo = [
@@ -487,25 +462,29 @@ class _HomeScreenState extends State<HomeScreen>
       nome: 'Óleo Lubrificante XPTO',
       quantidade: 15,
       local: 'Oficina 1',
+      tipo: 'consumo',
     ),
     EstoqueMaterial(
       codigo: 'C002',
       nome: 'Graxa de Lítio',
       quantidade: 5,
       local: 'Oficina 2',
-      vencimento: DateTime(2024, 8, 1), // Já venceu
+      tipo: 'consumo',
+      vencimento: DateTime(2024, 8, 1),
     ),
     EstoqueMaterial(
       codigo: 'C003',
       nome: 'Estopa (pacote)',
       quantidade: 100,
       local: 'Oficina 1',
+      tipo: 'consumo',
     ),
     EstoqueMaterial(
       codigo: 'C004',
       nome: 'Lixa para Ferro',
       quantidade: 0,
       local: 'Almoxarifado C',
+      tipo: 'consumo',
     ),
   ];
   final List<EstoqueMaterial> materiaisPatrimoniado = [
@@ -514,18 +493,29 @@ class _HomeScreenState extends State<HomeScreen>
       nome: 'Furadeira de Impacto Bosch',
       quantidade: 1,
       local: 'Ferramentaria',
+      tipo: 'instrumento',
+      patrimonio: 'PAT-1234',
+      status: 'disponível',
+      dataCalibracao: DateTime.now().add(const Duration(days: 90)),
     ),
     EstoqueMaterial(
       codigo: 'P002',
       nome: 'Multímetro Digital Fluke',
       quantidade: 1,
       local: 'Laboratório de Eletrônica',
+      tipo: 'instrumento',
+      patrimonio: 'PAT-5678',
+      status: 'em uso',
+      dataCalibracao: DateTime.now().subtract(const Duration(days: 10)),
     ),
     EstoqueMaterial(
       codigo: 'P003',
       nome: 'Notebook Dell Vostro',
       quantidade: 0,
       local: 'Sala da Supervisão',
+      tipo: 'instrumento',
+      patrimonio: 'PAT-9012',
+      status: 'em campo',
     ),
   ];
 
@@ -571,7 +561,6 @@ class _HomeScreenState extends State<HomeScreen>
           : null,
       body: Stack(
         children: [
-          // Sidebar (Desktop)
           if (!isMobile)
             AnimatedPositioned(
               duration: const Duration(milliseconds: 300),
@@ -583,7 +572,6 @@ class _HomeScreenState extends State<HomeScreen>
               child: Sidebar(expanded: _isRailExtended, selectedIndex: 0),
             ),
 
-          // Conteúdo principal
           Positioned.fill(
             child: AnimatedPadding(
               duration: const Duration(milliseconds: 300),
@@ -690,6 +678,8 @@ class _HomeScreenState extends State<HomeScreen>
       builder: (context, constraints) {
         final double maxWidth = constraints.maxWidth;
 
+        final int crossAxisCount = maxWidth < 650 ? 1 : 2;
+
         // 🔹 1 coluna em celular, 2 colunas no resto (tablet/desktop)
         final int crossAxisCount = maxWidth < 750 ? 1 : 2;
 
@@ -697,18 +687,16 @@ class _HomeScreenState extends State<HomeScreen>
         final double gridHorizontalPadding = maxWidth < 750 ? 0.0 : 16.0;
         const double crossAxisSpacing = 16.0;
 
-        // calcula largura aproximada de cada card
-        final double totalSpacing =
-            crossAxisSpacing * (crossAxisCount - 1) + gridHorizontalPadding;
-        final double cardWidth = (maxWidth - totalSpacing) / crossAxisCount;
+        final double cardWidth =
+            (maxWidth - (crossAxisSpacing * (crossAxisCount - 1))) /
+            crossAxisCount;
 
-        // altura "ideal" pros cards
         double desiredHeight;
         if (crossAxisCount == 1) {
+          desiredHeight = 430;
           // celular: cards mais altinhos
           desiredHeight = 420;
         } else {
-          // tablet / desktop: ajusta pra não ficar gigante
           desiredHeight = maxWidth > 1000 ? 320 : 360;
         }
 
@@ -733,7 +721,8 @@ class _HomeScreenState extends State<HomeScreen>
             _buildEstoqueCard(
               () => Navigator.push(
                 context,
-                MaterialPageRoute(builder: (_) => const ToolPage()),
+                // CORREÇÃO: Remove const
+                MaterialPageRoute(builder: (_) => ToolPage()),
               ),
             ),
 
@@ -745,7 +734,8 @@ class _HomeScreenState extends State<HomeScreen>
               () {
                 Navigator.push(
                   context,
-                  MaterialPageRoute(builder: (_) => const AlertsPage()),
+                  // CORREÇÃO: Remove const
+                  MaterialPageRoute(builder: (_) => AlertsPage()),
                 );
               },
               hasAlert: _dashboardAlerts.isNotEmpty,
@@ -761,7 +751,8 @@ class _HomeScreenState extends State<HomeScreen>
               () {
                 Navigator.push(
                   context,
-                  MaterialPageRoute(builder: (_) => const MovimentacoesPage()),
+                  // CORREÇÃO: Remove const
+                  MaterialPageRoute(builder: (_) => MovimentacoesPage()),
                 );
               },
               content: _buildRecentMovimentacoesContent(),
@@ -775,7 +766,8 @@ class _HomeScreenState extends State<HomeScreen>
               () {
                 Navigator.push(
                   context,
-                  MaterialPageRoute(builder: (_) => const RelatoriosPage()),
+                  // CORREÇÃO: Remove const
+                  MaterialPageRoute(builder: (_) => RelatoriosPage()),
                 );
               },
               content: _buildReportsCardContent(),
@@ -844,7 +836,7 @@ class _HomeScreenState extends State<HomeScreen>
             style: TextStyle(
               color: Colors.grey.shade600,
               fontSize: 12,
-              fontWeight: FontWeight.w600, 
+              fontWeight: FontWeight.w600,
             ),
           ),
 
@@ -855,7 +847,7 @@ class _HomeScreenState extends State<HomeScreen>
             style: TextStyle(
               color: Colors.grey.shade500,
               fontSize: 12,
-              fontWeight: FontWeight.bold, 
+              fontWeight: FontWeight.bold,
             ),
           ),
 
@@ -866,7 +858,7 @@ class _HomeScreenState extends State<HomeScreen>
             style: TextStyle(
               color: Colors.grey.shade500,
               fontSize: 12,
-              fontWeight: FontWeight.normal, 
+              fontWeight: FontWeight.normal,
             ),
           ),
         ],
@@ -908,7 +900,6 @@ class _HomeScreenState extends State<HomeScreen>
       );
     }
 
-    // Mantém o comportamento de scroll padrão para evitar clipping
     return ListView.builder(
       padding: const EdgeInsets.only(top: 8.0),
       itemCount: _recentMovimentacoes.length,
@@ -922,7 +913,7 @@ class _HomeScreenState extends State<HomeScreen>
     final List<EstoqueMaterial> todosMateriais = [
       ...(_materiaisGiro ?? materiaisGiro),
       ...(_materiaisConsumo ?? materiaisConsumo),
-      ...(_materiaisPatrimoniado ?? materiaisPatrimoniado),
+      ...(_materiaisInstrumento ?? materiaisPatrimoniado),
     ];
 
     final int totalMateriais = todosMateriais.length;
@@ -936,6 +927,18 @@ class _HomeScreenState extends State<HomeScreen>
     final double porcentagemDisponivel = totalMateriais > 0
         ? (materiaisDisponiveis / totalMateriais) * 100
         : 0.0;
+
+    if (_materiaisGiro == null ||
+        _materiaisConsumo == null ||
+        _materiaisInstrumento == null) {
+      return _buildDashboardCard(
+        'Estoque Total',
+        Icons.inventory_2,
+        metroBlue,
+        onTap,
+        content: const Center(child: CircularProgressIndicator()),
+      );
+    }
 
     return Material(
       elevation: 4,
@@ -1092,6 +1095,7 @@ class _HomeScreenState extends State<HomeScreen>
                     ],
                   ),
                 ),
+                // --- FIM DA MUDANÇA ---
               ],
             ),
           ),
@@ -1158,7 +1162,6 @@ class _HomeScreenState extends State<HomeScreen>
         borderRadius: BorderRadius.circular(12),
         child: Container(
           decoration: BoxDecoration(
-            // Gradiente removido -> cor sólida
             color: Colors.white,
             borderRadius: BorderRadius.circular(12),
             boxShadow: [
@@ -1179,7 +1182,6 @@ class _HomeScreenState extends State<HomeScreen>
                     Container(
                       padding: const EdgeInsets.all(10),
                       decoration: BoxDecoration(
-                        // Gradiente removido -> cor sólida
                         color: color,
                         borderRadius: BorderRadius.circular(10),
                         boxShadow: [
@@ -1221,9 +1223,7 @@ class _HomeScreenState extends State<HomeScreen>
                           ],
                         ),
                         child: Text(
-                          // --- MUDANÇA: Usa o alertCount passado como parâmetro ---
                           '${alertCount ?? 0}',
-                          // --- FIM DA MUDANÇA ---
                           style: const TextStyle(
                             color: Colors.white,
                             fontWeight: FontWeight.bold,
@@ -1235,13 +1235,11 @@ class _HomeScreenState extends State<HomeScreen>
                 ),
                 const SizedBox(height: 16),
 
-                // --- MUDANÇA: CORREÇÃO DE OVERFLOW DO BOTÃO ---
                 Expanded(
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
                       Expanded(
-                        // O 'content' agora é dinâmico
                         child:
                             content ??
                             const Center(
@@ -1251,7 +1249,6 @@ class _HomeScreenState extends State<HomeScreen>
                               ),
                             ),
                       ),
-                      // Botão (AGORA DENTRO DO EXPANDED)
                       Align(
                         alignment: Alignment.bottomRight,
                         child: CardActionButton(
@@ -1262,7 +1259,6 @@ class _HomeScreenState extends State<HomeScreen>
                     ],
                   ),
                 ),
-                // --- FIM DA MUDANÇA ---
               ],
             ),
           ),
@@ -1270,10 +1266,6 @@ class _HomeScreenState extends State<HomeScreen>
       ),
     );
   }
-
-  // *** INÍCIO DOS NOVOS HELPERS ***
-
-  // --- Helpers copiados da AlertsPage ---
 
   Color _severityColor(int s) {
     switch (s) {
@@ -1330,9 +1322,7 @@ class _HomeScreenState extends State<HomeScreen>
       ),
     );
   }
-  // --- Fim dos Helpers ---
 
-  // NOVO: Helper para uma linha de alerta (versão simplificada para o dashboard)
   Widget _buildAlertRow(AlertItem a, BuildContext context) {
     final color = _severityColor(a.severity);
     final icon = a.type == AlertType.lowStock ? Icons.inventory_2 : Icons.event;
@@ -1354,7 +1344,7 @@ class _HomeScreenState extends State<HomeScreen>
                     fontSize: 13,
                     fontWeight: FontWeight.w500,
                   ),
-                  overflow: TextOverflow.ellipsis, // Evita quebra de linha
+                  overflow: TextOverflow.ellipsis,
                   maxLines: 1,
                 ),
                 Text(
@@ -1372,7 +1362,7 @@ class _HomeScreenState extends State<HomeScreen>
               borderRadius: BorderRadius.circular(8),
             ),
             child: Text(
-              'P: ${a.severity}', // P: Prioridade
+              'P: ${a.severity}',
               style: TextStyle(
                 color: color,
                 fontSize: 11,
@@ -1385,14 +1375,11 @@ class _HomeScreenState extends State<HomeScreen>
     );
   }
 
-  // --- MUDANÇA: CONTEÚDO DO CARD DE ALERTAS ATUALIZADO (USA ESTADO REAL E FILTRO) ---
   Widget _buildAlertsCardContent() {
-    // 1. Lidar com o estado de carregamento
     if (_isLoadingAlerts) {
       return const Center(child: CircularProgressIndicator());
     }
 
-    // 2. Lidar com o estado de erro
     if (_alertsError != null) {
       return Center(
         child: Padding(
@@ -1406,10 +1393,8 @@ class _HomeScreenState extends State<HomeScreen>
       );
     }
 
-    // 3. Exibir os dados reais (usando _dashboardAlerts do estado)
     final allAlerts = _dashboardAlerts;
 
-    // 1. Calcular Estatísticas
     final count = allAlerts.length;
     final lowStock = allAlerts
         .where((a) => a.type == AlertType.lowStock)
@@ -1418,12 +1403,9 @@ class _HomeScreenState extends State<HomeScreen>
         .where((a) => a.type == AlertType.nearExpiry)
         .length;
 
-    // 2. Obter os 3 mais críticos (ordenados por severidade decrescente)
     final sortedAlerts = List<AlertItem>.from(allAlerts);
     sortedAlerts.sort((a, b) => b.severity.compareTo(a.severity));
-    final top3Alerts = sortedAlerts
-        .take(3)
-        .toList(); // Filtra para os 3 mais críticos
+    final top3Alerts = sortedAlerts.take(3).toList();
 
     return LayoutBuilder(
       builder: (context, constraints) {
@@ -1432,6 +1414,49 @@ class _HomeScreenState extends State<HomeScreen>
         return Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
+            Expanded(
+              child: _smallStat(
+                'Total de alertas',
+                count.toString(),
+                metroBlue,
+                Icons.stacked_line_chart,
+              ),
+            ),
+            const SizedBox(width: 8),
+            Expanded(
+              child: _smallStat(
+                'Estoques baixos',
+                lowStock.toString(),
+                Colors.red,
+                Icons.inventory_2_outlined,
+              ),
+            ),
+            const SizedBox(width: 8),
+            Expanded(
+              child: _smallStat(
+                'Vencimentos próximos',
+                nearExpiry.toString(),
+                Colors.orange,
+                Icons.calendar_today_outlined,
+              ),
+            ),
+          ],
+        ),
+        const SizedBox(height: 12),
+        const Divider(height: 16), // Linha divisória (Altura Fixa)
+        // 4. Lista de Alertas Urgentes (AGORA EXPANDIDA E SCROLLABLE)
+        Expanded(
+          child: top3Alerts.isEmpty
+              ? Center(
+                  child: Padding(
+                    padding: const EdgeInsets.symmetric(vertical: 8),
+                    child: Column(
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      children: const [
+                        Icon(
+                          Icons.check_circle_outline,
+                          color: Colors.green,
+                          size: 28,
             // 3. Linha de Estatísticas (Responsiva)
             if (isCompact)
               Column(
@@ -1547,9 +1572,7 @@ class _HomeScreenState extends State<HomeScreen>
       },
     );
   }
-  // --- FIM DA MUDANÇA ---
 
-  // --- NOVO HELPER: Linha de relatório com ícones de ação (para dar sensação de funcionalidade) ---
   Widget _buildActionableReportRow(
     BuildContext context,
     String title,
@@ -1586,17 +1609,14 @@ class _HomeScreenState extends State<HomeScreen>
               ],
             ),
           ),
-          // Ações Claras (Botões visíveis)
           Row(
             children: [
-              // Botão de Download PDF (Funcionalidade mockada)
               IconButton(
                 icon: const Icon(Icons.picture_as_pdf, color: Colors.red),
                 iconSize: 22,
                 padding: EdgeInsets.zero,
                 constraints: const BoxConstraints(),
                 onPressed: () {
-                  // Ação: Iniciar geração do PDF (mock)
                   ScaffoldMessenger.of(context).showSnackBar(
                     SnackBar(
                       content: Text('Iniciando geração PDF para $title'),
@@ -1605,14 +1625,12 @@ class _HomeScreenState extends State<HomeScreen>
                 },
               ),
               const SizedBox(width: 4),
-              // Botão de Download Excel (Funcionalidade mockada)
               IconButton(
                 icon: const Icon(Icons.table_chart, color: Colors.green),
                 iconSize: 22,
                 padding: EdgeInsets.zero,
                 constraints: const BoxConstraints(),
                 onPressed: () {
-                  // Ação: Iniciar geração do Excel (mock)
                   ScaffoldMessenger.of(context).showSnackBar(
                     SnackBar(
                       content: Text('Iniciando geração Excel para $title'),
@@ -1627,11 +1645,9 @@ class _HomeScreenState extends State<HomeScreen>
     );
   }
 
-  // --- MUDANÇA: CONTEÚDO DO CARD DE RELATÓRIOS ATUALIZADO (USA NOVO HELPER E LÓGICA) ---
   Widget _buildReportsCardContent() {
     final Color reportColor = Colors.deepPurple;
 
-    // Lista de relatórios disponíveis (agora usada para contagem e exibição)
     final List<Map<String, dynamic>> availableReports = [
       {
         'title': 'Movimentação Geral',
@@ -1655,8 +1671,7 @@ class _HomeScreenState extends State<HomeScreen>
       },
     ];
 
-    // Simulação de relatórios gerados (mock funcional)
-    final int reportsGeneratedCount = 12; // Número mock funcional
+    final int reportsGeneratedCount = 12;
     final int reportTypesCount = availableReports.length;
 
     return Column(
@@ -1668,7 +1683,7 @@ class _HomeScreenState extends State<HomeScreen>
             Expanded(
               child: _smallStat(
                 'Tipos de Relatório',
-                reportTypesCount.toString(), // Contagem dos tipos disponíveis
+                reportTypesCount.toString(),
                 reportColor,
                 Icons.description_outlined,
               ),
@@ -1677,7 +1692,7 @@ class _HomeScreenState extends State<HomeScreen>
             Expanded(
               child: _smallStat(
                 'Relatórios Gerados',
-                reportsGeneratedCount.toString(), // Mock funcional
+                reportsGeneratedCount.toString(),
                 metroBlue,
                 Icons.download_done_outlined,
               ),
@@ -1713,13 +1728,10 @@ class _HomeScreenState extends State<HomeScreen>
       ],
     );
   }
-
-  // --- FIM DA MUDANÇA ---
 }
 
-// Botão de ação com apenas o ícone de seta
 class CardActionButton extends StatefulWidget {
-  final String? label; // Mantém compatibilidade com chamadas antigas
+  final String? label;
   final Color borderColor;
   final VoidCallback onPressed;
 

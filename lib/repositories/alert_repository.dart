@@ -8,6 +8,7 @@ class AlertItem {
   final int quantidade;
   final String local;
   final DateTime? vencimento;
+  final DateTime? dataCalibracao;
   final AlertType type;
   final int severity;
 
@@ -17,6 +18,7 @@ class AlertItem {
     required this.quantidade,
     required this.local,
     this.vencimento,
+    this.dataCalibracao,
     required this.type,
     required this.severity,
   });
@@ -31,6 +33,7 @@ class AlertRepository {
         quantidade: 0,
         local: 'Base A',
         vencimento: null,
+        dataCalibracao: null,
         type: AlertType.lowStock,
         severity: 3,
       ),
@@ -40,6 +43,7 @@ class AlertRepository {
         quantidade: 0,
         local: 'Base B',
         vencimento: DateTime.now().add(const Duration(days: 10)),
+        dataCalibracao: null,
         type: AlertType.nearExpiry,
         severity: 3,
       ),
@@ -49,6 +53,7 @@ class AlertRepository {
         quantidade: 5,
         local: 'Base C',
         vencimento: DateTime.now().add(const Duration(days: 40)),
+        dataCalibracao: null,
         type: AlertType.nearExpiry,
         severity: 2,
       ),
@@ -58,6 +63,7 @@ class AlertRepository {
         quantidade: 45,
         local: 'Base B',
         vencimento: null,
+        dataCalibracao: null,
         type: AlertType.lowStock,
         severity: 1,
       ),
@@ -67,6 +73,7 @@ class AlertRepository {
         quantidade: 18,
         local: 'Base A',
         vencimento: DateTime.now().add(const Duration(days: 5)),
+        dataCalibracao: null,
         type: AlertType.nearExpiry,
         severity: 3,
       ),

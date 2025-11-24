@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
-import 'estoque_page.dart'; // Reutiliza a estrutura da página de estoque e o modelo de dados
+import 'estoque_page.dart'; // Reutiliza a estrutura da página de estoque
+import '../../models/material.dart'; // MUDANÇA: Importa o modelo EstoqueMaterial centralizado
 import '../../services/material_service.dart';
 
 class MaterialConsumoPage extends StatefulWidget {
@@ -11,7 +12,12 @@ class MaterialConsumoPage extends StatefulWidget {
 
 class _MaterialConsumoPageState extends State<MaterialConsumoPage> {
   final MaterialService _service = MaterialService();
+  // Agora EstoqueMaterial está corretamente tipado pelo import acima.
   List<EstoqueMaterial>? _materiais;
+  String? _error;
+  
+  // Define o tipo para evitar erros de digitação
+  static const String _materialType = 'consumo';
   bool _isLoading = true;
 
   // Dados mockados para fallback
@@ -51,6 +57,9 @@ class _MaterialConsumoPageState extends State<MaterialConsumoPage> {
 
   Future<void> _load() async {
     try {
+      // Usa o tipo 'consumo'
+      final list = await _service.getByTipo(_materialType);
+      setState(() => _materiais = list);
       final list = await _service.getByTipo('consumo');
       if (mounted) {
         setState(() {
@@ -78,7 +87,7 @@ class _MaterialConsumoPageState extends State<MaterialConsumoPage> {
     return EstoquePage(
       title: 'Material de Consumo',
       materiais: _materiais!,
-      tipo: 'consumo',
+      tipo: _materialType, // Passa o tipo para a EstoquePage
       withSidebar: true,
       sidebarSelectedIndex: 2,
       showBackButton: true,
