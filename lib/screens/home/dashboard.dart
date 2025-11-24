@@ -243,6 +243,7 @@ class _InsightsDashboardPageState extends State<InsightsDashboardPage>
   @override
   Widget build(BuildContext context) {
     final isMobile = MediaQuery.of(context).size.width < 600;
+    final double basePadding = isMobile ? 16.0 : 24.0;
 
     // NOVO: Bloco de conteúdo centralizado com tratamento de estados
     Widget centralContent;
@@ -326,7 +327,7 @@ class _InsightsDashboardPageState extends State<InsightsDashboardPage>
                   scrollbars: false,
                 ),
                 child: SingleChildScrollView(
-                  padding: const EdgeInsets.all(24.0),
+                  padding: EdgeInsets.all(basePadding),
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
@@ -477,8 +478,6 @@ class _InsightsDashboardPageState extends State<InsightsDashboardPage>
 
   Widget _buildInsightsGrid() {
     final isMobile = MediaQuery.of(context).size.width < 600;
-    // Proporção ajustada para cards mais compactos
-    final chartAspectRatio = isMobile ? 0.85 : 1.15;
 
     return Column(
       children: [
@@ -489,14 +488,23 @@ class _InsightsDashboardPageState extends State<InsightsDashboardPage>
         // LINHA 2 (2 Gráficos): Distribuição (Pie) e Movimentação por Tipo (Stacked Bar)
         LayoutBuilder(
           builder: (context, constraints) {
-            final crossAxisCount = constraints.maxWidth < 900 ? 1 : 2;
-        return GridView.count(
-          shrinkWrap: true,
-          physics: const NeverScrollableScrollPhysics(),
-          crossAxisCount: crossAxisCount,
-          crossAxisSpacing: 16.0, 
-          mainAxisSpacing: 16.0,
-          childAspectRatio: chartAspectRatio,
+            final bool singleColumn = constraints.maxWidth < 900;
+            final int crossAxisCount = singleColumn ? 1 : 2;
+            const double spacing = 16.0;
+            final double cardWidth =
+                (constraints.maxWidth - spacing * (crossAxisCount - 1)) /
+                    crossAxisCount;
+            final double targetHeight =
+                constraints.maxWidth < 500 ? 360 : (singleColumn ? 340 : 360);
+            final double aspectRatio = cardWidth / targetHeight;
+
+            return GridView.count(
+              shrinkWrap: true,
+              physics: const NeverScrollableScrollPhysics(),
+              crossAxisCount: crossAxisCount,
+              crossAxisSpacing: spacing,
+              mainAxisSpacing: spacing,
+              childAspectRatio: aspectRatio,
               children: [
                 // GRÁFICO 1: Distribuição de Estoque (Pie Chart)
                 _buildChartCard(
@@ -519,14 +527,23 @@ class _InsightsDashboardPageState extends State<InsightsDashboardPage>
         // LINHA 3 (2 Gráficos): Tendência (Line) e Top Locais (Bar)
         LayoutBuilder(
           builder: (context, constraints) {
-            final crossAxisCount = constraints.maxWidth < 900 ? 1 : 2;
+            final bool singleColumn = constraints.maxWidth < 900;
+            final int crossAxisCount = singleColumn ? 1 : 2;
+            const double spacing = 16.0;
+            final double cardWidth =
+                (constraints.maxWidth - spacing * (crossAxisCount - 1)) /
+                    crossAxisCount;
+            final double targetHeight =
+                constraints.maxWidth < 500 ? 360 : (singleColumn ? 340 : 360);
+            final double aspectRatio = cardWidth / targetHeight;
+
             return GridView.count(
               shrinkWrap: true,
               physics: const NeverScrollableScrollPhysics(),
               crossAxisCount: crossAxisCount,
-              crossAxisSpacing: 16.0,
-              mainAxisSpacing: 16.0,
-              childAspectRatio: isMobile ? 0.85 : chartAspectRatio,
+              crossAxisSpacing: spacing,
+              mainAxisSpacing: spacing,
+              childAspectRatio: aspectRatio,
               children: [
                 // GRÁFICO 3: Tendência de Movimentação (Line Chart)
                 _buildChartCard(
@@ -549,14 +566,23 @@ class _InsightsDashboardPageState extends State<InsightsDashboardPage>
         // LINHA 4 (2 Gráficos): Estoque Crítico (Novo layout com 2 charts)
         LayoutBuilder(
           builder: (context, constraints) {
-            final crossAxisCount = constraints.maxWidth < 900 ? 1 : 2;
+            final bool singleColumn = constraints.maxWidth < 900;
+            final int crossAxisCount = singleColumn ? 1 : 2;
+            const double spacing = 16.0;
+            final double cardWidth =
+                (constraints.maxWidth - spacing * (crossAxisCount - 1)) /
+                    crossAxisCount;
+            final double targetHeight =
+                constraints.maxWidth < 500 ? 360 : (singleColumn ? 340 : 360);
+            final double aspectRatio = cardWidth / targetHeight;
+
             return GridView.count(
               shrinkWrap: true,
               physics: const NeverScrollableScrollPhysics(),
               crossAxisCount: crossAxisCount,
-              crossAxisSpacing: 16.0,
-              mainAxisSpacing: 16.0,
-              childAspectRatio: isMobile ? 0.85 : chartAspectRatio,
+              crossAxisSpacing: spacing,
+              mainAxisSpacing: spacing,
+              childAspectRatio: aspectRatio,
               children: [
                 // GRÁFICO 5: Top 5 Materiais Críticos (Vertical Bar Chart - Estilizado)
                 _buildChartCard(
@@ -641,18 +667,22 @@ class _InsightsDashboardPageState extends State<InsightsDashboardPage>
       builder: (context, constraints) {
         final double width = constraints.maxWidth;
         final bool isMobile = width < 600;
-        
-        // CORREÇÃO: Aumenta o limite para 450px para 1 coluna
-        final int count = width < 900 
-            ? (width < 450 ? 1 : 2)
-            : 4; 
 
-        // CORREÇÃO: Diminui o Aspect Ratio para dar mais ALTURA ao card.
-        final double childRatio = count == 1
-            ? 3.0 // Reduzido de 4.0 para 3.0 para dar mais altura ao card em 1 coluna (CRÍTICO)
+        // Mobile fica mais leve em 2 colunas, exceto em larguras muito estreitas
+        final bool ultraCompact = width < 360;
+        final int count = width < 900
+            ? (ultraCompact ? 1 : 2)
+            : 4;
+
+        const double spacing = 16.0;
+        final double cardWidth =
+            (constraints.maxWidth - spacing * (count - 1)) / count;
+        final double targetHeight = count == 4
+            ? 140
             : count == 2
-                ? 2.5 // Reduzido de 3.0 para 2.5 para mais altura em 2 colunas
-                : 2.8; // Desktop (4 colunas)
+                ? 150
+                : 170;
+        final double childRatio = cardWidth / targetHeight;
 
         List<Widget> indicators = [
           _buildIndicator(
@@ -717,7 +747,6 @@ class _InsightsDashboardPageState extends State<InsightsDashboardPage>
         padding: const EdgeInsets.all(8.0), // Aumentado para 8.0 para margem de segurança
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
-          mainAxisAlignment: MainAxisAlignment.spaceBetween,
           children: [
             Row(
               children: [
@@ -745,14 +774,14 @@ class _InsightsDashboardPageState extends State<InsightsDashboardPage>
                 ),
               ],
             ),
-            const SizedBox(height: 4), 
+            SizedBox(height: isMobile ? 10 : 12),
             FittedBox(
               fit: BoxFit.scaleDown,
               alignment: Alignment.centerLeft,
               child: Text(
                 value,
                 style: TextStyle(
-                  fontSize: isMobile ? 20 : 24, 
+                  fontSize: isMobile ? 18 : 20, 
                   fontWeight: FontWeight.bold,
                   color: Colors.black87,
                 ),
@@ -762,15 +791,16 @@ class _InsightsDashboardPageState extends State<InsightsDashboardPage>
             ),
             // Subtítulo reintroduzido e garantido que caiba
             if (subtitle != null) ...[ 
-              const SizedBox(height: 2), // Reduzido para 2
+              SizedBox(height: isMobile ? 6 : 8),
               Text(
                 subtitle,
                 style: TextStyle(
                   fontSize: isMobile ? 10 : 11, // Fonte 10px em mobile (CRÍTICO)
                   color: Colors.grey.shade600,
                 ),
-                maxLines: 1,
-                overflow: TextOverflow.ellipsis, // CRÍTICO: Não vai estourar
+                maxLines: 2,
+                overflow: TextOverflow.ellipsis,
+                softWrap: true,
               ),
             ],
           ],
@@ -868,7 +898,23 @@ class _InsightsDashboardPageState extends State<InsightsDashboardPage>
             flc.BarChartData(
               maxY: maxY,
               alignment: flc.BarChartAlignment.spaceAround,
-              barTouchData: flc.BarTouchData(enabled: true),
+              barTouchData: flc.BarTouchData(
+                enabled: true,
+                touchTooltipData: flc.BarTouchTooltipData(
+                  getTooltipColor: (group) => Colors.white,
+                  tooltipRoundedRadius: 8,
+                  tooltipPadding: const EdgeInsets.all(8),
+                  getTooltipItem: (group, groupIndex, rod, rodIndex) {
+                    return flc.BarTooltipItem(
+                      rod.toY.toStringAsFixed(0),
+                      const TextStyle(
+                        color: Colors.black87,
+                        fontWeight: FontWeight.w600,
+                      ),
+                    );
+                  },
+                ),
+              ),
               titlesData: flc.FlTitlesData(
                 show: true,
                 bottomTitles: flc.AxisTitles(
@@ -966,7 +1012,28 @@ class _InsightsDashboardPageState extends State<InsightsDashboardPage>
               minY: 0,
               minX: minX.toDouble(),
               maxX: maxX.toDouble(),
-              lineTouchData: const flc.LineTouchData(enabled: true),
+              lineTouchData: flc.LineTouchData(
+                enabled: true,
+                touchTooltipData: flc.LineTouchTooltipData(
+                  getTooltipColor: (touchedSpot) => Colors.white,
+                  tooltipRoundedRadius: 8,
+                  tooltipPadding: const EdgeInsets.all(8),
+                  fitInsideHorizontally: true,
+                  fitInsideVertically: true,
+                  getTooltipItems: (touchedSpots) {
+                    return touchedSpots.map((spot) {
+                      final color = spot.bar.color ?? Colors.black87;
+                      return flc.LineTooltipItem(
+                        spot.y.toStringAsFixed(0),
+                        TextStyle(
+                          color: color,
+                          fontWeight: FontWeight.w700,
+                        ),
+                      );
+                    }).toList();
+                  },
+                ),
+              ),
               titlesData: flc.FlTitlesData(
                 show: true,
                 bottomTitles: flc.AxisTitles(
@@ -1078,7 +1145,23 @@ class _InsightsDashboardPageState extends State<InsightsDashboardPage>
       flc.BarChartData(
         alignment: flc.BarChartAlignment.spaceAround,
         maxY: maxY,
-        barTouchData: flc.BarTouchData(enabled: false),
+        barTouchData: flc.BarTouchData(
+          enabled: true,
+          touchTooltipData: flc.BarTouchTooltipData(
+            getTooltipColor: (group) => Colors.white,
+            tooltipRoundedRadius: 8,
+            tooltipPadding: const EdgeInsets.all(8),
+            getTooltipItem: (group, groupIndex, rod, rodIndex) {
+              return flc.BarTooltipItem(
+                rod.toY.toStringAsFixed(0),
+                const TextStyle(
+                  color: Colors.black87,
+                  fontWeight: FontWeight.w600,
+                ),
+              );
+            },
+          ),
+        ),
         titlesData: flc.FlTitlesData(
           show: true,
           bottomTitles: flc.AxisTitles(
@@ -1196,7 +1279,23 @@ class _InsightsDashboardPageState extends State<InsightsDashboardPage>
         maxY: maxY,
         minY: 0,
         alignment: flc.BarChartAlignment.spaceAround,
-        barTouchData: flc.BarTouchData(enabled: true),
+        barTouchData: flc.BarTouchData(
+          enabled: true,
+          touchTooltipData: flc.BarTouchTooltipData(
+            getTooltipColor: (group) => Colors.white,
+            tooltipRoundedRadius: 8,
+            tooltipPadding: const EdgeInsets.all(8),
+            getTooltipItem: (group, groupIndex, rod, rodIndex) {
+              return flc.BarTooltipItem(
+                rod.toY.toStringAsFixed(0),
+                const TextStyle(
+                  color: Colors.black87,
+                  fontWeight: FontWeight.w600,
+                ),
+              );
+            },
+          ),
+        ),
         // Linha de alerta em Y=10
         extraLinesData: flc.ExtraLinesData(
           horizontalLines: [

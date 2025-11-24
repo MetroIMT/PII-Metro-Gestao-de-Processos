@@ -164,4 +164,55 @@ router.post('/movimentar', async (req, res) => {
   }
 });
 
+// PATCH /materiais/:codigo - atualiza um material
+router.patch('/:codigo', async (req, res) => {
+  try {
+    const db = getDB();
+    const { codigo } = req.params;
+    const body = req.body ?? {};
+
+    const updateDoc = {};
+    if (body.nome) updateDoc.nome = body.nome;
+    if (body.local) updateDoc.local = body.local;
+    // Verifica se o campo vencimento foi enviado (pode ser null para remover)
+    if (Object.prototype.hasOwnProperty.call(body, 'vencimento')) {
+      updateDoc.vencimento = body.vencimento ? new Date(body.vencimento) : null;
+    }
+
+    const result = await db.collection('materiais').updateOne(
+      { codigo: codigo },
+      { $set: updateDoc }
+    );
+
+    if (result.matchedCount === 0) {
+      return res.status(404).json({ error: 'Material não encontrado' });
+    }
+
+    const updatedDoc = await db.collection('materiais').findOne({ codigo: codigo });
+    res.json(updatedDoc);
+  } catch (err) {
+    console.error('Erro ao atualizar material', err);
+    res.status(500).json({ error: 'Erro ao atualizar material' });
+  }
+});
+
+// DELETE /materiais/:codigo - exclui um material
+router.delete('/:codigo', async (req, res) => {
+  try {
+    const db = getDB();
+    const { codigo } = req.params;
+
+    const result = await db.collection('materiais').deleteOne({ codigo: codigo });
+
+    if (result.deletedCount === 0) {
+      return res.status(404).json({ error: 'Material não encontrado' });
+    }
+
+    res.status(200).json({ message: 'Material excluído com sucesso' });
+  } catch (err) {
+    console.error('Erro ao excluir material', err);
+    res.status(500).json({ error: 'Erro ao excluir material' });
+  }
+});
+
 export default router;

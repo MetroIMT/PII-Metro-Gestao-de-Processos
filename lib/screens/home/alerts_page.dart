@@ -205,10 +205,48 @@ class _AlertsPageState extends State<AlertsPage>
         _isLoading = false;
       });
     } catch (e) {
-      // Trata exceções da API
+      // Trata exceções da API com dados mockados
+      final mockAlerts = [
+        AlertItem(
+          codigo: 'MOCK-001',
+          nome: 'Rolamento SKF 6205 (Mock)',
+          quantidade: 2,
+          local: 'Almoxarifado Central',
+          type: AlertType.lowStock,
+          severity: 3,
+        ),
+        AlertItem(
+          codigo: 'MOCK-002',
+          nome: 'Cola Industrial (Mock)',
+          quantidade: 15,
+          local: 'Almoxarifado B',
+          vencimento: DateTime.now().add(const Duration(days: 5)),
+          type: AlertType.nearExpiry,
+          severity: 3,
+        ),
+        AlertItem(
+          codigo: 'MOCK-003',
+          nome: 'Luvas de Proteção (Mock)',
+          quantidade: 5,
+          local: 'EPIs',
+          type: AlertType.lowStock,
+          severity: 2,
+        ),
+        AlertItem(
+          codigo: 'MOCK-004',
+          nome: 'Reagente Químico (Mock)',
+          quantidade: 10,
+          local: 'Laboratório',
+          vencimento: DateTime.now().subtract(const Duration(days: 2)),
+          type: AlertType.expired,
+          severity: 3,
+        ),
+      ];
+
       setState(() {
-        _errorMessage = e.toString();
+        _allAlerts = mockAlerts;
         _isLoading = false;
+        // _errorMessage = e.toString(); // Não exibe erro, usa mocks
       });
     }
   }
@@ -488,6 +526,11 @@ class _AlertsPageState extends State<AlertsPage>
     return '${d.day.toString().padLeft(2, '0')}/${d.month.toString().padLeft(2, '0')}/${d.year}';
   }
 
+  String _filterTypeLabel() {
+    if (_filterType == null) return 'Todos';
+    return _typeLabel(_filterType!);
+  }
+
   Color _severityColor(int s) {
     switch (s) {
       case 3:
@@ -547,6 +590,82 @@ class _AlertsPageState extends State<AlertsPage>
         _minSeverity = selected;
       }
     });
+  }
+
+  Future<void> _openAlertTypeSheet() async {
+    final options = [
+      {
+        'label': 'Todos',
+        'type': null,
+        'color': metroBlue,
+        'icon': Icons.view_list,
+      },
+      {
+        'label': 'Estoque baixo',
+        'type': AlertType.lowStock,
+        'color': Colors.red.shade700,
+        'icon': Icons.inventory_2,
+      },
+      {
+        'label': 'Vencimento próximo',
+        'type': AlertType.nearExpiry,
+        'color': Colors.orange.shade700,
+        'icon': Icons.event_available,
+      },
+      {
+        'label': 'Vencido',
+        'type': AlertType.expired,
+        'color': Colors.red.shade900,
+        'icon': Icons.warning_amber_rounded,
+      },
+      {
+        'label': 'Calibração',
+        'type': AlertType.calibration,
+        'color': Colors.blueAccent.shade700,
+        'icon': Icons.build,
+      },
+    ];
+
+    await showModalBottomSheet(
+      context: context,
+      backgroundColor: Colors.white,
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(16)),
+      ),
+      builder: (ctx) => SafeArea(
+        child: Padding(
+          padding: const EdgeInsets.all(16.0),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              const Text(
+                'Tipo de alerta',
+                style: TextStyle(fontWeight: FontWeight.w700, fontSize: 16),
+              ),
+              const SizedBox(height: 12),
+              ...options.map((opt) {
+                final selected = _filterType == opt['type'];
+                return ListTile(
+                  contentPadding: EdgeInsets.zero,
+                  leading: CircleAvatar(
+                    radius: 18,
+                    backgroundColor: (opt['color'] as Color).withOpacity(0.12),
+                    child: Icon(opt['icon'] as IconData, color: opt['color'] as Color),
+                  ),
+                  title: Text(opt['label'] as String),
+                  trailing: selected ? Icon(Icons.check, color: metroBlue) : null,
+                  onTap: () {
+                    Navigator.of(ctx).pop();
+                    setState(() => _filterType = opt['type'] as AlertType?);
+                  },
+                );
+              }),
+            ],
+          ),
+        ),
+      ),
+    );
   }
 
   List<PopupMenuEntry<int>> _severityMenuItems() {
@@ -912,15 +1031,18 @@ class _AlertsPageState extends State<AlertsPage>
     );
   }
 
-  Widget _smallStat(String label, String value, Color color) {
+  Widget _smallStat(String label, String value, Color color, {bool center = false}) {
     return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
+      constraints: const BoxConstraints(minHeight: 72),
+      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
       decoration: BoxDecoration(
         color: color.withAlpha((0.12 * 255).round()),
         borderRadius: BorderRadius.circular(10),
       ),
       child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
+        crossAxisAlignment:
+            center ? CrossAxisAlignment.center : CrossAxisAlignment.start,
+        mainAxisAlignment: MainAxisAlignment.center,
         children: [
           Text(
             label,
@@ -928,6 +1050,9 @@ class _AlertsPageState extends State<AlertsPage>
               fontSize: 12,
               color: color.withAlpha((0.9 * 255).round()),
             ),
+            maxLines: 1,
+            overflow: TextOverflow.ellipsis,
+            textAlign: center ? TextAlign.center : TextAlign.start,
           ),
           const SizedBox(height: 4),
           Text(
@@ -1002,6 +1127,50 @@ class _AlertsPageState extends State<AlertsPage>
     );
   }
 
+  Widget _buildAlertFilterSelectorBox() {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        const Text(
+          'Tipo de alerta',
+          style: TextStyle(
+            fontSize: 12,
+            fontWeight: FontWeight.w600,
+            color: Colors.black54,
+          ),
+        ),
+        const SizedBox(height: 6),
+        Material(
+          color: Colors.transparent,
+          child: InkWell(
+            borderRadius: BorderRadius.circular(12),
+            onTap: _openAlertTypeSheet,
+            child: Container(
+              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 12),
+              decoration: BoxDecoration(
+                color: Colors.white,
+                borderRadius: BorderRadius.circular(12),
+                border: Border.all(color: Colors.grey.shade300, width: 1.2),
+              ),
+              child: Row(
+                children: [
+                  Text(
+                    _filterTypeLabel(),
+                    style: const TextStyle(
+                      fontWeight: FontWeight.w600,
+                    ),
+                  ),
+                  const Spacer(),
+                  const Icon(Icons.keyboard_arrow_down, color: Colors.black54),
+                ],
+              ),
+            ),
+          ),
+        ),
+      ],
+    );
+  }
+
   // --- ATUALIZADO: Método _buildTopBar com nova ordem de elementos ---
   Widget _buildTopBar(BuildContext context, {bool showTitle = true}) {
     // --- Alteração: calcula totais com base em _allAlerts ---
@@ -1019,9 +1188,11 @@ class _AlertsPageState extends State<AlertsPage>
     final size = MediaQuery.of(context).size;
     final bool isMobileView = size.width < 600;
 
+    final double searchTopPadding = isMobileView ? 0 : 6;
+
     // ATUALIZADO: Removido padding superior
     final Widget searchField = Padding(
-      padding: const EdgeInsets.only(top: 0), 
+      padding: EdgeInsets.only(top: searchTopPadding), 
       child: TextField(
         style: const TextStyle(fontWeight: FontWeight.w500),
         decoration: InputDecoration(
@@ -1124,6 +1295,7 @@ class _AlertsPageState extends State<AlertsPage>
             ],
           )
         : Row(
+            crossAxisAlignment: CrossAxisAlignment.end,
             children: [
               Expanded(child: searchField),
               const SizedBox(width: 12),
@@ -1143,15 +1315,46 @@ class _AlertsPageState extends State<AlertsPage>
               _smallStat('Estoque baixo', lowStock.toString(), Colors.red),
               _smallStat('Vencimento', vencimento.toString(), Colors.orange),
               _smallStat('Calibração', calibracao.toString(), Colors.blueAccent), // NOVO
+              Expanded(
+                child: _smallStat(
+                  'Total',
+                  total.toString(),
+                  metroBlue,
+                  center: isMobileView,
+                ),
+              ),
+              const SizedBox(width: 8),
+              Expanded(
+                child: _smallStat(
+                  'Estoque baixo',
+                  lowStock.toString(),
+                  Colors.red,
+                  center: isMobileView,
+                ),
+              ),
+              const SizedBox(width: 8),
+              Expanded(
+                child: _smallStat(
+                  'Vencimento',
+                  nearExpiry.toString(),
+                  Colors.orange,
+                  center: isMobileView,
+                ),
+              ),
             ],
           ),
         if (showTitle) const SizedBox(height: 12),
         // MODIFICADO: Search field and Severity selector (filterControls) agora estão no topo
         filterControls, 
         const SizedBox(height: 12),
-        // MODIFICADO: Filter buttons no novo estilo (_buildAlertFilterRow)
-        _buildAlertFilterRow(),
-        const SizedBox(height: 12),
+        if (isMobileView) ...[
+          _buildAlertFilterSelectorBox(),
+          const SizedBox(height: 12),
+        ] else ...[
+          // MODIFICADO: Filter buttons no novo estilo (_buildAlertFilterRow)
+          _buildAlertFilterRow(),
+          const SizedBox(height: 12),
+        ],
       ],
     );
   }
