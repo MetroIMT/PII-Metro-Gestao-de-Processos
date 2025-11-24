@@ -674,19 +674,66 @@ class _EstoquePageState extends State<EstoquePage>
   Future<void> _showDeleteConfirmDialog(EstoqueMaterial material) async {
     final confirm = await showDialog<bool>(
       context: context,
-      builder: (_) => AlertDialog(
-        title: const Text('Confirmar Exclusão'),
-        content: Text(
-          'Deseja realmente excluir o material "${material.nome}" (${material.codigo})? Esta ação não pode ser desfeita.',
+      builder: (dialogContext) => AlertDialog(
+        backgroundColor: Colors.white,
+        surfaceTintColor: Colors.white,
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(12),
+        ),
+        titlePadding: const EdgeInsets.fromLTRB(24, 24, 24, 12),
+        contentPadding: const EdgeInsets.fromLTRB(24, 0, 24, 20),
+        actionsPadding: const EdgeInsets.fromLTRB(24, 0, 24, 20),
+        title: Row(
+          children: [
+            Container(
+              padding: const EdgeInsets.all(10),
+              decoration: BoxDecoration(
+                color: Colors.red.withAlpha((0.12 * 255).round()),
+                borderRadius: BorderRadius.circular(10),
+              ),
+              child: const Icon(
+                Icons.delete_forever_rounded,
+                color: Colors.red,
+              ),
+            ),
+            const SizedBox(width: 12),
+            Expanded(
+              child: Text(
+                'Excluir material',
+                style: TextStyle(
+                  color: metroBlue,
+                  fontWeight: FontWeight.bold,
+                  fontSize: 20,
+                ),
+              ),
+            ),
+          ],
+        ),
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text(
+              'Deseja realmente excluir o material "${material.nome}" (${material.codigo})? Esta ação não pode ser desfeita.',
+              style: const TextStyle(color: Colors.black87),
+            ),
+          ],
         ),
         actions: [
           TextButton(
-            onPressed: () => Navigator.of(context).pop(false),
-            child: const Text('Cancelar'),
+            onPressed: () => Navigator.of(dialogContext).pop(false),
+            child: Text('Cancelar', style: TextStyle(color: metroBlue)),
           ),
           ElevatedButton(
-            style: ElevatedButton.styleFrom(backgroundColor: Colors.red),
-            onPressed: () => Navigator.of(context).pop(true),
+            style: ElevatedButton.styleFrom(
+              backgroundColor: Colors.red,
+              foregroundColor: Colors.white,
+              padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(10),
+              ),
+            ),
+            onPressed: () => Navigator.of(dialogContext).pop(true),
             child: const Text('Excluir'),
           ),
         ],
@@ -706,60 +753,156 @@ class _EstoquePageState extends State<EstoquePage>
 
     showDialog(
       context: context,
-      builder: (context) {
+      builder: (dialogContext) {
         return StatefulBuilder(
           builder: (context, setDialogState) {
+            final double dialogWidth =
+                MediaQuery.of(dialogContext).size.width > 550
+                    ? 500.0
+                    : MediaQuery.of(dialogContext).size.width * 0.95;
+
             return AlertDialog(
-              title: Text('Movimentar ${material.nome}'),
-              content: Column(
-                mainAxisSize: MainAxisSize.min,
+              backgroundColor: Colors.white,
+              surfaceTintColor: Colors.white,
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(12),
+              ),
+              titlePadding: const EdgeInsets.fromLTRB(24, 24, 24, 12),
+              contentPadding: const EdgeInsets.fromLTRB(24, 0, 24, 24),
+              actionsPadding: const EdgeInsets.fromLTRB(24, 0, 24, 24),
+              title: Row(
                 children: [
-                  Text('Estoque atual: ${material.quantidade}'),
-                  const SizedBox(height: 16),
-                  Row(
-                    mainAxisAlignment: MainAxisAlignment.center,
-                    children: [
-                      ChoiceChip(
-                        label: const Text('Saída'),
-                        selected: tipoMovimento == 'saida',
-                        onSelected: (selected) {
-                          if (selected) {
-                            setDialogState(() => tipoMovimento = 'saida');
-                          }
-                        },
-                        selectedColor: Colors.red.shade100,
-                      ),
-                      const SizedBox(width: 8),
-                      ChoiceChip(
-                        label: const Text('Entrada'),
-                        selected: tipoMovimento == 'entrada',
-                        onSelected: (selected) {
-                          if (selected) {
-                            setDialogState(() => tipoMovimento = 'entrada');
-                          }
-                        },
-                        selectedColor: Colors.green.shade100,
-                      ),
-                    ],
+                  Container(
+                    padding: const EdgeInsets.all(10),
+                    decoration: BoxDecoration(
+                      color: metroBlue.withAlpha((0.12 * 255).round()),
+                      borderRadius: BorderRadius.circular(10),
+                    ),
+                    child: Icon(Icons.swap_vert_rounded, color: metroBlue),
                   ),
-                  const SizedBox(height: 16),
-                  TextField(
-                    controller: quantidadeController,
-                    keyboardType: TextInputType.number,
-                    inputFormatters: [FilteringTextInputFormatter.digitsOnly],
-                    decoration: const InputDecoration(
-                      labelText: 'Quantidade',
-                      border: OutlineInputBorder(),
+                  const SizedBox(width: 12),
+                  Expanded(
+                    child: Text(
+                      'Movimentar material',
+                      style: TextStyle(
+                        color: metroBlue,
+                        fontWeight: FontWeight.bold,
+                        fontSize: 20,
+                      ),
                     ),
                   ),
                 ],
               ),
+              content: SizedBox(
+                width: dialogWidth,
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    _buildReadOnlyField(
+                      'Material',
+                      '${material.nome} (${material.codigo})',
+                      Icons.inventory_2_rounded,
+                    ),
+                    const SizedBox(height: 12),
+                    _buildReadOnlyField(
+                      'Estoque atual',
+                      material.quantidade.toString(),
+                      Icons.storage_rounded,
+                    ),
+                    const SizedBox(height: 16),
+                    const Text(
+                      'Tipo de movimentação',
+                      style: TextStyle(
+                        fontWeight: FontWeight.w600,
+                        color: Colors.black87,
+                      ),
+                    ),
+                    const SizedBox(height: 8),
+                    Row(
+                      children: [
+                        Expanded(
+                          child: ChoiceChip(
+                            label: const Text('Saída'),
+                            selected: tipoMovimento == 'saida',
+                            onSelected: (selected) {
+                              if (selected) {
+                                setDialogState(() => tipoMovimento = 'saida');
+                              }
+                            },
+                            selectedColor:
+                                metroBlue.withAlpha((0.12 * 255).round()),
+                            backgroundColor: Colors.grey.shade100,
+                            labelStyle: TextStyle(
+                              color: tipoMovimento == 'saida'
+                                  ? metroBlue
+                                  : Colors.black87,
+                              fontWeight: FontWeight.w600,
+                            ),
+                            side: BorderSide(
+                              color: tipoMovimento == 'saida'
+                                  ? metroBlue
+                                  : Colors.grey.shade300,
+                            ),
+                          ),
+                        ),
+                        const SizedBox(width: 8),
+                        Expanded(
+                          child: ChoiceChip(
+                            label: const Text('Entrada'),
+                            selected: tipoMovimento == 'entrada',
+                            onSelected: (selected) {
+                              if (selected) {
+                                setDialogState(
+                                  () => tipoMovimento = 'entrada',
+                                );
+                              }
+                            },
+                            selectedColor:
+                                metroBlue.withAlpha((0.12 * 255).round()),
+                            backgroundColor: Colors.grey.shade100,
+                            labelStyle: TextStyle(
+                              color: tipoMovimento == 'entrada'
+                                  ? metroBlue
+                                  : Colors.black87,
+                              fontWeight: FontWeight.w600,
+                            ),
+                            side: BorderSide(
+                              color: tipoMovimento == 'entrada'
+                                  ? metroBlue
+                                  : Colors.grey.shade300,
+                            ),
+                          ),
+                        ),
+                      ],
+                    ),
+                    const SizedBox(height: 16),
+                    TextField(
+                      controller: quantidadeController,
+                      keyboardType: TextInputType.number,
+                      inputFormatters: [FilteringTextInputFormatter.digitsOnly],
+                      decoration: _buildDialogInputDecoration('Quantidade *'),
+                    ),
+                  ],
+                ),
+              ),
               actions: [
                 TextButton(
-                  onPressed: () => Navigator.pop(context),
-                  child: const Text('Cancelar'),
+                  onPressed: () => Navigator.pop(dialogContext),
+                  child: Text('Cancelar', style: TextStyle(color: metroBlue)),
                 ),
                 ElevatedButton(
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: metroBlue,
+                    foregroundColor: Colors.white,
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 20,
+                      vertical: 12,
+                    ),
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(10),
+                    ),
+                  ),
                   onPressed: () async {
                     final quantidade = int.tryParse(quantidadeController.text);
                     if (quantidade == null || quantidade <= 0) {
@@ -776,7 +919,7 @@ class _EstoquePageState extends State<EstoquePage>
 
                     // Mostrar indicador de progresso
                     showDialog(
-                      context: context,
+                      context: dialogContext,
                       barrierDismissible: false,
                       builder: (_) =>
                           const Center(child: CircularProgressIndicator()),
@@ -815,8 +958,8 @@ class _EstoquePageState extends State<EstoquePage>
                         }
                       });
 
-                      Navigator.of(context).pop(); // Fecha o progresso
-                      Navigator.of(context).pop(); // Fecha o diálogo
+                      Navigator.of(dialogContext).pop(); // Fecha o progresso
+                      Navigator.of(dialogContext).pop(); // Fecha o diálogo
 
                       ScaffoldMessenger.of(context).showSnackBar(
                         SnackBar(
@@ -827,7 +970,7 @@ class _EstoquePageState extends State<EstoquePage>
                         ),
                       );
                     } catch (e) {
-                      Navigator.of(context).pop(); // Fecha o progresso
+                      Navigator.of(dialogContext).pop(); // Fecha o progresso
                       ScaffoldMessenger.of(context).showSnackBar(
                         SnackBar(
                           content: Text('Erro: $e'),
