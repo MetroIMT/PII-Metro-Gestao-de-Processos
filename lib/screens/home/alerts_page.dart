@@ -62,7 +62,7 @@ class _AlertsPageState extends State<AlertsPage>
     }
   }
 
-  // --- ATUALIZADO: Método para carregar e processar alertas (com Vencido) ---
+  // --- ATUALIZADO: Método para carregar e processar alertas (com Vencido e Calibração) ---
   Future<void> _loadAlerts() async {
     setState(() {
       _isLoading = true;
@@ -73,7 +73,7 @@ class _AlertsPageState extends State<AlertsPage>
       // 1. Busca os três tipos de material em paralelo
       final results = await Future.wait([
         _materialService.getByTipo('giro'),
-        _materialService.getByTipo('patrimoniado'),
+        _materialService.getByTipo('instrumento'), // Corrigido para instrumento
         _materialService.getByTipo('consumo'),
       ]);
 
@@ -84,47 +84,97 @@ class _AlertsPageState extends State<AlertsPage>
       final generatedAlerts = <AlertItem>[];
       final now = DateTime.now();
       
-      // Limites para 'Vencimento Próximo'
+      // Limites para 'Vencimento Próximo' e 'Calibração Próxima'
       final expiryLimit = now.add(const Duration(days: 30));
       final criticalExpiryLimit = now.add(const Duration(days: 15));
 
       for (final m in allMaterials) {
         // --- LÓGICA DE ALERTA ATUALIZADA ---
 
-        // 1. Calcular condições e severidades
-        bool isLowStock = m.quantidade < 10;
-        int lowStockSeverity = isLowStock ? (m.quantidade == 0 ? 3 : 2) : 0;
+        // Condições Específicas para Instrumentos (tipo 'instrumento')
+        if (m.tipo == 'instrumento') {
+          bool isCalibExpired = m.dataCalibracao != null && m.dataCalibracao!.isBefore(now);
+          bool isCalibNearExpiry = m.dataCalibracao != null && 
+                                  !isCalibExpired && 
+                                  m.dataCalibracao!.isBefore(expiryLimit);
+          int calibSeverity = isCalibExpired ? 3 : (isCalibNearExpiry ? 2 : 0);
+
+          if (calibSeverity > 0) {
+             generatedAlerts.add(AlertItem(
+              codigo: m.codigo,
+              nome: m.nome,
+              quantidade: m.quantidade,
+              local: m.local,
+              vencimento: m.dataCalibracao, // Usa a data de calibração como 'vencimento' para o alerta
+              type: AlertType.calibration, 
+              severity: calibSeverity,
+            ));
+            // Pula para o próximo material, pois alertas de estoque não se aplicam a instrumentos unitários
+            continue; 
+          }
+        }
         
-        // NOVO: Verifica se está VENCIDO (data é antes de agora)
-        bool isExpired = m.vencimento != null && m.vencimento!.isBefore(now);
-        int expiredSeverity = isExpired ? 3 : 0; // Severity 3 para vencido
+        // 1. Calcular condições e severidades para CONSUMO/GIRO (Materiais sem a condição 'instrumento')
+        // Instrumentos são sempre unitários e seu status é mais importante que a quantidade
+        if (m.tipo != 'instrumento') {
+          bool isLowStock = m.quantidade < 10;
+          int lowStockSeverity = isLowStock ? (m.quantidade == 0 ? 3 : 2) : 0;
+          
+          // NOVO: Verifica se está VENCIDO (data é antes de agora)
+          bool isExpired = m.vencimento != null && m.vencimento!.isBefore(now);
+          int expiredSeverity = isExpired ? 3 : 0; // Severity 3 para vencido
 
-        // ATUALIZADO: Verifica se está PRÓXIMO DO VENCIMENTO (e não vencido)
-        bool isNearExpiry = m.vencimento != null && 
-                            !isExpired && 
-                            m.vencimento!.isBefore(expiryLimit);
-                            
-        int nearExpirySeverity = isNearExpiry
-            ? (m.vencimento!.isBefore(criticalExpiryLimit) ? 3 : 2)
-            : 0;
+          // ATUALIZADO: Verifica se está PRÓXIMO DO VENCIMENTO (e não vencido)
+          bool isNearExpiry = m.vencimento != null && 
+                              !isExpired && 
+                              m.vencimento!.isBefore(expiryLimit);
+                              
+          int nearExpirySeverity = isNearExpiry
+              ? (m.vencimento!.isBefore(criticalExpiryLimit) ? 3 : 2)
+              : 0;
 
-        // 2. Determinar qual alerta criar (APENAS UM por item)
+          // 2. Determinar qual alerta criar (APENAS UM por item)
 
-        if (isExpired) {
-          // Caso 1: Item Vencido (Prioridade máxima, ignora estoque)
-          generatedAlerts.add(AlertItem(
-            codigo: m.codigo,
-            nome: m.nome,
-            quantidade: m.quantidade,
-            local: m.local,
-            vencimento: m.vencimento,
-            type: AlertType.expired, // NOVO TIPO
-            severity: expiredSeverity,
-          ));
-        } else if (isLowStock && isNearExpiry) {
-          // Caso 2: AMBOS problemas (Não está vencido). Prioriza o mais grave.
-          if (lowStockSeverity >= nearExpirySeverity) {
-            // Prioriza estoque baixo (ou se a gravidade for igual)
+          if (isExpired) {
+            // Caso 1: Item Vencido (Prioridade máxima, ignora estoque)
+            generatedAlerts.add(AlertItem(
+              codigo: m.codigo,
+              nome: m.nome,
+              quantidade: m.quantidade,
+              local: m.local,
+              vencimento: m.vencimento,
+              type: AlertType.expired, // NOVO TIPO
+              severity: expiredSeverity,
+            ));
+          } else if (isLowStock && isNearExpiry) {
+            // Caso 2: AMBOS problemas (Não está vencido). Prioriza o mais grave.
+            final severityMax = max(lowStockSeverity, nearExpirySeverity);
+            
+            if (lowStockSeverity >= nearExpirySeverity) {
+              // Prioriza estoque baixo (ou se a gravidade for igual)
+              generatedAlerts.add(AlertItem(
+                codigo: m.codigo,
+                nome: m.nome,
+                quantidade: m.quantidade,
+                local: m.local,
+                vencimento: m.vencimento,
+                type: AlertType.lowStock,
+                severity: severityMax,
+              ));
+            } else {
+              // Vencimento é mais grave
+              generatedAlerts.add(AlertItem(
+                codigo: m.codigo,
+                nome: m.nome,
+                quantidade: m.quantidade,
+                local: m.local,
+                vencimento: m.vencimento,
+                type: AlertType.nearExpiry,
+                severity: severityMax,
+              ));
+            }
+          } else if (isLowStock) {
+            // Caso 3: Apenas estoque baixo
             generatedAlerts.add(AlertItem(
               codigo: m.codigo,
               nome: m.nome,
@@ -134,8 +184,8 @@ class _AlertsPageState extends State<AlertsPage>
               type: AlertType.lowStock,
               severity: lowStockSeverity,
             ));
-          } else {
-            // Vencimento é mais grave
+          } else if (isNearExpiry) {
+            // Caso 4: Apenas vencimento próximo (e não vencido)
             generatedAlerts.add(AlertItem(
               codigo: m.codigo,
               nome: m.nome,
@@ -146,30 +196,7 @@ class _AlertsPageState extends State<AlertsPage>
               severity: nearExpirySeverity,
             ));
           }
-        } else if (isLowStock) {
-          // Caso 3: Apenas estoque baixo
-          generatedAlerts.add(AlertItem(
-            codigo: m.codigo,
-            nome: m.nome,
-            quantidade: m.quantidade,
-            local: m.local,
-            vencimento: m.vencimento,
-            type: AlertType.lowStock,
-            severity: lowStockSeverity,
-          ));
-        } else if (isNearExpiry) {
-          // Caso 4: Apenas vencimento próximo (e não vencido)
-          generatedAlerts.add(AlertItem(
-            codigo: m.codigo,
-            nome: m.nome,
-            quantidade: m.quantidade,
-            local: m.local,
-            vencimento: m.vencimento,
-            type: AlertType.nearExpiry,
-            severity: nearExpirySeverity,
-          ));
         }
-        // Se nenhum for verdadeiro, nada é adicionado.
         // --- FIM DA LÓGICA DE ALERTA ATUALIZADA ---
       }
 
@@ -394,7 +421,7 @@ class _AlertsPageState extends State<AlertsPage>
                                               label: Text('Quantidade')),
                                           DataColumn(label: Text('Local')),
                                           DataColumn(
-                                              label: Text('Vencimento')),
+                                              label: Text('Data Limite')), // MUDANÇA
                                           DataColumn(
                                               label: Text('Prioridade')),
                                           DataColumn(label: Text('Ações')),
@@ -515,7 +542,7 @@ class _AlertsPageState extends State<AlertsPage>
     }
   }
 
-  // ATUALIZADO: Inclui 'Vencido'
+  // ATUALIZADO: Inclui 'Vencido' e Calibração
   String _typeLabel(AlertType t) {
     switch (t) {
       case AlertType.lowStock:
@@ -525,7 +552,7 @@ class _AlertsPageState extends State<AlertsPage>
       case AlertType.expired:
         return 'Vencido';
       case AlertType.calibration:
-        return 'Calibração';
+        return 'Calibração Vencida/Próx.';
     }
   }
 
@@ -825,6 +852,29 @@ class _AlertsPageState extends State<AlertsPage>
   void _showDetail(AlertItem a) {
     final Color severityColor = _severityColor(a.severity);
 
+    // Mapeamento de rótulos específicos para o detalhe
+    String detailTitle;
+    String detailDescription;
+    IconData detailIcon;
+
+    if (a.type == AlertType.lowStock) {
+      detailTitle = 'Estoque Baixo';
+      detailDescription = 'Estoque baixo — considere reposição ou realocação para este item.';
+      detailIcon = Icons.inventory_2;
+    } else if (a.type == AlertType.expired) {
+      detailTitle = 'Material Vencido';
+      detailDescription = 'ALERTA: Material VENCIDO — descarte ou reavalie imediatamente.';
+      detailIcon = Icons.warning_amber_rounded;
+    } else if (a.type == AlertType.calibration) {
+      detailTitle = 'Calibração Expirada/Próxima';
+      detailDescription = 'ALERTA: Calibração vencida ou próxima. Envie o instrumento para aferição imediatamente.';
+      detailIcon = Icons.build;
+    } else {
+      detailTitle = 'Vencimento Próximo';
+      detailDescription = 'Vencimento próximo — priorize o uso ou inspeção do material.';
+      detailIcon = Icons.event;
+    }
+
     showDialog(
       context: context,
       builder: (_) => Dialog(
@@ -848,11 +898,7 @@ class _AlertsPageState extends State<AlertsPage>
                         borderRadius: BorderRadius.circular(12),
                       ),
                       child: Icon(
-                        a.type == AlertType.lowStock
-                            ? Icons.inventory_2
-                            : a.type == AlertType.expired
-                                ? Icons.warning_amber_rounded
-                                : Icons.event,
+                        detailIcon,
                         color: severityColor,
                         size: 28,
                       ),
@@ -903,19 +949,18 @@ class _AlertsPageState extends State<AlertsPage>
                   children: [
                     _infoTile('Quantidade', a.quantidade.toString()),
                     const SizedBox(width: 12),
-                    _infoTile('Vencimento', _formatDate(a.vencimento)),
+                    _infoTile(
+                      a.type == AlertType.calibration ? 'Calibr. Expira' : 'Vencimento', 
+                      _formatDate(a.vencimento)
+                    ),
                     const SizedBox(width: 12),
-                    _infoTile('Tipo', _typeLabel(a.type)),
+                    _infoTile('Tipo', detailTitle),
                   ],
                 ),
                 const SizedBox(height: 20),
                 Text(
-                  a.type == AlertType.lowStock
-                      ? 'Estoque baixo — considere reposição ou realocação para este item.'
-                      : a.type == AlertType.expired
-                          ? 'ALERTA: Material VENCIDO — descarte ou reavalie imediatamente.'
-                          : 'Vencimento próximo — priorize o uso ou inspeção do material.',
-                  style: a.type == AlertType.expired
+                  detailDescription,
+                  style: (a.type == AlertType.expired || a.type == AlertType.calibration)
                       ? TextStyle(color: Colors.red.shade900, fontSize: 15, fontWeight: FontWeight.bold)
                       : const TextStyle(color: Colors.black54, fontSize: 15),
                 ),
@@ -1077,7 +1122,7 @@ class _AlertsPageState extends State<AlertsPage>
         buildButton(
             'Vencido', AlertType.expired, Colors.red.shade900, Icons.warning_amber_rounded), // NOVO BOTÃO
         buildButton(
-            'Calibração', AlertType.calibration, Colors.blueAccent.shade700, Icons.build),
+            'Calibração', AlertType.calibration, Colors.blueAccent.shade700, Icons.build), // NOVO BOTÃO
       ],
     );
   }
@@ -1133,8 +1178,12 @@ class _AlertsPageState extends State<AlertsPage>
     final lowStock =
         _allAlerts.where((a) => a.type == AlertType.lowStock).length;
     // Soma NearExpiry e Expired para o estatística
-    final nearExpiry =
+    final vencimento =
         _allAlerts.where((a) => a.type == AlertType.nearExpiry || a.type == AlertType.expired).length; 
+    // NOVO: Calibração
+    final calibracao =
+        _allAlerts.where((a) => a.type == AlertType.calibration).length; 
+
 
     final size = MediaQuery.of(context).size;
     final bool isMobileView = size.width < 600;
@@ -1258,8 +1307,14 @@ class _AlertsPageState extends State<AlertsPage>
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         if (showTitle)
-          Row(
+          Wrap(
+            spacing: 8,
+            runSpacing: 8,
             children: [
+              _smallStat('Total', total.toString(), metroBlue),
+              _smallStat('Estoque baixo', lowStock.toString(), Colors.red),
+              _smallStat('Vencimento', vencimento.toString(), Colors.orange),
+              _smallStat('Calibração', calibracao.toString(), Colors.blueAccent), // NOVO
               Expanded(
                 child: _smallStat(
                   'Total',
@@ -1428,6 +1483,31 @@ class _AlertsPageState extends State<AlertsPage>
 
   // Novo helper: card otimizado para mobile (empilhado, textos quebram)
   Widget _buildAlertCardMobile(AlertItem a, int index) {
+    // Mapeamento de rótulos específicos para o card
+    String cardTitle;
+    String cardInstruction;
+    IconData cardIcon;
+
+    if (a.type == AlertType.lowStock) {
+      cardTitle = 'Estoque Baixo';
+      cardInstruction = 'Estoque baixo — considere reposição ou realocação.';
+      cardIcon = Icons.inventory_2;
+    } else if (a.type == AlertType.expired) {
+      cardTitle = 'Material Vencido';
+      cardInstruction = 'ALERTA: Material VENCIDO — descarte ou reavalie imediatamente.';
+      cardIcon = Icons.warning_amber_rounded;
+    } else if (a.type == AlertType.calibration) {
+      cardTitle = 'Calibração Expirada/Próxima';
+      cardInstruction = 'ALERTA: Calibração vencida ou próxima. Aferição necessária.';
+      cardIcon = Icons.build;
+    } else {
+      cardTitle = 'Vencimento Próximo';
+      cardInstruction = 'Vencimento próximo — priorize uso ou inspeção.';
+      cardIcon = Icons.event;
+    }
+
+    final isCritical = a.type == AlertType.expired || a.type == AlertType.calibration;
+
     return Card(
       color: Colors.white,
       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
@@ -1509,15 +1589,11 @@ class _AlertsPageState extends State<AlertsPage>
                 children: [
                   Chip(
                     avatar: Icon(
-                      a.type == AlertType.lowStock
-                          ? Icons.inventory_2
-                          : a.type == AlertType.expired
-                              ? Icons.warning_amber_rounded
-                              : Icons.event,
+                      cardIcon,
                       size: 16,
                       color: _severityColor(a.severity),
                     ),
-                    label: Text(_typeLabel(a.type)),
+                    label: Text(cardTitle),
                     backgroundColor: _severityColor(
                       a.severity,
                     ).withAlpha((0.08 * 255).round()),
@@ -1548,7 +1624,7 @@ class _AlertsPageState extends State<AlertsPage>
                       borderRadius: BorderRadius.circular(8),
                     ),
                     child: Text(
-                      'Venc: ${_formatDate(a.vencimento)}',
+                      'Data Limite: ${_formatDate(a.vencimento)}',
                       style: TextStyle(color: Colors.grey.shade700),
                     ),
                   ),
@@ -1556,24 +1632,16 @@ class _AlertsPageState extends State<AlertsPage>
               ),
               const SizedBox(height: 8),
               // Descrição curta ou instrução (se houver) — permite múltiplas linhas
-              if (a.type == AlertType.lowStock)
-                Text(
-                  'Estoque baixo — considere reposição ou realocação.',
-                  style: TextStyle(color: Colors.grey.shade700),
-                  softWrap: true,
-                )
-              else if (a.type == AlertType.expired)
-                Text(
-                  'ALERTA: Material VENCIDO — descarte ou reavalie imediatamente.',
-                  style: TextStyle(color: Colors.red.shade900, fontWeight: FontWeight.bold),
-                  softWrap: true,
-                )
-              else
-                Text(
-                  'Vencimento próximo — priorize uso ou inspeção.',
-                  style: TextStyle(color: Colors.grey.shade700),
-                  softWrap: true,
-                ),
+              Text(
+                cardInstruction,
+                style: isCritical
+                    ? TextStyle(
+                        color: Colors.red.shade900,
+                        fontWeight: FontWeight.bold,
+                      )
+                    : TextStyle(color: Colors.grey.shade700),
+                softWrap: true,
+              ),
             ],
           ),
         ),

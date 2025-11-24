@@ -1,5 +1,7 @@
 import 'dart:convert';
 import 'package:http/http.dart' as http;
+// MUDANÇA: Usar o modelo correto. Você pode precisar ajustar o caminho dependendo da sua estrutura
+import '../models/material.dart'; 
 import '../screens/home/estoque_page.dart';
 
 class MaterialService {
@@ -18,24 +20,8 @@ class MaterialService {
     if (decoded is! List) return [];
 
     return decoded.map<EstoqueMaterial>((m) {
-      DateTime? venc;
-      try {
-        if (m['vencimento'] != null) {
-          venc = DateTime.tryParse(m['vencimento'].toString());
-        }
-      } catch (_) {
-        venc = null;
-      }
-
-      return EstoqueMaterial(
-        codigo: m['codigo']?.toString() ?? '',
-        nome: m['nome']?.toString() ?? '',
-        quantidade: (m['quantidade'] is int)
-            ? m['quantidade'] as int
-            : int.tryParse(m['quantidade']?.toString() ?? '0') ?? 0,
-        local: m['local']?.toString() ?? '',
-        vencimento: venc,
-      );
+      // MUDANÇA: Usa o construtor de fábrica EstoqueMaterial.fromJson
+      return EstoqueMaterial.fromJson(m);
     }).toList();
   }
 
@@ -46,11 +32,20 @@ class MaterialService {
     required String local,
     DateTime? vencimento,
     String? tipo,
+    // NOVOS CAMPOS ADICIONADOS AQUI
+    String? patrimonio,
+    int? estoqueMinimo,
+    DateTime? dataCalibracao,
+    String? status,
+    // FIM NOVOS CAMPOS
   }) async {
     // Rota de CREATE (POST) mantém a lógica especial /giro
     final uri = Uri.parse(
+      // Mantendo a lógica de rota original, mas usando o tipo de instrumento
       '$_baseUrl/materiais${tipo == 'giro' ? '/giro' : ''}',
     );
+    
+    // MUDANÇA ESSENCIAL: Adicionando todos os novos campos ao body
     final body = {
       'codigo': codigo,
       'nome': nome,
@@ -58,6 +53,11 @@ class MaterialService {
       'local': local,
       if (vencimento != null) 'vencimento': vencimento.toIso8601String(),
       if (tipo != null && tipo != 'giro') 'tipo': tipo,
+      // NOVOS CAMPOS ENVIADOS PARA O BACKEND
+      if (patrimonio != null) 'patrimonio': patrimonio,
+      if (estoqueMinimo != null) 'estoqueMinimo': estoqueMinimo,
+      if (dataCalibracao != null) 'dataCalibracao': dataCalibracao.toIso8601String(),
+      if (status != null) 'status': status,
     };
 
     final resp = await _client
@@ -75,24 +75,8 @@ class MaterialService {
     }
 
     final m = json.decode(resp.body);
-    DateTime? venc;
-    try {
-      if (m['vencimento'] != null) {
-        venc = DateTime.tryParse(m['vencimento'].toString());
-      }
-    } catch (_) {
-      venc = null;
-    }
-
-    return EstoqueMaterial(
-      codigo: m['codigo']?.toString() ?? '',
-      nome: m['nome']?.toString() ?? '',
-      quantidade: (m['quantidade'] is int)
-          ? m['quantidade'] as int
-          : int.tryParse(m['quantidade']?.toString() ?? '0') ?? 0,
-      local: m['local']?.toString() ?? '',
-      vencimento: venc,
-    );
+    // MUDANÇA: Usa o construtor de fábrica EstoqueMaterial.fromJson
+    return EstoqueMaterial.fromJson(m);
   }
 
   Future<void> movimentar({
@@ -135,14 +119,55 @@ class MaterialService {
     }
   }
 
+  // NOVO MÉTODO: Movimentação de Instrumentos (Retirada/Devolução)
+  Future<void> movimentarInstrumento({
+    required String codigo,
+    required String tipoMovimento, // 'retirada' ou 'devolucao'
+    required String usuario,
+    required String local, // Local de retirada/destino
+  }) async {
+    // Rota dedicada para Instrumentos (patrimoniados)
+    final uri = Uri.parse('$_baseUrl/instrumentos/movimentar'); 
+    final body = {
+      'codigo': codigo,
+      'tipoMovimento': tipoMovimento,
+      'quantidade': 1, // Instrumentos são sempre unitários
+      'usuario': usuario,
+      'local': local,
+    };
+
+    final resp = await _client
+        .post(
+          uri,
+          headers: {'Content-Type': 'application/json'},
+          body: json.encode(body),
+        )
+        .timeout(const Duration(seconds: 30));
+
+    if (resp.statusCode != 200) {
+      String errorMessage = 'Falha ao movimentar instrumento: ${resp.statusCode}';
+      try {
+        final errorBody = json.decode(resp.body);
+        if (errorBody['error'] != null) {
+          errorMessage = errorBody['error']; 
+        }
+      } catch (_) {
+        errorMessage += ' ${resp.body}';
+      }
+      throw Exception(errorMessage);
+    }
+  }
+
   // --- MÉTODO UPDATE (AGORA USANDO PATCH e ROTA SIMPLES) ---
   Future<EstoqueMaterial> update(
     String codigo, {
     String? nome,
     String? local,
     DateTime? vencimento,
+    // NOVOS CAMPOS ADICIONADOS AQUI
+    int? estoqueMinimo,
+    // FIM NOVOS CAMPOS
   }) async {
-    // --- MUDANÇA: Rota simplificada. /materiais/:codigo para TODOS os tipos ---
     final uri = Uri.parse(
       '$_baseUrl/materiais/$codigo',
     );
@@ -152,6 +177,9 @@ class MaterialService {
       if (local != null) 'local': local,
       'vencimento':
           vencimento?.toIso8601String(), // Envia null se for nulo
+      // NOVOS CAMPOS ENVIADOS PARA O BACKEND
+      if (estoqueMinimo != null) 'estoqueMinimo': estoqueMinimo,
+      // O backend precisa lidar com a atualização de dataCalibracao separadamente
     };
 
     final resp = await _client
@@ -169,30 +197,12 @@ class MaterialService {
     }
 
     final m = json.decode(resp.body);
-    DateTime? venc;
-    try {
-      if (m['vencimento'] != null) {
-        venc = DateTime.tryParse(m['vencimento'].toString());
-      }
-    } catch (_) {
-      venc = null;
-    }
-
-    // Retorna o material atualizado (importante: `quantidade` vem do servidor)
-    return EstoqueMaterial(
-      codigo: m['codigo']?.toString() ?? '',
-      nome: m['nome']?.toString() ?? '',
-      quantidade: (m['quantidade'] is int)
-          ? m['quantidade'] as int
-          : int.tryParse(m['quantidade']?.toString() ?? '0') ?? 0,
-      local: m['local']?.toString() ?? '',
-      vencimento: venc,
-    );
+    // MUDANÇA: Usa o construtor de fábrica EstoqueMaterial.fromJson
+    return EstoqueMaterial.fromJson(m);
   }
 
   // --- MÉTODO DELETE (ROTA SIMPLES) ---
   Future<void> delete(String codigo) async {
-    // --- MUDANÇA: Rota simplificada. /materiais/:codigo para TODOS os tipos ---
     final uri = Uri.parse(
       '$_baseUrl/materiais/$codigo',
     );
