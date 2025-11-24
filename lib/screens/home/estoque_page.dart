@@ -929,71 +929,6 @@ class _EstoquePageState extends State<EstoquePage>
               actionsPadding: const EdgeInsets.fromLTRB(24, 0, 24, 24),
               title: Row(
                 children: [
-                  Text('Estoque atual: ${material.quantidade}'),
-                  const SizedBox(height: 16),
-                  if (!isInstrumento) 
-                    Row(
-                      mainAxisAlignment: MainAxisAlignment.center,
-                      children: [
-                        ChoiceChip(
-                          label: const Text('Saída'),
-                          selected: tipoMovimento == 'saida',
-                          onSelected: (selected) {
-                            if (selected) {
-                              setDialogState(() => tipoMovimento = 'saida');
-                            }
-                          },
-                          selectedColor: Colors.red.shade100,
-                        ),
-                        const SizedBox(width: 8),
-                        ChoiceChip(
-                          label: const Text('Entrada'),
-                          selected: tipoMovimento == 'entrada',
-                          onSelected: (selected) {
-                            if (selected) {
-                              setDialogState(() => tipoMovimento = 'entrada');
-                            }
-                          },
-                          selectedColor: Colors.green.shade100,
-                        ),
-                      ],
-                    )
-                  else 
-                    Row(
-                      mainAxisAlignment: MainAxisAlignment.center,
-                      children: [
-                        ChoiceChip(
-                          label: const Text('Retirada'),
-                          selected: tipoMovimento == 'saida',
-                          onSelected: (selected) {
-                            if (selected) {
-                              setDialogState(() => tipoMovimento = 'saida');
-                            }
-                          },
-                          selectedColor: Colors.red.shade100,
-                        ),
-                        const SizedBox(width: 8),
-                        ChoiceChip(
-                          label: const Text('Devolução'),
-                          selected: tipoMovimento == 'entrada',
-                          onSelected: (selected) {
-                            if (selected) {
-                              setDialogState(() => tipoMovimento = 'entrada');
-                            }
-                          },
-                          selectedColor: Colors.green.shade100,
-                        ),
-                      ],
-                    ),
-                  const SizedBox(height: 16),
-                  TextField(
-                    controller: quantidadeController,
-                    readOnly: isInstrumento, 
-                    keyboardType: TextInputType.number,
-                    inputFormatters: [FilteringTextInputFormatter.digitsOnly],
-                    decoration: InputDecoration(
-                      labelText: isInstrumento ? 'Quantidade (Deve ser 1)' : 'Quantidade',
-                      border: const OutlineInputBorder(),
                   Container(
                     padding: const EdgeInsets.all(10),
                     decoration: BoxDecoration(
@@ -1045,7 +980,7 @@ class _EstoquePageState extends State<EstoquePage>
                       children: [
                         Expanded(
                           child: ChoiceChip(
-                            label: const Text('Saída'),
+                            label: Text(isInstrumento ? 'Retirada' : 'Saída'),
                             selected: tipoMovimento == 'saida',
                             onSelected: (selected) {
                               if (selected) {
@@ -1071,7 +1006,7 @@ class _EstoquePageState extends State<EstoquePage>
                         const SizedBox(width: 8),
                         Expanded(
                           child: ChoiceChip(
-                            label: const Text('Entrada'),
+                            label: Text(isInstrumento ? 'Devolução' : 'Entrada'),
                             selected: tipoMovimento == 'entrada',
                             onSelected: (selected) {
                               if (selected) {
@@ -1101,9 +1036,10 @@ class _EstoquePageState extends State<EstoquePage>
                     const SizedBox(height: 16),
                     TextField(
                       controller: quantidadeController,
+                      readOnly: isInstrumento,
                       keyboardType: TextInputType.number,
                       inputFormatters: [FilteringTextInputFormatter.digitsOnly],
-                      decoration: _buildDialogInputDecoration('Quantidade *'),
+                      decoration: _buildDialogInputDecoration(isInstrumento ? 'Quantidade (Deve ser 1)' : 'Quantidade *'),
                     ),
                   ],
                 ),
@@ -1138,7 +1074,7 @@ class _EstoquePageState extends State<EstoquePage>
                     }
 
                     showDialog(
-                      context: dialogContext,
+                      context: context,
                       barrierDismissible: false,
                       builder: (_) =>
                           const Center(child: CircularProgressIndicator()),
@@ -1192,9 +1128,7 @@ class _EstoquePageState extends State<EstoquePage>
                       });
 
                       Navigator.of(context).pop(); 
-                      Navigator.of(context).pop();
-                      Navigator.of(dialogContext).pop(); // Fecha o progresso
-                      Navigator.of(dialogContext).pop(); // Fecha o diálogo
+                      Navigator.of(dialogContext).pop();
 
                       ScaffoldMessenger.of(context).showSnackBar(
                         SnackBar(
@@ -1206,7 +1140,6 @@ class _EstoquePageState extends State<EstoquePage>
                       );
                     } catch (e) {
                       Navigator.of(context).pop(); 
-                      Navigator.of(dialogContext).pop(); // Fecha o progresso
                       ScaffoldMessenger.of(context).showSnackBar(
                         SnackBar(
                           content: Text('Erro: $e'),

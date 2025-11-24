@@ -678,8 +678,6 @@ class _HomeScreenState extends State<HomeScreen>
       builder: (context, constraints) {
         final double maxWidth = constraints.maxWidth;
 
-        final int crossAxisCount = maxWidth < 650 ? 1 : 2;
-
         // 🔹 1 coluna em celular, 2 colunas no resto (tablet/desktop)
         final int crossAxisCount = maxWidth < 750 ? 1 : 2;
 
@@ -1396,12 +1394,8 @@ class _HomeScreenState extends State<HomeScreen>
     final allAlerts = _dashboardAlerts;
 
     final count = allAlerts.length;
-    final lowStock = allAlerts
-        .where((a) => a.type == AlertType.lowStock)
-        .length;
-    final nearExpiry = allAlerts
-        .where((a) => a.type == AlertType.nearExpiry)
-        .length;
+    final lowStock = allAlerts.where((a) => a.type == AlertType.lowStock).length;
+    final nearExpiry = allAlerts.where((a) => a.type == AlertType.nearExpiry).length;
 
     final sortedAlerts = List<AlertItem>.from(allAlerts);
     sortedAlerts.sort((a, b) => b.severity.compareTo(a.severity));
@@ -1414,49 +1408,6 @@ class _HomeScreenState extends State<HomeScreen>
         return Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            Expanded(
-              child: _smallStat(
-                'Total de alertas',
-                count.toString(),
-                metroBlue,
-                Icons.stacked_line_chart,
-              ),
-            ),
-            const SizedBox(width: 8),
-            Expanded(
-              child: _smallStat(
-                'Estoques baixos',
-                lowStock.toString(),
-                Colors.red,
-                Icons.inventory_2_outlined,
-              ),
-            ),
-            const SizedBox(width: 8),
-            Expanded(
-              child: _smallStat(
-                'Vencimentos próximos',
-                nearExpiry.toString(),
-                Colors.orange,
-                Icons.calendar_today_outlined,
-              ),
-            ),
-          ],
-        ),
-        const SizedBox(height: 12),
-        const Divider(height: 16), // Linha divisória (Altura Fixa)
-        // 4. Lista de Alertas Urgentes (AGORA EXPANDIDA E SCROLLABLE)
-        Expanded(
-          child: top3Alerts.isEmpty
-              ? Center(
-                  child: Padding(
-                    padding: const EdgeInsets.symmetric(vertical: 8),
-                    child: Column(
-                      mainAxisAlignment: MainAxisAlignment.center,
-                      children: const [
-                        Icon(
-                          Icons.check_circle_outline,
-                          color: Colors.green,
-                          size: 28,
             // 3. Linha de Estatísticas (Responsiva)
             if (isCompact)
               Column(

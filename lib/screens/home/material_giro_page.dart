@@ -12,10 +12,6 @@ class MaterialGiroPage extends StatefulWidget {
 
 class _MaterialGiroPageState extends State<MaterialGiroPage> {
   final MaterialService _service = MaterialService();
-  // Agora EstoqueMaterial está corretamente tipado pelo import acima.
-  List<EstoqueMaterial>? _materiais; 
-  String? _error;
-  
   // Define o tipo para evitar erros de digitação
   static const String _materialType = 'giro';
   List<EstoqueMaterial>? _materiais;
@@ -65,10 +61,7 @@ class _MaterialGiroPageState extends State<MaterialGiroPage> {
 
   Future<void> _load() async {
     try {
-      // Usa o tipo 'giro'
       final list = await _service.getByTipo(_materialType);
-      setState(() => _materiais = list);
-      final list = await _service.getByTipo('giro');
       if (mounted) {
         setState(() {
           _materiais = list;

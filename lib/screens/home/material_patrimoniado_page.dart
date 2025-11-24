@@ -14,7 +14,6 @@ class MaterialPatrimoniadoPage extends StatefulWidget {
 class _MaterialPatrimoniadoPageState extends State<MaterialPatrimoniadoPage> {
   final MaterialService _service = MaterialService();
   List<EstoqueMaterial>? _materiais;
-  String? _error;
   // MUDANÇA: Define o tipo como 'instrumento'
   static const String _materialType = 'instrumento';
   bool _isLoading = true;
@@ -51,8 +50,6 @@ class _MaterialPatrimoniadoPageState extends State<MaterialPatrimoniadoPage> {
     try {
       // MUDANÇA: Chama getByTipo com o novo tipo 'instrumento'
       final list = await _service.getByTipo(_materialType);
-      setState(() => _materiais = list);
-      final list = await _service.getByTipo('patrimoniado');
       if (mounted) {
         setState(() {
           _materiais = list;

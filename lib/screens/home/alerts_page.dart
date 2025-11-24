@@ -1315,32 +1315,6 @@ class _AlertsPageState extends State<AlertsPage>
               _smallStat('Estoque baixo', lowStock.toString(), Colors.red),
               _smallStat('Vencimento', vencimento.toString(), Colors.orange),
               _smallStat('Calibração', calibracao.toString(), Colors.blueAccent), // NOVO
-              Expanded(
-                child: _smallStat(
-                  'Total',
-                  total.toString(),
-                  metroBlue,
-                  center: isMobileView,
-                ),
-              ),
-              const SizedBox(width: 8),
-              Expanded(
-                child: _smallStat(
-                  'Estoque baixo',
-                  lowStock.toString(),
-                  Colors.red,
-                  center: isMobileView,
-                ),
-              ),
-              const SizedBox(width: 8),
-              Expanded(
-                child: _smallStat(
-                  'Vencimento',
-                  nearExpiry.toString(),
-                  Colors.orange,
-                  center: isMobileView,
-                ),
-              ),
             ],
           ),
         if (showTitle) const SizedBox(height: 12),
