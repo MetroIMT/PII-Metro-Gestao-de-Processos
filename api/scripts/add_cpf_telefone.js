@@ -10,7 +10,6 @@ async function run() {
     { $set: { cpf: "" } }
   );
 
-  // Set telefone to empty string where missing or null
   const resTel = await col.updateMany(
     { $or: [{ telefone: { $exists: false } }, { telefone: null }] },
     { $set: { telefone: "" } }
